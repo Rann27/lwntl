@@ -281,6 +281,42 @@ class API:
         """Estimate token count for text"""
         return {"tokens": estimate_tokens(text)}
 
+    def export_glossary_file(self, series_id: str, fmt: str, data: str):
+        """Export glossary as JSON or CSV via native save dialog."""
+        try:
+            import webview
+            series = get_series(series_id)
+            safe_title = (series.get("title", "glossary") if series else "glossary").replace("/", "-").replace("\\", "-")[:40]
+            ext = "csv" if fmt == "csv" else "json"
+            filename = f"glossary-{safe_title}.{ext}"
+
+            if fmt == "csv":
+                file_types = ("CSV File (*.csv)",)
+            else:
+                file_types = ("JSON File (*.json)",)
+
+            result = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                directory="",
+                save_filename=filename,
+                file_types=file_types,
+            )
+            if not result:
+                return {"error": False, "cancelled": True}
+
+            save_path = result[0] if isinstance(result, (list, tuple)) else result
+            if not save_path.endswith(f".{ext}"):
+                save_path += f".{ext}"
+
+            with open(save_path, "w", encoding="utf-8") as f:
+                f.write(data)
+
+            print(f"[Export] Glossary saved to: {save_path}")
+            return {"error": False, "message": f"Glossary berhasil diekspor!", "path": save_path}
+        except Exception as e:
+            print(f"[Export] Glossary error: {e}")
+            return {"error": True, "message": str(e)}
+
     def export_chapter(self, series_id: str, chapter_id: str):
         """Export a translated chapter to .docx via save dialog."""
         try:

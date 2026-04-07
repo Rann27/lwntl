@@ -3,9 +3,10 @@
  * Inline-editable table with search, hover preview, import/export
  */
 
-import { useState, useMemo, useRef } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import { Plus, Search, Trash2, Check, X, Edit2, Download, Upload, FileJson, FileText } from 'lucide-react'
 import type { GlossaryEntry } from '../types'
+import { exportGlossaryFile } from '../api'
 
 interface GlossaryTableProps {
   entries: GlossaryEntry[]
@@ -16,25 +17,31 @@ interface GlossaryTableProps {
   onImport: (entries: Array<{ sourceTerm: string; translatedTerm: string; notes: string }>) => void
 }
 
-// ─── Hover Preview Tooltip ───────────────────────────────────────────────────
+// ─── Hover Preview Tooltip (fixed-position, avoids overflow clipping) ────────
 
-function GlossaryTooltip({ entry, visible }: { entry: GlossaryEntry; visible: boolean }) {
-  if (!visible) return null
+interface TooltipPos { x: number; y: number }
+
+function GlossaryTooltip({ entry, pos }: { entry: GlossaryEntry | null; pos: TooltipPos | null }) {
+  if (!entry || !pos) return null
   const date = entry.updatedAt ? new Date(entry.updatedAt).toLocaleDateString('id-ID') : '—'
+
+  // Position to the left of the cursor, vertically centered around it
+  const W = 240
+  const left = Math.max(4, pos.x - W - 12)
+  const top = pos.y - 60
+
   return (
     <div
       style={{
-        position: 'absolute',
-        right: 'calc(100% + 8px)',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        zIndex: 100,
+        position: 'fixed',
+        left,
+        top,
+        zIndex: 9999,
         backgroundColor: 'var(--color-surface)',
         border: '2.5px solid var(--color-border)',
         boxShadow: 'var(--neo-shadow)',
         padding: '10px 12px',
-        minWidth: '200px',
-        maxWidth: '280px',
+        width: `${W}px`,
         pointerEvents: 'none',
       }}
     >
@@ -42,16 +49,16 @@ function GlossaryTooltip({ entry, visible }: { entry: GlossaryEntry; visible: bo
         Preview
       </div>
       <div style={{ marginBottom: '4px' }}>
-        <span style={{ fontSize: '11px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Asli: </span>
+        <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Asli: </span>
         <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text)' }}>{entry.sourceTerm}</span>
       </div>
       <div style={{ marginBottom: '4px' }}>
-        <span style={{ fontSize: '11px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Terjemahan: </span>
+        <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Terjemahan: </span>
         <span style={{ fontSize: '13px', color: 'var(--color-text)' }}>{entry.translatedTerm}</span>
       </div>
       {entry.notes && (
         <div style={{ marginBottom: '4px' }}>
-          <span style={{ fontSize: '11px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Catatan: </span>
+          <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Catatan: </span>
           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{entry.notes}</span>
         </div>
       )}
@@ -64,30 +71,18 @@ function GlossaryTooltip({ entry, visible }: { entry: GlossaryEntry; visible: bo
 
 // ─── Import/Export helpers ───────────────────────────────────────────────────
 
-function exportAsJSON(entries: GlossaryEntry[], title: string) {
+function buildJSON(entries: GlossaryEntry[]): string {
   const data = entries.map(({ sourceTerm, translatedTerm, notes }) => ({ sourceTerm, translatedTerm, notes }))
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `glossary-${title}.json`
-  a.click()
-  URL.revokeObjectURL(url)
+  return JSON.stringify(data, null, 2)
 }
 
-function exportAsCSV(entries: GlossaryEntry[], title: string) {
+function buildCSV(entries: GlossaryEntry[]): string {
+  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
   const header = 'sourceTerm,translatedTerm,notes'
-  const rows = entries.map(({ sourceTerm, translatedTerm, notes }) => {
-    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`
-    return `${esc(sourceTerm)},${esc(translatedTerm)},${esc(notes)}`
-  })
-  const blob = new Blob([header + '\n' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `glossary-${title}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
+  const rows = entries.map(({ sourceTerm, translatedTerm, notes }) =>
+    `${esc(sourceTerm)},${esc(translatedTerm)},${esc(notes)}`
+  )
+  return header + '\n' + rows.join('\n')
 }
 
 function parseImportedFile(text: string, filename: string): Array<{ sourceTerm: string; translatedTerm: string; notes: string }> | null {
@@ -125,15 +120,28 @@ function parseImportedFile(text: string, filename: string): Array<{ sourceTerm: 
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function GlossaryTable({ entries, onAdd, onEdit, onDelete, onImport }: GlossaryTableProps) {
+export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onImport }: GlossaryTableProps) {
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editSource, setEditSource] = useState('')
   const [editTranslated, setEditTranslated] = useState('')
   const [editNotes, setEditNotes] = useState('')
   const [showExportMenu, setShowExportMenu] = useState(false)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [tooltipEntry, setTooltipEntry] = useState<GlossaryEntry | null>(null)
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
+
+  // Close export menu on outside click
+  useEffect(() => {
+    if (!showExportMenu) return
+    const handler = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showExportMenu])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const filtered = useMemo(() => {
@@ -181,8 +189,6 @@ export function GlossaryTable({ entries, onAdd, onEdit, onDelete, onImport }: Gl
     // Reset so the same file can be re-imported
     e.target.value = ''
   }
-
-  const seriesTitle = 'glossary'
 
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
@@ -232,7 +238,10 @@ export function GlossaryTable({ entries, onAdd, onEdit, onDelete, onImport }: Gl
                 style={{ backgroundColor: 'var(--color-surface)', border: '2px solid var(--color-border)', boxShadow: 'var(--neo-shadow)', minWidth: '130px' }}
               >
                 <button
-                  onClick={() => { exportAsJSON(entries, seriesTitle); setShowExportMenu(false) }}
+                  onClick={async () => {
+                    setShowExportMenu(false)
+                    await exportGlossaryFile(seriesId, 'json', buildJSON(entries))
+                  }}
                   className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
                   style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
@@ -242,7 +251,10 @@ export function GlossaryTable({ entries, onAdd, onEdit, onDelete, onImport }: Gl
                 </button>
                 <div style={{ height: '1px', backgroundColor: 'var(--color-separator)' }} />
                 <button
-                  onClick={() => { exportAsCSV(entries, seriesTitle); setShowExportMenu(false) }}
+                  onClick={async () => {
+                    setShowExportMenu(false)
+                    await exportGlossaryFile(seriesId, 'csv', buildCSV(entries))
+                  }}
                   className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
                   style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
@@ -293,9 +305,19 @@ export function GlossaryTable({ entries, onAdd, onEdit, onDelete, onImport }: Gl
             {filtered.map((entry) => (
               <tr
                 key={entry.id}
-                style={{ borderBottom: `1px solid var(--color-separator)`, position: 'relative' }}
-                onMouseEnter={() => setHoveredId(entry.id)}
-                onMouseLeave={() => setHoveredId(null)}
+                style={{ borderBottom: `1px solid var(--color-separator)` }}
+                onMouseEnter={(e) => {
+                  if (editingId === entry.id) return
+                  const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  setTooltipEntry(entry)
+                  setTooltipPos({ x: rect.left, y: rect.top + rect.height / 2 })
+                }}
+                onMouseLeave={() => { setTooltipEntry(null); setTooltipPos(null) }}
+                onMouseMove={(e) => {
+                  if (tooltipEntry?.id === entry.id) {
+                    setTooltipPos({ x: e.clientX, y: e.clientY })
+                  }
+                }}
               >
                 {editingId === entry.id ? (
                   <>
@@ -321,10 +343,8 @@ export function GlossaryTable({ entries, onAdd, onEdit, onDelete, onImport }: Gl
                   </>
                 ) : (
                   <>
-                    <td className="px-3 py-2" style={{ fontWeight: 600, color: 'var(--color-text)', position: 'relative' }}>
+                    <td className="px-3 py-2" style={{ fontWeight: 600, color: 'var(--color-text)' }}>
                       {entry.sourceTerm}
-                      {/* Hover preview — anchored to first cell */}
-                      <GlossaryTooltip entry={entry} visible={hoveredId === entry.id} />
                     </td>
                     <td className="px-3 py-2" style={{ color: 'var(--color-text)' }}>{entry.translatedTerm}</td>
                     <td className="px-3 py-2" style={{ color: 'var(--color-text-muted)' }}>{entry.notes || '—'}</td>
@@ -369,6 +389,9 @@ export function GlossaryTable({ entries, onAdd, onEdit, onDelete, onImport }: Gl
           ENTRI
         </button>
       </div>
+
+      {/* Fixed-position tooltip — renders outside overflow context */}
+      <GlossaryTooltip entry={tooltipEntry} pos={tooltipPos} />
     </div>
   )
 }

@@ -125,8 +125,12 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'qwenApiKey',
   },
   openai: {
-    models: ['gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'custom'],
+    models: ['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.4-pro', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'custom'],
     displayNames: {
+      'gpt-5.4': 'GPT-5.4',
+      'gpt-5.4-mini': 'GPT-5.4-mini',
+      'gpt-5.4-nano': 'GPT-5.4-nano',
+      'gpt-5.4-pro': 'GPT-5.4-pro',
       'gpt-4.1': 'GPT-4.1',
       'gpt-4.1-mini': 'GPT-4.1-mini',
       'gpt-4o': 'GPT-4o',
@@ -138,8 +142,11 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'openaiApiKey',
   },
   gemini: {
-    models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'custom'],
+    models: ['gemini-3.1-pro-preview', 'gemini-3.1-flash-lite-preview', 'gemini-3-flash-preview', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'custom'],
     displayNames: {
+      'gemini-3.1-pro-preview': 'Gemini 3.1 Pro (Preview)',
+      'gemini-3.1-flash-lite-preview': 'Gemini 3.1 Flash Lite (Preview)',
+      'gemini-3-flash-preview': 'Gemini 3 Flash (Preview)',
       'gemini-2.5-pro': 'Gemini 2.5 Pro',
       'gemini-2.5-flash': 'Gemini 2.5 Flash',
       'gemini-2.0-flash': 'Gemini 2.0 Flash',
@@ -163,11 +170,12 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'anthropicApiKey',
   },
   xai: {
-    models: ['grok-3', 'grok-3-mini', 'grok-2', 'custom'],
+    models: ['grok-4.20-0309', 'grok-4.1-fast', 'grok-3', 'grok-3-mini', 'custom'],
     displayNames: {
+      'grok-4.20-0309': 'Grok 4.20 (0309)',
+      'grok-4.1-fast': 'Grok 4.1 Fast',
       'grok-3': 'Grok 3',
       'grok-3-mini': 'Grok 3 Mini',
-      'grok-2': 'Grok 2',
       'custom': '+ Custom Model',
     },
     baseUrl: 'https://api.x.ai/v1',
@@ -176,11 +184,12 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'xaiApiKey',
   },
   moonshot: {
-    models: ['moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k', 'custom'],
+    models: ['kimi-k2.5', 'moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k', 'custom'],
     displayNames: {
-      'moonshot-v1-128k': 'Moonshot v1 128k (Kimi)',
-      'moonshot-v1-32k': 'Moonshot v1 32k (Kimi)',
-      'moonshot-v1-8k': 'Moonshot v1 8k (Kimi)',
+      'kimi-k2.5': 'Kimi K2.5',
+      'moonshot-v1-128k': 'Moonshot v1 128k',
+      'moonshot-v1-32k': 'Moonshot v1 32k',
+      'moonshot-v1-8k': 'Moonshot v1 8k',
       'custom': '+ Custom Model',
     },
     baseUrl: 'https://api.moonshot.cn/v1',

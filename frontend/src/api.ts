@@ -336,6 +336,12 @@ export async function exportSeries(seriesId: string): Promise<any> {
   return result
 }
 
+export async function exportGlossaryFile(seriesId: string, fmt: 'json' | 'csv', data: string): Promise<any> {
+  const api = getApi()
+  const result = await api.export_glossary_file(seriesId, fmt, data)
+  return result
+}
+
 // ===== Ping =====
 export async function ping(): Promise<{ status: string; message: string }> {
   const api = getApi()

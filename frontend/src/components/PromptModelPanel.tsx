@@ -131,10 +131,21 @@ export function PromptModelPanel({
             className="neo-input"
             style={{ cursor: 'pointer', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           >
-            {Object.entries(PROVIDERS).map(([key, p]) => (
-              <option key={key} value={key}>{p.label}</option>
-            ))}
+            {Object.entries(PROVIDERS).map(([key, p]) => {
+              const apiKeyField = p.apiKeyName as keyof typeof config
+              const hasKey = config ? !!(config[apiKeyField] as string) : false
+              return (
+                <option key={key} value={key} disabled={!hasKey}>
+                  {hasKey ? '✓ ' : '✗ '}{p.label}{!hasKey ? ' (no key)' : ''}
+                </option>
+              )
+            })}
           </select>
+          {!config?.[PROVIDERS[provider]?.apiKeyName as keyof typeof config] && (
+            <p style={{ fontSize: '11px', color: '#FF3C3C', marginTop: '4px', fontWeight: 600 }}>
+              ⚠ Provider ini belum memiliki API key. Tambahkan di halaman Pengaturan.
+            </p>
+          )}
         </div>
 
         {/* Model */}
