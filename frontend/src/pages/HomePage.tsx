@@ -169,25 +169,25 @@ export function HomePage() {
                 style={{
                   width: '80px',
                   height: '80px',
-                  border: '3px solid #111',
-                  boxShadow: '6px 6px 0px #111',
-                  backgroundColor: '#fff',
+                  border: '3px solid var(--color-border)',
+                  boxShadow: 'var(--neo-shadow-lg)',
+                  backgroundColor: 'var(--color-surface)',
                 }}
               >
-                <Plus size={32} style={{ color: '#999' }} />
+                <Plus size={32} style={{ color: 'var(--color-text-subtle)' }} />
               </div>
               <h2
                 style={{
                   fontFamily: "'Space Grotesk', sans-serif",
                   fontWeight: 700,
                   fontSize: '18px',
-                  color: '#111',
+                  color: 'var(--color-text)',
                   marginBottom: '8px',
                 }}
               >
                 BELUM ADA SERIES
               </h2>
-              <p style={{ fontSize: '14px', color: '#666', marginBottom: '16px' }}>
+              <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
                 Mulai dengan menambahkan series pertama kamu
               </p>
               <button onClick={() => setCreateOpen(true)} className="neo-button flex items-center gap-2">

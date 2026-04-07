@@ -164,8 +164,8 @@ export function ChapterWorkspacePage() {
     return (
       <div className="app-layout">
         <Topbar showBack title="Memuat..." />
-        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F8F3EA' }}>
-          <p style={{ color: '#999' }}>Memuat bab...</p>
+        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
+          <p style={{ color: 'var(--color-text-subtle)' }}>Memuat bab...</p>
         </main>
       </div>
     )
@@ -175,8 +175,8 @@ export function ChapterWorkspacePage() {
     return (
       <div className="app-layout">
         <Topbar showBack title="Tidak Ditemukan" />
-        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F8F3EA' }}>
-          <p style={{ color: '#999' }}>Bab tidak ditemukan</p>
+        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
+          <p style={{ color: 'var(--color-text-subtle)' }}>Bab tidak ditemukan</p>
         </main>
       </div>
     )
@@ -193,14 +193,14 @@ export function ChapterWorkspacePage() {
       {/* Toolbar */}
       <div
         className="flex items-center justify-between px-4 py-2"
-        style={{ backgroundColor: '#fff', borderBottom: '2.5px solid #111' }}
+        style={{ backgroundColor: 'var(--color-surface)', borderBottom: '2.5px solid var(--color-border)' }}
       >
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#111' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text)' }}>
             Bab {chapter.chapterNumber}
           </span>
           {chapter.title && (
-            <span style={{ fontSize: '13px', color: '#666' }}>— {chapter.title}</span>
+            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>— {chapter.title}</span>
           )}
         </div>
 
@@ -253,20 +253,20 @@ export function ChapterWorkspacePage() {
       <div
         ref={containerRef}
         className="flex-1 flex overflow-hidden"
-        style={{ backgroundColor: '#F8F3EA' }}
+        style={{ backgroundColor: 'var(--color-bg)' }}
       >
         {/* Left: Raw content */}
         <div
           className="overflow-y-auto"
           style={{
             width: `${splitPos}%`,
-            backgroundColor: '#fff',
-            border: '2.5px solid #111',
+            backgroundColor: 'var(--color-surface)',
+            border: '2.5px solid var(--color-border)',
             borderRight: 'none',
           }}
         >
-          <div className="px-3 py-2" style={{ borderBottom: '2.5px solid #111', backgroundColor: '#F8F3EA' }}>
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <div className="px-3 py-2" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
               KONTEN RAW
             </span>
           </div>
@@ -278,7 +278,7 @@ export function ChapterWorkspacePage() {
               lineHeight: '1.6',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word',
-              color: '#333',
+              color: 'var(--color-text)',
               margin: 0,
             }}
           >
@@ -291,7 +291,7 @@ export function ChapterWorkspacePage() {
           onMouseDown={handleMouseDown}
           style={{
             width: '8px',
-            backgroundColor: '#111',
+            backgroundColor: 'var(--color-border)',
             cursor: 'col-resize',
             flexShrink: 0,
             position: 'relative',
@@ -314,18 +314,18 @@ export function ChapterWorkspacePage() {
         <div
           className="flex-1 flex flex-col overflow-hidden"
           style={{
-            backgroundColor: '#fff',
-            border: '2.5px solid #111',
+            backgroundColor: 'var(--color-surface)',
+            border: '2.5px solid var(--color-border)',
             borderLeft: 'none',
           }}
         >
-          <div className="px-3 py-2" style={{ borderBottom: '2.5px solid #111', backgroundColor: '#F8F3EA' }}>
+          <div className="px-3 py-2" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
             <div className="flex items-center justify-between">
-              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
                 TERJEMAHAN
               </span>
               {isTranslating && (
-                <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: '#00F7FF', padding: '2px 6px', border: '2px solid #111', fontWeight: 700 }}>
+                <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: '#00F7FF', padding: '2px 6px', border: '2px solid var(--color-border)', fontWeight: 700 }}>
                   ITERASI {iteration}
                 </span>
               )}

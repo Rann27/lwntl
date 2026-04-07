@@ -217,6 +217,23 @@ export function SeriesSettingsPage() {
     }
   }
 
+  const handleImportGlossary = async (
+    entries: Array<{ sourceTerm: string; translatedTerm: string; notes: string }>
+  ) => {
+    if (!seriesId) return
+    let added = 0
+    try {
+      for (const e of entries) {
+        const entry = await addGlossaryEntry(seriesId, e.sourceTerm, e.translatedTerm, e.notes)
+        setGlossary((prev) => [...prev, entry])
+        added++
+      }
+      toast.success(`${added} entri glossary berhasil diimpor!`)
+    } catch {
+      toast.error(`Gagal mengimpor entri (${added} berhasil)`)
+    }
+  }
+
   const handleDeleteGlossaryConfirm = async () => {
     if (!seriesId || !deleteGlossaryTarget) return
     setDeleteGlossaryLoading(true)
@@ -236,8 +253,8 @@ export function SeriesSettingsPage() {
     return (
       <div className="app-layout">
         <Topbar showBack title="Memuat..." />
-        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F8F3EA' }}>
-          <p style={{ color: '#999' }}>Memuat data...</p>
+        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
+          <p style={{ color: 'var(--color-text-subtle)' }}>Memuat data...</p>
         </main>
       </div>
     )
@@ -247,8 +264,8 @@ export function SeriesSettingsPage() {
     return (
       <div className="app-layout">
         <Topbar showBack title="Tidak Ditemukan" />
-        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F8F3EA' }}>
-          <p style={{ color: '#999' }}>Series tidak ditemukan</p>
+        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
+          <p style={{ color: 'var(--color-text-subtle)' }}>Series tidak ditemukan</p>
         </main>
       </div>
     )
@@ -260,7 +277,7 @@ export function SeriesSettingsPage() {
 
       <main
         className="flex-1 overflow-hidden p-4 gap-4"
-        style={{ backgroundColor: '#F8F3EA', display: 'flex' }}
+        style={{ backgroundColor: 'var(--color-bg)', display: 'flex' }}
       >
         {/* Left: Chapter List */}
         <div className="flex flex-col gap-2" style={{ minWidth: '240px', maxWidth: '280px' }}>
@@ -323,6 +340,7 @@ export function SeriesSettingsPage() {
             onAdd={handleAddGlossary}
             onEdit={handleEditGlossary}
             onDelete={setDeleteGlossaryTarget}
+            onImport={handleImportGlossary}
           />
         </div>
       </main>

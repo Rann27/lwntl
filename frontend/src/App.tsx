@@ -50,6 +50,12 @@ function AppInner() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [initializing, setInitializing] = useState(true)
 
+  // Apply theme to document root whenever config.theme changes
+  useEffect(() => {
+    const theme = config?.theme || 'light'
+    document.documentElement.setAttribute('data-theme', theme)
+  }, [config?.theme])
+
   // Wait for pywebview API and load config
   useEffect(() => {
     const init = async () => {
@@ -61,7 +67,9 @@ function AppInner() {
         setConfig(cfg)
 
         // Check if onboarding needed (no API keys configured)
-        if (!cfg.zhipuaiApiKey && !cfg.qwenApiKey) {
+        const hasAnyKey = cfg.zhipuaiApiKey || cfg.qwenApiKey || cfg.openaiApiKey ||
+          cfg.geminiApiKey || cfg.anthropicApiKey || cfg.xaiApiKey || cfg.moonshotApiKey
+        if (!hasAnyKey) {
           setShowOnboarding(true)
         }
       } catch (err) {

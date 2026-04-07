@@ -1,5 +1,6 @@
 pywebview>=5.0
 zai-sdk>=0.2.2
 openai>=1.30
+anthropic>=0.40
 python-docx>=1.1.0
 pyinstaller>=6.0
