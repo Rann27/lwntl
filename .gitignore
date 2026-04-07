@@ -1,0 +1,44 @@
+# ── Python ────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+*.spec
+
+# ── App data / user config (API keys & personal data live here) ───────
+# The runtime data directory is OS-specific (%APPDATA%/lwntl etc.)
+# Nothing from there should ever be committed.
+data/
+app_data/
+
+# ── Frontend build output ─────────────────────────────────────────────
+frontend/dist/
+frontend/node_modules/
+
+# ── Environment / secrets ─────────────────────────────────────────────
+.env
+.env.*
+*.env
+config.json
+secrets.*
+
+# ── OS & editor artifacts ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# ── Logs ──────────────────────────────────────────────────────────────
+*.log
+logs/

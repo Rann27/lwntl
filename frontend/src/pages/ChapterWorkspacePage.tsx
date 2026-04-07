@@ -1,0 +1,357 @@
+/**
+ * LWNTL Chapter Workspace Page
+ * Split view with raw content (left) and translated markdown (right)
+ * Bottom: expandable glossary update panel
+ */
+
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { useParams } from 'react-router-dom'
+import { Play, Square, Download, RefreshCw } from 'lucide-react'
+import { Topbar } from '../components/Topbar'
+import { MarkdownRenderer } from '../components/MarkdownRenderer'
+import { GlossaryUpdatePanel } from '../components/GlossaryUpdatePanel'
+import { StatusBar } from '../components/StatusBar'
+import ContextInfoBar from '../components/ContextInfoBar'
+import { useToast } from '../hooks/useToast'
+import { useTranslation } from '../hooks/useTranslation'
+import {
+  getChapter,
+  getGlossary,
+  startTranslation,
+  cancelTranslation,
+  exportChapter,
+  addGlossaryEntry,
+  getContextInfo,
+} from '../api'
+import { useAppStore } from '../store/appStore'
+import type { Chapter, ContextInfo, GlossaryEntry } from '../types'
+
+export function ChapterWorkspacePage() {
+  const { id: seriesId, chapterId } = useParams<{ id: string; chapterId: string }>()
+  const toast = useToast()
+  const { apiReady } = useAppStore()
+
+  const [chapter, setChapter] = useState<Chapter | null>(null)
+  const [contextInfo, setContextInfo] = useState<ContextInfo | null>(null)
+  const [seriesGlossary, setSeriesGlossary] = useState<GlossaryEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [splitPos, setSplitPos] = useState(50) // percentage
+
+  const containerRef = useRef<HTMLDivElement>(null)
+  const dragging = useRef(false)
+  const wasTranslatingRef = useRef(false)
+
+  const {
+    isTranslating,
+    status,
+    streamingText,
+    iteration,
+    progress,
+    glossaryUpdates,
+    startTranslating,
+  } = useTranslation(seriesId!, chapterId!)
+
+  // Load chapter data + context info + series glossary
+  const loadChapter = useCallback(async () => {
+    if (!seriesId || !chapterId) return
+    try {
+      const [ch, gloss] = await Promise.all([
+        getChapter(seriesId, chapterId),
+        getGlossary(seriesId),
+      ])
+      setChapter(ch)
+      setSeriesGlossary(gloss)
+      try {
+        const info = await getContextInfo(seriesId, chapterId)
+        setContextInfo(info)
+      } catch { /* non-critical */ }
+    } catch {
+      toast.error('Gagal memuat data bab')
+    } finally {
+      setLoading(false)
+    }
+  }, [seriesId, chapterId])
+
+  useEffect(() => {
+    if (apiReady) loadChapter()
+  }, [apiReady, loadChapter])
+
+  // Reload chapter when translation finishes (isTranslating: true → false)
+  useEffect(() => {
+    if (wasTranslatingRef.current && !isTranslating) {
+      loadChapter()
+    }
+    wasTranslatingRef.current = isTranslating
+  }, [isTranslating, loadChapter])
+
+  // Start translation
+  const handleStartTranslation = async () => {
+    if (!seriesId || !chapterId) return
+    try {
+      startTranslating()
+      await startTranslation(seriesId, chapterId)
+    } catch (err: any) {
+      toast.error('Gagal memulai terjemahan: ' + (err.message || 'Unknown error'))
+    }
+  }
+
+  // Cancel translation
+  const handleCancelTranslation = async () => {
+    try {
+      await cancelTranslation()
+      toast.info('Terjemahan dibatalkan')
+    } catch {
+      toast.error('Gagal membatalkan terjemahan')
+    }
+  }
+
+  // Export chapter
+  const handleExport = async () => {
+    if (!seriesId || !chapterId) return
+    try {
+      const result = await exportChapter(seriesId, chapterId)
+      if (!result?.cancelled) {
+        toast.success(result?.message || 'Bab berhasil diekspor!')
+      }
+    } catch (err: any) {
+      toast.error('Gagal mengekspor: ' + (err.message || 'Unknown error'))
+    }
+  }
+
+  // Add a single extracted entry to the series glossary
+  const handleAddGlossaryEntry = async (sourceTerm: string, translatedTerm: string, notes: string) => {
+    if (!seriesId) return
+    const newEntry = await addGlossaryEntry(seriesId, sourceTerm, translatedTerm, notes)
+    setSeriesGlossary(prev => [...prev, newEntry])
+    toast.success(`"${sourceTerm}" ditambahkan ke glossary!`)
+  }
+
+  // Resizable divider
+  const handleMouseDown = () => {
+    dragging.current = true
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragging.current || !containerRef.current) return
+      const rect = containerRef.current.getBoundingClientRect()
+      const pct = ((e.clientX - rect.left) / rect.width) * 100
+      setSplitPos(Math.max(20, Math.min(80, pct)))
+    }
+    const handleMouseUp = () => {
+      dragging.current = false
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [])
+
+  // Determine display text
+  // During translation: show live streamingText
+  // After done: chapter state is reloaded, fall back streamingText while reload happens
+  const translatedText = isTranslating
+    ? streamingText
+    : chapter?.translatedContent || streamingText || ''
+
+  if (loading) {
+    return (
+      <div className="app-layout">
+        <Topbar showBack title="Memuat..." />
+        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F8F3EA' }}>
+          <p style={{ color: '#999' }}>Memuat bab...</p>
+        </main>
+      </div>
+    )
+  }
+
+  if (!chapter) {
+    return (
+      <div className="app-layout">
+        <Topbar showBack title="Tidak Ditemukan" />
+        <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#F8F3EA' }}>
+          <p style={{ color: '#999' }}>Bab tidak ditemukan</p>
+        </main>
+      </div>
+    )
+  }
+
+  return (
+    <div className="app-layout">
+      <Topbar
+        showBack
+        title={chapter.title || `Bab ${chapter.chapterNumber}`}
+        subtitle={`${seriesId ? 'Series' : ''}`}
+      />
+
+      {/* Toolbar */}
+      <div
+        className="flex items-center justify-between px-4 py-2"
+        style={{ backgroundColor: '#fff', borderBottom: '2.5px solid #111' }}
+      >
+        <div className="flex items-center gap-2">
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#111' }}>
+            Bab {chapter.chapterNumber}
+          </span>
+          {chapter.title && (
+            <span style={{ fontSize: '13px', color: '#666' }}>— {chapter.title}</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Translate / Cancel button */}
+          {isTranslating ? (
+            <button
+              onClick={handleCancelTranslation}
+              className="neo-button neo-button-error flex items-center gap-1"
+              style={{ padding: '6px 14px', fontSize: '12px' }}
+            >
+              <Square size={14} />
+              BATAL
+            </button>
+          ) : chapter?.status === 'done' ? (
+            <button
+              onClick={handleStartTranslation}
+              className="neo-button flex items-center gap-1"
+              style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: '#FFEF33' }}
+            >
+              <RefreshCw size={14} />
+              TERJEMAHKAN ULANG
+            </button>
+          ) : (
+            <button
+              onClick={handleStartTranslation}
+              className="neo-button flex items-center gap-1"
+              style={{ padding: '6px 14px', fontSize: '12px' }}
+            >
+              <Play size={14} />
+              TERJEMAHKAN
+            </button>
+          )}
+
+          {/* Export */}
+          {chapter.status === 'done' && (
+            <button
+              onClick={handleExport}
+              className="neo-button flex items-center gap-1"
+              style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: '#F0F0F0' }}
+            >
+              <Download size={14} />
+              EKSPOR
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Split View */}
+      <div
+        ref={containerRef}
+        className="flex-1 flex overflow-hidden"
+        style={{ backgroundColor: '#F8F3EA' }}
+      >
+        {/* Left: Raw content */}
+        <div
+          className="overflow-y-auto"
+          style={{
+            width: `${splitPos}%`,
+            backgroundColor: '#fff',
+            border: '2.5px solid #111',
+            borderRight: 'none',
+          }}
+        >
+          <div className="px-3 py-2" style={{ borderBottom: '2.5px solid #111', backgroundColor: '#F8F3EA' }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              KONTEN RAW
+            </span>
+          </div>
+          <pre
+            style={{
+              padding: '16px',
+              fontFamily: "'Courier New', Courier, monospace",
+              fontSize: '13px',
+              lineHeight: '1.6',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              color: '#333',
+              margin: 0,
+            }}
+          >
+            {chapter.rawContent || '(Konten raw kosong)'}
+          </pre>
+        </div>
+
+        {/* Resizable Divider */}
+        <div
+          onMouseDown={handleMouseDown}
+          style={{
+            width: '8px',
+            backgroundColor: '#111',
+            cursor: 'col-resize',
+            flexShrink: 0,
+            position: 'relative',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '4px',
+              height: '32px',
+              backgroundColor: '#00F7FF',
+            }}
+          />
+        </div>
+
+        {/* Right: Translated content */}
+        <div
+          className="flex-1 flex flex-col overflow-hidden"
+          style={{
+            backgroundColor: '#fff',
+            border: '2.5px solid #111',
+            borderLeft: 'none',
+          }}
+        >
+          <div className="px-3 py-2" style={{ borderBottom: '2.5px solid #111', backgroundColor: '#F8F3EA' }}>
+            <div className="flex items-center justify-between">
+              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                TERJEMAHAN
+              </span>
+              {isTranslating && (
+                <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: '#00F7FF', padding: '2px 6px', border: '2px solid #111', fontWeight: 700 }}>
+                  ITERASI {iteration}
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <MarkdownRenderer content={translatedText} />
+          </div>
+        </div>
+      </div>
+
+      {/* Glossary Update Panel */}
+      <GlossaryUpdatePanel
+        updates={glossaryUpdates || chapter.glossaryUpdates}
+        seriesGlossary={seriesGlossary}
+        onAddEntry={handleAddGlossaryEntry}
+      />
+
+      {/* Context Info Bar */}
+      {!isTranslating && <ContextInfoBar info={contextInfo} />}
+
+      {/* Status Bar */}
+      <StatusBar
+        translation={{ isTranslating, status, streamingText, iteration, progress, glossaryUpdates }}
+        chapterStatus={chapter.status}
+      />
+    </div>
+  )
+}

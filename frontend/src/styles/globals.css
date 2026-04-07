@@ -1,0 +1,588 @@
+/* 
+ * LWNTL - Neobrutalism CSS Foundation
+ * Based on Section 3.3 of LWNTL-SPEC.md
+ */
+
+/* Import Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;900&family=Inter:wght@400;600;700&display=swap');
+
+/* CSS Variables - Color System (Section 3.2) */
+:root {
+  /* Core */
+  --color-primary: #00F7FF;
+  --color-black: #111111;
+  --color-white: #FFFFFF;
+  --color-bg: #F8F3EA;
+
+  /* Semantic */
+  --color-yellow: #FFEF33;
+  --color-red: #FF3C3C;
+  --color-green: #28E272;
+  --color-muted: #666666;
+  --color-surface-2: #F0F0F0;
+
+  /* Typography */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-black);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 
+ * NEOWRUTALISM RULE #1: Border
+ * Semua elemen interaktif (button, card, input, modal, panel) 
+ * harus punya border 2.5px solid #111111
+ */
+.neo-border {
+  border: 2.5px solid var(--color-black);
+}
+
+/* 
+ * NEOWRUTALISM RULE #2: Shadow
+ * Semua card dan button punya box-shadow 4px 4px 0px #111111
+ */
+.neo-shadow {
+  box-shadow: 4px 4px 0px var(--color-black);
+}
+
+.neo-shadow-lg {
+  box-shadow: 6px 6px 0px var(--color-black);
+}
+
+/* 
+ * NEOWRUTALISM RULE #3: Radius
+ * border-radius: 0 — sharp corners, tidak ada rounded
+ */
+.neo-sharp {
+  border-radius: 0;
+}
+
+/* 
+ * NEOWRUTALISM RULE #4: Background
+ * Halaman menggunakan --color-bg (#F8F3EA)
+ */
+body,
+.neo-page {
+  background-color: var(--color-bg);
+}
+
+/* Typography Scale */
+.neo-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 36px;
+  line-height: 1.1;
+}
+
+.neo-h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.2;
+}
+
+.neo-h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+.neo-caption {
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* 
+ * NEOWRUTALISM RULE #5: Hover state button
+ * transform: translate(2px, 2px) + shadow mengecil jadi 2px 2px 0px
+ */
+.neo-button {
+  background-color: var(--color-primary);
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+  box-shadow: 4px 4px 0px var(--color-black);
+  padding: 12px 24px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.neo-button:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--color-black);
+}
+
+/* 
+ * NEOWRUTALISM RULE #6: Active state button
+ * transform: translate(4px, 4px) + shadow hilang
+ */
+.neo-button:active {
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+.neo-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Button Variants */
+.neo-button-primary {
+  background-color: var(--color-primary);
+}
+
+.neo-button-success {
+  background-color: var(--color-green);
+}
+
+.neo-button-error {
+  background-color: var(--color-red);
+}
+
+.neo-button-warning {
+  background-color: var(--color-yellow);
+}
+
+/* 
+ * NEOWRUTALISM RULE #7: Topbar/Navbar
+ * Background #111111, teks dan aksen --color-primary
+ */
+.neo-topbar {
+  background-color: var(--color-black);
+  color: var(--color-white);
+  border-bottom: 2.5px solid var(--color-black);
+}
+
+.neo-topbar a,
+.neo-topbar button {
+  color: var(--color-primary);
+}
+
+/* 
+ * NEOWRUTALISM RULE #8: Accent bar
+ * Setiap card punya strip warna primary 6px di bagian atas
+ */
+.neo-card {
+  background-color: var(--color-white);
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+  box-shadow: 4px 4px 0px var(--color-black);
+  overflow: hidden;
+}
+
+.neo-card-accent {
+  height: 6px;
+  background-color: var(--color-primary);
+  border-bottom: 2.5px solid var(--color-black);
+}
+
+/* 
+ * NEOWRUTALISM RULE #9: Progress bar
+ * Wajib punya border hitam, fill warna primary
+ */
+.neo-progress {
+  width: 100%;
+  height: 24px;
+  background-color: var(--color-surface-2);
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.neo-progress-fill {
+  height: 100%;
+  background-color: var(--color-primary);
+  transition: width 0.3s ease;
+}
+
+/* Input Styles */
+.neo-input {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background-color: var(--color-white);
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+  outline: none;
+}
+
+.neo-input:focus {
+  box-shadow: 4px 4px 0px var(--color-black);
+}
+
+.neo-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  background-color: var(--color-white);
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+  outline: none;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.neo-textarea:focus {
+  box-shadow: 4px 4px 0px var(--color-black);
+}
+
+/* Panel Styles */
+.neo-panel {
+  background-color: var(--color-white);
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+  box-shadow: 4px 4px 0px var(--color-black);
+}
+
+/* Badge Styles */
+.neo-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+}
+
+.neo-badge-primary {
+  background-color: var(--color-primary);
+}
+
+.neo-badge-success {
+  background-color: var(--color-green);
+}
+
+.neo-badge-warning {
+  background-color: var(--color-yellow);
+}
+
+.neo-badge-error {
+  background-color: var(--color-red);
+}
+
+.neo-badge-muted {
+  background-color: var(--color-muted);
+  color: var(--color-white);
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.neo-skeleton {
+  background-color: var(--color-surface-2);
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Utility Classes */
+.neo-flex {
+  display: flex;
+}
+
+.neo-flex-col {
+  flex-direction: column;
+}
+
+.neo-items-center {
+  align-items: center;
+}
+
+.neo-justify-center {
+  justify-content: center;
+}
+
+.neo-justify-between {
+  justify-content: space-between;
+}
+
+.neo-gap-2 {
+  gap: 0.5rem;
+}
+
+.neo-gap-4 {
+  gap: 1rem;
+}
+
+.neo-p-4 {
+  padding: 1rem;
+}
+
+.neo-p-6 {
+  padding: 1.5rem;
+}
+
+.neo-p-8 {
+  padding: 2rem;
+}
+
+.neo-mt-2 {
+  margin-top: 0.5rem;
+}
+
+.neo-mt-4 {
+  margin-top: 1rem;
+}
+
+.neo-mt-6 {
+  margin-top: 1.5rem;
+}
+
+.neo-mb-2 {
+  margin-bottom: 0.5rem;
+}
+
+.neo-mb-4 {
+  margin-bottom: 1rem;
+}
+
+.neo-mb-6 {
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive Grid for Cards */
+.neo-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Modal Backdrop */
+.neo-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Modal Content */
+.neo-modal {
+  background-color: var(--color-white);
+  border: 2.5px solid var(--color-black);
+  border-radius: 0;
+  box-shadow: 6px 6px 0px var(--color-black);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* App Layout */
+.app-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Slide Up Animation for modals */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Markdown Body Styles */
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.markdown-body h1 { font-size: 1.8em; }
+.markdown-body h2 { font-size: 1.5em; }
+.markdown-body h3 { font-size: 1.25em; }
+
+.markdown-body p {
+  margin-bottom: 0.75em;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body blockquote {
+  border-left: 4px solid #111;
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 0.75em;
+  color: #666;
+  background: rgba(0,0,0,0.03);
+  padding: 0.5em 1em;
+}
+
+.markdown-body code {
+  background: #F0F0F0;
+  border: 1.5px solid #111;
+  padding: 1px 4px;
+  font-size: 0.9em;
+}
+
+.markdown-body pre {
+  background: #F0F0F0;
+  border: 2.5px solid #111;
+  padding: 12px;
+  overflow-x: auto;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body pre code {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.markdown-body hr {
+  border: none;
+  border-top: 2px solid #111;
+  margin: 1em 0;
+}
+
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 0.75em;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 2px solid #111;
+  padding: 6px 10px;
+  text-align: left;
+}
+
+.markdown-body th {
+  background: #F8F3EA;
+  font-weight: 700;
+}
+
+/* Select element reset */
+select.neo-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23111111' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+  cursor: pointer;
+}
+
+/* Range input styling */
+input[type="range"] {
+  height: 8px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: #F0F0F0;
+  border: 2px solid #111;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #00F7FF;
+  border: 2.5px solid #111;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: #00F7FF;
+  border: 2.5px solid #111;
+  cursor: pointer;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F0F0F0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #999;
+  border: 1px solid #111;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* Toast Animation */
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
