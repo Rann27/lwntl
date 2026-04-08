@@ -316,8 +316,12 @@ class Translator:
             except Exception as e:
                 print(f"Extraction failed: {e}")
                 glossary_updates = {"extractedAt": None, "entries": []}
-            
+
+            term_count = len(glossary_updates.get("entries", []))
+            print(f"[Glossary] Extracted {term_count} term(s)")
+
             # Final status update
+            print(f"[✓] Translation complete — {self._iteration} iteration(s) | ~{self._total_tokens} tokens")
             self._send_status("done")
             self._send_result({
                 "status": "done",

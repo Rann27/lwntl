@@ -78,8 +78,8 @@ def main():
     # Set window reference on API after creation
     api.set_window(window)
     
-    # Start the application (always enable debug for console access)
-    webview.start(debug=True)
+    # Start the application
+    webview.start(debug=False)
 
 
 if __name__ == '__main__':
