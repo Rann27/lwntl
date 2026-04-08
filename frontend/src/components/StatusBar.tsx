@@ -28,9 +28,10 @@ export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
     <div
       className="flex items-center justify-between px-4 py-2"
       style={{
-        backgroundColor: '#fff',
-        borderTop: '2.5px solid #111',
+        backgroundColor: 'var(--color-surface)',
+        borderTop: '2.5px solid var(--color-border)',
         fontSize: '12px',
+        color: 'var(--color-text)',
       }}
     >
       <div className="flex items-center gap-3">
@@ -42,7 +43,7 @@ export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
         ) : status === 'error' ? (
           <XCircle size={14} style={{ color: '#FF3C3C' }} />
         ) : (
-          <Zap size={14} style={{ color: '#666' }} />
+          <Zap size={14} style={{ color: 'var(--color-text-muted)' }} />
         )}
 
         <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -50,7 +51,7 @@ export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
         </span>
 
         {translation.isTranslating && translation.iteration > 0 && (
-          <span style={{ color: '#666' }}>
+          <span style={{ color: 'var(--color-text-muted)' }}>
             Iterasi {translation.iteration}
           </span>
         )}

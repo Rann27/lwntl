@@ -130,7 +130,7 @@ export function HomePage() {
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 900,
               fontSize: '24px',
-              color: '#111',
+              color: 'var(--color-text)',
               letterSpacing: '1px',
             }}
           >

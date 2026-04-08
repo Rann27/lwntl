@@ -40,21 +40,21 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
     <div
       className="neo-card cursor-pointer transition-all duration-150"
       style={{
-        boxShadow: menuOpen ? '2px 2px 0px #111' : undefined,
+        boxShadow: menuOpen ? '2px 2px 0px var(--color-border)' : undefined,
       }}
       onMouseEnter={(e) => {
         if (!menuOpen) {
-          e.currentTarget.style.boxShadow = '6px 6px 0px #111'
+          e.currentTarget.style.boxShadow = '6px 6px 0px var(--color-border)'
         }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '4px 4px 0px #111'
+        e.currentTarget.style.boxShadow = '4px 4px 0px var(--color-border)'
         setMenuOpen(false)
       }}
       onClick={() => navigate(`/series/${series.id}/settings`)}
     >
       {/* Accent Bar */}
-      <div style={{ height: '6px', backgroundColor: '#00F7FF', borderBottom: '2.5px solid #111' }} />
+      <div style={{ height: '6px', backgroundColor: '#00F7FF', borderBottom: '2.5px solid var(--color-border)' }} />
 
       <div className="p-4">
         {/* Header row */}
@@ -66,7 +66,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
               fontWeight: 700,
               fontSize: '18px',
               lineHeight: '1.2',
-              color: '#111',
+              color: 'var(--color-text)',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
@@ -82,10 +82,12 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
                 e.stopPropagation()
                 setMenuOpen(!menuOpen)
               }}
-              className="flex items-center justify-center w-8 h-8 hover:bg-gray-100 transition-colors"
+              className="flex items-center justify-center w-8 h-8 transition-colors"
               style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <MoreVertical size={18} style={{ color: '#666' }} />
+              <MoreVertical size={18} style={{ color: 'var(--color-text-muted)' }} />
             </button>
 
             {/* Dropdown menu */}
@@ -93,9 +95,9 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
               <div
                 className="absolute right-0 top-full mt-1 z-50"
                 style={{
-                  backgroundColor: '#fff',
-                  border: '2.5px solid #111',
-                  boxShadow: '4px 4px 0px #111',
+                  backgroundColor: 'var(--color-surface)',
+                  border: '2.5px solid var(--color-border)',
+                  boxShadow: 'var(--neo-shadow)',
                   minWidth: '180px',
                   zIndex: 50,
                 }}
@@ -106,8 +108,10 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
                     setMenuOpen(false)
                     onEdit(series)
                   }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold hover:bg-gray-100 transition-colors"
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold transition-colors"
+                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <Edit size={14} />
                   Edit Series
@@ -118,21 +122,25 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
                     setMenuOpen(false)
                     navigate(`/series/${series.id}/settings`)
                   }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold hover:bg-gray-100 transition-colors"
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold transition-colors"
+                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <Settings size={14} />
                   Pengaturan Series
                 </button>
-                <div style={{ height: '2.5px', backgroundColor: '#111' }} />
+                <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
                     setMenuOpen(false)
                     onDelete(series)
                   }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold hover:bg-red-50 transition-colors"
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold transition-colors"
                   style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: '#FF3C3C' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <Trash2 size={14} />
                   Hapus Series
@@ -143,7 +151,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
         </div>
 
         {/* Language & chapter count */}
-        <p style={{ fontSize: '13px', color: '#666', marginBottom: '12px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
           {series.sourceLanguage} → {series.targetLanguage || 'Indonesian'} &nbsp;•&nbsp; {totalChapters} bab
         </p>
 
@@ -156,7 +164,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
         </div>
 
         {/* Progress text */}
-        <p style={{ fontSize: '12px', color: '#666', fontWeight: 600 }}>
+        <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
           {doneChapters} / {totalChapters} selesai ({progress}%)
         </p>
       </div>

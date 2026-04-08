@@ -111,15 +111,15 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
   return (
     <div ref={containerRef} className="relative" id={id}>
       {label && (
-        <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#666' }}>
+        <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
           {label}
         </label>
       )}
       <div
         className="flex items-center"
         style={{
-          border: '2.5px solid #111',
-          background: '#fff',
+          border: '2.5px solid var(--color-border)',
+          background: 'var(--color-surface)',
           position: 'relative',
         }}
       >
@@ -139,6 +139,7 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
             fontFamily: "'Inter', sans-serif",
             fontSize: '14px',
             background: 'transparent',
+            color: 'var(--color-text)',
             minWidth: 0,
           }}
         />
@@ -146,7 +147,7 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
           <button
             type="button"
             onClick={() => { setInputValue(''); onChange(''); inputRef.current?.focus() }}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 4px 4px 0', color: '#999' }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 4px 4px 0', color: 'var(--color-text-muted)' }}
           >
             <X size={14} />
           </button>
@@ -154,7 +155,7 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
         <button
           type="button"
           onClick={() => { setIsOpen(!isOpen); inputRef.current?.focus() }}
-          style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 8px 4px 2px', color: '#111' }}
+          style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 8px 4px 2px', color: 'var(--color-text)' }}
         >
           <ChevronDown size={16} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
         </button>
@@ -167,8 +168,8 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
             top: '100%',
             left: 0,
             right: 0,
-            background: '#fff',
-            border: '2.5px solid #111',
+            background: 'var(--color-surface)',
+            border: '2.5px solid var(--color-border)',
             borderTop: 'none',
             zIndex: 50,
             maxHeight: '200px',
@@ -186,6 +187,7 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
                   cursor: 'pointer',
                   fontSize: '14px',
                   fontFamily: "'Inter', sans-serif",
+                  color: highlightedIndex === idx ? '#111' : 'var(--color-text)',
                   background: highlightedIndex === idx ? '#00F7FF' : 'transparent',
                   fontWeight: opt === value ? 700 : 400,
                 }}
@@ -197,7 +199,7 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
           {isCustomValue && onAddOption && (
             <div
               style={{
-                borderTop: '2px solid #eee',
+                borderTop: '2px solid var(--color-separator)',
                 padding: '6px',
               }}
             >
@@ -207,13 +209,14 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
                 className="flex items-center gap-1 w-full"
                 style={{
                   padding: '6px 8px',
-                  border: '2px dashed #111',
+                  border: '2px dashed var(--color-border)',
                   background: '#00F7FF',
                   cursor: 'pointer',
                   fontFamily: "'Inter', sans-serif",
                   fontSize: '12px',
                   fontWeight: 700,
                   textTransform: 'uppercase',
+                  color: '#111',
                 }}
               >
                 <Plus size={12} />

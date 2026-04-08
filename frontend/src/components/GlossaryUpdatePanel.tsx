@@ -16,7 +16,6 @@ interface GlossaryUpdatePanelProps {
 
 export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loading }: GlossaryUpdatePanelProps) {
   const [expanded, setExpanded] = useState(false)
-  // Track terms added this session (so UI updates instantly without refetch)
   const [addedTerms, setAddedTerms] = useState<Set<string>>(new Set())
   const [addingTerm, setAddingTerm] = useState<string | null>(null)
   const [addingAll, setAddingAll] = useState(false)
@@ -25,7 +24,6 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
   const entryCount = entries.length
   const hasError = updates?.error
 
-  // Case-insensitive check: is this term already in the series glossary or added this session?
   const isInGlossary = (sourceTerm: string): boolean => {
     const key = sourceTerm.toLowerCase().trim()
     if (addedTerms.has(key)) return true
@@ -57,20 +55,28 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
   }
 
   return (
-    <div style={{ borderTop: '4px solid #00F7FF', backgroundColor: '#fff', borderLeft: '2.5px solid #111', borderRight: '2.5px solid #111', borderBottom: '2.5px solid #111' }}>
+    <div style={{
+      borderTop: '4px solid #00F7FF',
+      backgroundColor: 'var(--color-surface)',
+      borderLeft: '2.5px solid var(--color-border)',
+      borderRight: '2.5px solid var(--color-border)',
+      borderBottom: '2.5px solid var(--color-border)',
+    }}>
       {/* Toggle header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center justify-between w-full px-4 py-2.5 hover:bg-gray-50 transition-colors"
+        className="flex items-center justify-between w-full px-4 py-2.5 transition-colors"
         style={{ border: 'none', background: 'transparent', cursor: 'pointer', width: '100%' }}
+        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
       >
         <div className="flex items-center gap-2">
           <ChevronDown
             size={16}
-            style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 150ms ease' }}
+            style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 150ms ease', color: 'var(--color-text)' }}
           />
-          <BookOpen size={14} style={{ color: '#666' }} />
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '13px', textTransform: 'uppercase' }}>
+          <BookOpen size={14} style={{ color: 'var(--color-text-muted)' }} />
+          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', color: 'var(--color-text)' }}>
             UPDATE GLOSSARY ({entryCount})
           </span>
         </div>
@@ -81,7 +87,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
             </span>
           )}
           {pendingEntries.length > 0 && !expanded && (
-            <span style={{ fontSize: '9px', fontWeight: 700, color: '#fff', background: '#28E272', padding: '2px 6px', border: '2px solid #111', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '9px', fontWeight: 700, color: '#111', background: '#28E272', padding: '2px 6px', border: '2px solid var(--color-border)', textTransform: 'uppercase' }}>
               {pendingEntries.length} BELUM DITAMBAHKAN
             </span>
           )}
@@ -90,18 +96,17 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
 
       {/* Expanded content */}
       {expanded && (
-        <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        <div style={{ maxHeight: '300px', overflowY: 'auto', borderTop: '1px solid var(--color-separator)' }}>
           {entryCount === 0 ? (
-            <div className="px-4 py-4 text-center" style={{ color: '#999', fontSize: '12px' }}>
+            <div className="px-4 py-4 text-center" style={{ color: 'var(--color-text-subtle)', fontSize: '12px' }}>
               {hasError
                 ? `Gagal mengekstrak glossary: ${updates?.error}`
                 : 'Belum ada update glossary. Jalankan terjemahan untuk mengekstrak istilah.'}
             </div>
           ) : (
             <>
-              {/* Bulk add */}
               {pendingEntries.length > 0 && (
-                <div className="px-4 py-2" style={{ borderBottom: '1px solid #eee' }}>
+                <div className="px-4 py-2" style={{ borderBottom: `1px solid var(--color-separator)` }}>
                   <button
                     onClick={handleAddAll}
                     disabled={addingAll || loading}
@@ -114,15 +119,14 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                 </div>
               )}
 
-              {/* Table */}
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #111', backgroundColor: '#F8F3EA' }}>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Istilah Asli</th>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Terjemahan</th>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Catatan</th>
-                    <th className="px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '90px', textAlign: 'center' }}>Status</th>
-                    <th className="px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '110px', textAlign: 'center' }}>Aksi</th>
+                  <tr style={{ borderBottom: `2px solid var(--color-border)`, backgroundColor: 'var(--color-surface-2)' }}>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Istilah Asli</th>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Terjemahan</th>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Catatan</th>
+                    <th className="px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '90px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Status</th>
+                    <th className="px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '110px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -131,36 +135,23 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                     const isBeingAdded = addingTerm === entry.sourceTerm
 
                     return (
-                      <tr key={i} style={{ borderBottom: '1px solid #eee', opacity: inGlossary ? 0.6 : 1 }}>
-                        <td className="px-3 py-1.5" style={{ fontWeight: 600 }}>{entry.sourceTerm}</td>
-                        <td className="px-3 py-1.5">{entry.translatedTerm}</td>
-                        <td className="px-3 py-1.5" style={{ color: '#666' }}>{entry.notes || '—'}</td>
+                      <tr key={i} style={{ borderBottom: `1px solid var(--color-separator)`, opacity: inGlossary ? 0.6 : 1 }}>
+                        <td className="px-3 py-1.5" style={{ fontWeight: 600, color: 'var(--color-text)' }}>{entry.sourceTerm}</td>
+                        <td className="px-3 py-1.5" style={{ color: 'var(--color-text)' }}>{entry.translatedTerm}</td>
+                        <td className="px-3 py-1.5" style={{ color: 'var(--color-text-muted)' }}>{entry.notes || '—'}</td>
 
-                        {/* Status */}
                         <td className="px-3 py-1.5" style={{ textAlign: 'center' }}>
                           {inGlossary ? (
-                            <span style={{
-                              fontSize: '9px', fontWeight: 700,
-                              color: '#666', padding: '2px 6px',
-                              border: '1.5px solid #ccc',
-                              textTransform: 'uppercase',
-                            }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--color-text-muted)', padding: '2px 6px', border: `1.5px solid var(--color-separator)`, textTransform: 'uppercase' }}>
                               Ada
                             </span>
                           ) : (
-                            <span style={{
-                              fontSize: '9px', fontWeight: 700,
-                              color: '#111', background: '#FFEF33',
-                              padding: '2px 6px',
-                              border: '1.5px solid #111',
-                              textTransform: 'uppercase',
-                            }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#111', background: '#FFEF33', padding: '2px 6px', border: '1.5px solid #111', textTransform: 'uppercase' }}>
                               Belum Ada
                             </span>
                           )}
                         </td>
 
-                        {/* Aksi */}
                         <td className="px-3 py-1.5" style={{ textAlign: 'center' }}>
                           {inGlossary ? (
                             <span style={{ color: '#28E272', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', fontSize: '10px', fontWeight: 700 }}>
@@ -174,13 +165,14 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                                 fontSize: '10px',
                                 fontWeight: 700,
                                 padding: '3px 10px',
-                                border: '2px solid #111',
-                                background: isBeingAdded ? '#eee' : '#00F7FF',
+                                border: '2px solid var(--color-border)',
+                                background: isBeingAdded ? 'var(--color-surface-2)' : '#00F7FF',
+                                color: '#111',
                                 cursor: isBeingAdded || addingAll ? 'not-allowed' : 'pointer',
                                 opacity: isBeingAdded || addingAll ? 0.6 : 1,
                                 textTransform: 'uppercase',
                                 letterSpacing: '0.3px',
-                                boxShadow: '2px 2px 0px #111',
+                                boxShadow: '2px 2px 0px var(--color-border)',
                                 transition: 'all 0.1s',
                               }}
                             >
