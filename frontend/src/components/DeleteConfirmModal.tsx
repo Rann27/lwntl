@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { Trash2, AlertTriangle, X } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 interface DeleteConfirmModalProps {
   open: boolean
@@ -26,6 +27,7 @@ export function DeleteConfirmModal({
   details = [],
   loading = false,
 }: DeleteConfirmModalProps) {
+  const { t } = useI18n()
   const [canConfirm, setCanConfirm] = useState(false)
 
   // Enable confirm button after 1.5 seconds
@@ -76,7 +78,7 @@ export function DeleteConfirmModal({
                   color: '#111',
                 }}
               >
-                HAPUS {typeLabel}
+                {t.common.delete} {typeLabel}
               </h2>
             </div>
             <button
@@ -90,7 +92,7 @@ export function DeleteConfirmModal({
 
           {/* Entity name highlight */}
           <p className="mb-3" style={{ fontSize: '14px', color: '#666' }}>
-            Kamu akan menghapus:
+            {t.modal.deleteConfirm}
           </p>
           <div
             className="mb-4 p-3"
@@ -114,7 +116,7 @@ export function DeleteConfirmModal({
           {details.length > 0 && (
             <div className="mb-4">
               <p className="mb-2" style={{ fontSize: '14px', color: '#666' }}>
-                Ini akan menghapus permanen:
+                {t.modal.deleteWarning}
               </p>
               <ul style={{ paddingLeft: '1.2rem', listStyle: 'disc' }}>
                 {details.map((d, i) => (
@@ -136,7 +138,7 @@ export function DeleteConfirmModal({
           >
             <AlertTriangle size={18} style={{ color: '#FF3C3C', flexShrink: 0 }} />
             <p style={{ fontSize: '13px', fontWeight: 700, color: '#FF3C3C' }}>
-              TINDAKAN INI TIDAK BISA DIBATALKAN
+              {t.modal.deleteWarning}
             </p>
           </div>
 
@@ -148,7 +150,7 @@ export function DeleteConfirmModal({
               className="neo-button"
               style={{ backgroundColor: '#F0F0F0' }}
             >
-              BATAL
+              {t.common.cancel}
             </button>
             <button
               onClick={onConfirm}
@@ -159,7 +161,7 @@ export function DeleteConfirmModal({
                 cursor: canConfirm && !loading ? 'pointer' : 'not-allowed',
               }}
             >
-              {loading ? 'MENGHAPUS...' : 'HAPUS PERMANEN'}
+              {loading ? t.common.loading : t.modal.delete}
             </button>
           </div>
         </div>

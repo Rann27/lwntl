@@ -5,6 +5,7 @@
 
 import { useNavigate } from 'react-router-dom'
 import { Settings, ArrowLeft } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 interface TopbarProps {
   showBack?: boolean
@@ -14,6 +15,7 @@ interface TopbarProps {
 
 export function Topbar({ showBack, title, subtitle }: TopbarProps) {
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   return (
     <div
@@ -107,7 +109,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
           onClick={() => navigate('/settings')}
           className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
           style={{ color: '#00F7FF' }}
-          title="Pengaturan"
+          title={t.topbar.settings}
         >
           <Settings size={20} />
         </button>

@@ -36,7 +36,11 @@ export function useTranslation(seriesId: string, chapterId: string) {
     }
 
     const handleStatus = (data: { status: string }) => {
-      setTranslationState({ status: data.status })
+      if (data.status === 'cancelled') {
+        setTranslationState({ status: 'cancelled', isTranslating: false, progress: 0 })
+      } else {
+        setTranslationState({ status: data.status })
+      }
     }
 
     const handleDone = async (data: TranslationDoneEvent) => {

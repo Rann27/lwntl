@@ -5,22 +5,24 @@
 
 import { Loader2, CheckCircle, XCircle, Zap } from 'lucide-react'
 import type { TranslationState } from '../store/appStore'
+import { useI18n } from '../i18n'
 
 interface StatusBarProps {
   translation: TranslationState
   chapterStatus: string
 }
 
-const statusLabels: Record<string, string> = {
-  idle: 'Siap',
-  processing: 'Memproses...',
-  extracting: 'Mengekstrak glossary...',
-  translating: 'Menerjemahkan...',
-  done: 'Selesai',
-  error: 'Error',
-}
-
 export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
+  const { t } = useI18n()
+  const statusLabels: Record<string, string> = {
+    idle: t.status.idle,
+    processing: t.status.processing + '...',
+    extracting: t.status.extracting + '...',
+    summarizing: t.status.summarizing + '...',
+    translating: t.status.translating + '...',
+    done: t.status.done,
+    error: t.status.error,
+  }
   const status = translation.isTranslating ? translation.status : chapterStatus
   const label = statusLabels[status] || status
 
@@ -52,7 +54,7 @@ export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
 
         {translation.isTranslating && translation.iteration > 0 && (
           <span style={{ color: 'var(--color-text-muted)' }}>
-            Iterasi {translation.iteration}
+            {t.chapter.iteration} {translation.iteration}
           </span>
         )}
       </div>

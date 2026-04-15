@@ -14,10 +14,12 @@ import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
 import { useToast } from '../hooks/useToast'
 import { getAllSeries, createSeries, updateSeries, deleteSeries, getSeriesDeleteInfo, getChapters } from '../api'
 import { useAppStore } from '../store/appStore'
+import { useI18n } from '../i18n'
 import type { Series, Chapter } from '../types'
 
 export function HomePage() {
   const toast = useToast()
+  const { t } = useI18n()
   const { apiReady, config } = useAppStore()
   const [seriesList, setSeriesList] = useState<Series[]>([])
   const [chaptersMap, setChaptersMap] = useState<Record<string, Chapter[]>>({})
@@ -51,7 +53,7 @@ export function HomePage() {
       )
       setChaptersMap(chMap)
     } catch (err: any) {
-      toast.error('Gagal memuat data series')
+      toast.error(t.settings.saveFailed)
     } finally {
       setLoading(false)
     }
@@ -69,9 +71,9 @@ export function HomePage() {
       setSeriesList((prev) => [...prev, newSeries])
       setChaptersMap((prev) => ({ ...prev, [newSeries.id]: [] }))
       setCreateOpen(false)
-      toast.success(`Series "${title}" berhasil dibuat!`)
+      toast.success(`Series "${title}" ✓`)
     } catch (err: any) {
-      toast.error('Gagal membuat series')
+      toast.error(t.settings.saveFailed)
     } finally {
       setCreateLoading(false)
     }
@@ -84,9 +86,9 @@ export function HomePage() {
       const updated = await updateSeries(seriesId, title, language, targetLanguage, systemPrompt)
       setSeriesList((prev) => prev.map((s) => (s.id === seriesId ? updated : s)))
       setEditSeries(null)
-      toast.success('Series berhasil diperbarui!')
+      toast.success('✓')
     } catch {
-      toast.error('Gagal memperbarui series')
+      toast.error(t.settings.saveFailed)
     } finally {
       setEditLoading(false)
     }
@@ -97,9 +99,9 @@ export function HomePage() {
     setDeleteTarget(series)
     try {
       const info = await getSeriesDeleteInfo(series.id)
-      setDeleteDetails([`${info.chapterCount} bab beserta terjemahannya`])
+      setDeleteDetails([`${info.chapterCount} ${t.seriesCard.chapters}`])
     } catch {
-      setDeleteDetails(['Semua bab beserta terjemahannya'])
+      setDeleteDetails([`${t.seriesCard.chapters}`])
     }
   }
 
@@ -110,9 +112,9 @@ export function HomePage() {
       await deleteSeries(deleteTarget.id)
       setSeriesList((prev) => prev.filter((s) => s.id !== deleteTarget.id))
       setDeleteTarget(null)
-      toast.success('Series berhasil dihapus')
+      toast.success('✓')
     } catch {
-      toast.error('Gagal menghapus series')
+      toast.error(t.settings.saveFailed)
     } finally {
       setDeleteLoading(false)
     }
@@ -134,14 +136,14 @@ export function HomePage() {
               letterSpacing: '1px',
             }}
           >
-            KOLEKSI SERIES
+            {t.home.title}
           </h1>
           <button
             onClick={() => setCreateOpen(true)}
             className="neo-button flex items-center gap-2"
           >
             <Plus size={18} />
-            TAMBAH SERIES
+            {t.home.addSeries.replace('+ ', '')}
           </button>
         </div>
 
@@ -185,14 +187,14 @@ export function HomePage() {
                   marginBottom: '8px',
                 }}
               >
-                BELUM ADA SERIES
+                {t.home.emptyTitle.toUpperCase()}
               </h2>
               <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-                Mulai dengan menambahkan series pertama kamu
+                {t.home.emptyDesc}
               </p>
               <button onClick={() => setCreateOpen(true)} className="neo-button flex items-center gap-2">
                 <Plus size={16} />
-                TAMBAH SERIES
+                {t.home.addSeries.replace('+ ', '')}
               </button>
             </div>
           ) : (
@@ -231,7 +233,7 @@ export function HomePage() {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
-        title="Hapus Series"
+        title={t.common.delete}
         entityType="series"
         entityName={deleteTarget?.title || ''}
         details={deleteDetails}

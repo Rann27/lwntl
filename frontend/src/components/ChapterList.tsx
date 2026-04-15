@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, MoreVertical, Edit, Trash2, Search, X } from 'lucide-react'
+import { useI18n } from '../i18n'
 import type { Chapter, ChapterStatus } from '../types'
 
 interface ChapterListProps {
@@ -23,15 +24,9 @@ const statusColors: Record<ChapterStatus, string> = {
   error:      '#FF3C3C',
 }
 
-const statusLabels: Record<ChapterStatus, string> = {
-  pending:    'Belum',
-  processing: 'Proses',
-  done:       'Selesai',
-  error:      'Error',
-}
-
 export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, onDeleteChapter }: ChapterListProps) {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [search, setSearch] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
@@ -73,7 +68,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
   }, [showSuggestions])
 
   const handleSuggestionClick = (ch: Chapter) => {
-    setSearch(`Bab ${ch.chapterNumber}${ch.title ? ` — ${ch.title}` : ''}`)
+    setSearch(`${t.chapter.chapter} ${ch.chapterNumber}${ch.title ? ` — ${ch.title}` : ''}`)
     setShowSuggestions(false)
     navigate(`/series/${seriesId}/chapter/${ch.id}`)
   }
@@ -104,7 +99,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
             color: 'var(--color-text)',
           }}
         >
-          DAFTAR BAB
+          {t.chapter.chapterList}
         </span>
         <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
           {search.trim() ? `${filtered.length}/${chapters.length}` : chapters.length}
@@ -124,7 +119,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
             value={search}
             onChange={(e) => { setSearch(e.target.value); setShowSuggestions(true) }}
             onFocus={() => setShowSuggestions(true)}
-            placeholder="Cari bab atau judul..."
+            placeholder={t.chapter.searchPlaceholder}
             className="flex-1 text-sm outline-none"
             style={{
               border: 'none',
@@ -195,7 +190,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
         {filtered.length === 0 && (
           <div className="flex items-center justify-center h-full p-4">
             <p style={{ fontSize: '13px', color: 'var(--color-text-subtle)', textAlign: 'center' }}>
-              {chapters.length === 0 ? 'Belum ada bab' : 'Tidak ditemukan'}
+              {chapters.length === 0 ? t.chapter.noChapters : t.chapter.notFound}
             </p>
           </div>
         )}
@@ -227,7 +222,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           <Plus size={16} />
-          TAMBAH BAB
+          {t.chapter.addChapter}
         </button>
       </div>
     </div>
@@ -245,6 +240,7 @@ function ChapterItem({
   onDelete: (c: Chapter) => void
   onClick: () => void
 }) {
+  const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -277,13 +273,13 @@ function ChapterItem({
           border: '2px solid var(--color-border)',
           flexShrink: 0,
         }}
-        title={statusLabels[chapter.status]}
+        title={t.chapter.status[chapter.status] || chapter.status}
       />
 
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          Bab {chapter.chapterNumber}
+          {t.chapter.chapter} {chapter.chapterNumber}
           {chapter.title ? ` — ${chapter.title}` : ''}
         </p>
       </div>
@@ -315,7 +311,7 @@ function ChapterItem({
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <Edit size={12} /> Edit
+              <Edit size={12} /> {t.common.edit}
             </button>
             <div style={{ height: '2px', backgroundColor: 'var(--color-border)' }} />
             <button
@@ -325,7 +321,7 @@ function ChapterItem({
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,60,60,0.08)')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
-              <Trash2 size={12} /> Hapus
+              <Trash2 size={12} /> {t.common.delete}
             </button>
           </div>
         )}

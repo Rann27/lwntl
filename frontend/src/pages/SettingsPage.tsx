@@ -11,6 +11,7 @@ import { saveConfig, testConfig as testConfigApi } from '../api'
 import { useToast } from '../hooks/useToast'
 import { PROVIDERS } from '../types'
 import type { AppConfig } from '../types'
+import { useI18n, LANGUAGE_OPTIONS, type Language } from '../i18n'
 
 const API_KEY_FIELDS: Array<{
   provider: string
@@ -29,23 +30,27 @@ const API_KEY_FIELDS: Array<{
 export function SettingsPage() {
   const { config, setConfig } = useAppStore()
   const toast = useToast()
+  const { t } = useI18n()
 
   const handleSave = async (newConfig: AppConfig) => {
     try {
       await saveConfig(newConfig)
       setConfig(newConfig)
-      toast.success('Pengaturan berhasil disimpan!')
+      toast.success(t.settings.saveSuccess)
     } catch {
-      toast.error('Gagal menyimpan pengaturan')
+      toast.error(t.settings.saveFailed)
     }
   }
 
   return (
     <div className="app-layout">
-      <Topbar showBack title="Pengaturan" />
+      <Topbar showBack title={t.settings.title} />
 
       <main className="flex-1 overflow-y-auto flex items-start justify-center p-8" style={{ backgroundColor: 'var(--color-bg)' }}>
         <div style={{ width: '100%', maxWidth: '600px' }} className="space-y-5">
+
+          {/* App Language */}
+          {config && <AppLanguageSection config={config} onSave={handleSave} />}
 
           {/* Dark Mode */}
           {config && <ThemeSection config={config} onSave={handleSave} />}
@@ -53,16 +58,16 @@ export function SettingsPage() {
           {/* API Keys */}
           <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
             <h2 className="mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
-              API KEYS
+              {t.settings.apiKeys}
             </h2>
             <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-              Isi key untuk provider yang ingin digunakan. Provider aktif: <strong>{PROVIDERS[config?.provider || 'zhipuai']?.label}</strong>
+              {t.settings.apiKeysDesc} <strong>{PROVIDERS[config?.provider || 'zhipuai']?.label}</strong>
             </p>
 
             {config ? (
               <ApiKeysForm config={config} onSave={handleSave} />
             ) : (
-              <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>Memuat konfigurasi...</p>
+              <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>{t.common.loading}</p>
             )}
           </div>
 
@@ -70,16 +75,70 @@ export function SettingsPage() {
           <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
             <h2 className="flex items-center gap-2 mb-5" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
               <Languages size={20} />
-              BAHASA
+              {t.settings.languages}
             </h2>
             {config ? (
               <LanguageForm config={config} onSave={handleSave} />
             ) : (
-              <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>Memuat konfigurasi...</p>
+              <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>{t.common.loading}</p>
             )}
           </div>
         </div>
       </main>
+    </div>
+  )
+}
+
+// ─── App Language Section ────────────────────────────────────────────────────
+
+function AppLanguageSection({ config, onSave }: { config: AppConfig; onSave: (c: AppConfig) => void }) {
+  const [saving, setSaving] = useState(false)
+  const { t, setLanguage, language } = useI18n()
+
+  const handleChange = async (lang: Language) => {
+    setSaving(true)
+    setLanguage(lang)
+    await onSave({ ...config, uiLanguage: lang })
+    setSaving(false)
+  }
+
+  return (
+    <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
+      <h2 className="flex items-center gap-2 mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+        <Globe size={20} />
+        {t.settings.appLanguage}
+      </h2>
+      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+        {t.settings.appLanguageDesc}
+      </p>
+      <div className="flex items-center gap-3">
+        {LANGUAGE_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => handleChange(opt.value)}
+            disabled={saving}
+            style={{
+              flex: 1,
+              padding: '14px',
+              border: `2.5px solid var(--color-border)`,
+              boxShadow: language === opt.value ? 'var(--neo-shadow)' : 'none',
+              backgroundColor: language === opt.value ? 'var(--color-primary)' : 'var(--color-surface-2)',
+              cursor: 'pointer',
+              fontFamily: "'Space Grotesk', sans-serif",
+              fontWeight: 700,
+              fontSize: '13px',
+              color: 'var(--color-text)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+            }}
+          >
+            {opt.flag} {opt.label}
+          </button>
+        ))}
+      </div>
+      {saving && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '8px' }}>{t.common.saving}</p>}
     </div>
   )
 }
@@ -89,6 +148,7 @@ export function SettingsPage() {
 function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppConfig) => void }) {
   const [theme, setTheme] = useState(config.theme || 'light')
   const [saving, setSaving] = useState(false)
+  const { t } = useI18n()
 
   const handleSave = async (newTheme: string) => {
     setTheme(newTheme)
@@ -100,7 +160,7 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
   return (
     <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
       <h2 className="mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
-        TAMPILAN
+        {t.settings.appearance}
       </h2>
       <div className="flex items-center gap-3">
         <button
@@ -123,7 +183,7 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
             gap: '8px',
           }}
         >
-          <Sun size={16} /> LIGHT MODE
+          <Sun size={16} /> {t.settings.lightMode}
         </button>
         <button
           onClick={() => handleSave('dark')}
@@ -145,10 +205,10 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
             gap: '8px',
           }}
         >
-          <Moon size={16} /> DARK MODE
+          <Moon size={16} /> {t.settings.darkMode}
         </button>
       </div>
-      {saving && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '8px' }}>Menyimpan...</p>}
+      {saving && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '8px' }}>{t.common.saving}</p>}
     </div>
   )
 }
@@ -166,6 +226,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
   const [testMsg, setTestMsg] = useState('')
   const [saving, setSaving] = useState(false)
+  const { t } = useI18n()
 
   const buildConfig = (): AppConfig => {
     const updated = { ...config }
@@ -186,10 +247,10 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
       await onSave(buildConfig())
       const result = await testConfigApi()
       setTestResult(result.success ? 'success' : 'error')
-      setTestMsg(result.success ? `Koneksi berhasil! (${PROVIDERS[config.provider]?.label})` : ((result as any).error || 'Gagal. Periksa API key.'))
+      setTestMsg(result.success ? `${t.settings.connectionSuccess} (${PROVIDERS[config.provider]?.label})` : ((result as any).error || t.settings.connectionFailed))
     } catch {
       setTestResult('error')
-      setTestMsg('Terjadi kesalahan saat tes.')
+      setTestMsg(t.settings.testError)
     }
     setTesting(false)
   }
@@ -208,7 +269,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
               </label>
               {isActive && (
                 <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--color-primary)', color: '#111', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
-                  AKTIF
+                  {t.common.active}
                 </span>
               )}
               {hasKey && !isActive && (
@@ -218,7 +279,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
               )}
               {docsUrl && (
                 <a href={docsUrl} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--color-text-muted)', textDecoration: 'none', fontWeight: 600 }}>
-                  <ExternalLink size={10} /> Lihat Model
+                  <ExternalLink size={10} /> {t.settings.seeModels}
                 </a>
               )}
             </div>
@@ -227,7 +288,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 type={showKey[field] ? 'text' : 'password'}
                 value={keys[field] || ''}
                 onChange={(e) => { setKeys(prev => ({ ...prev, [field]: e.target.value })); setTestResult(null) }}
-                placeholder={`Masukkan ${label} API key...`}
+                placeholder={t.settings.enterApiKey.replace('{label}', label)}
                 className="neo-input"
                 style={{ paddingRight: '40px', fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: isActive ? 'var(--color-border)' : 'var(--color-separator)' }}
               />
@@ -247,10 +308,10 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
       <div className="flex items-center gap-3 mt-5 mb-3">
         <button onClick={handleTest} disabled={testing} className="neo-button flex items-center gap-2" style={{ padding: '8px 16px', fontSize: '12px', opacity: testing ? 0.5 : 1 }}>
           {testing ? <Loader2 size={13} className="animate-spin" /> : <TestTube size={13} />}
-          TEST PROVIDER AKTIF
+          {t.settings.testProvider}
         </button>
         <button onClick={handleSave} disabled={saving} className="neo-button flex items-center gap-2" style={{ padding: '8px 16px', fontSize: '12px', opacity: saving ? 0.5 : 1 }}>
-          {saving ? 'MENYIMPAN...' : 'SIMPAN API KEYS'}
+          {saving ? t.common.saving : t.settings.saveApiKeys}
         </button>
       </div>
 
@@ -272,6 +333,7 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
   const [newSource, setNewSource] = useState('')
   const [newTarget, setNewTarget] = useState('')
   const [saving, setSaving] = useState(false)
+  const { t } = useI18n()
 
   const addSourceLang = () => {
     const val = newSource.trim()
@@ -297,7 +359,7 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
       {/* Source Languages */}
       <div className="mb-5">
         <label className="flex items-center gap-1.5 mb-2" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-          <Globe size={12} /> Bahasa Sumber
+          <Globe size={12} /> {t.settings.sourceLang}
         </label>
         <div className="flex flex-wrap gap-2 mb-2">
           {sourceLangs.map(lang => (
@@ -310,7 +372,7 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
           ))}
         </div>
         <div className="flex gap-2">
-          <input type="text" value={newSource} onChange={(e) => setNewSource(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSourceLang() } }} placeholder="Tambah bahasa baru..." className="neo-input flex-1" style={{ padding: '6px 10px', fontSize: '13px' }} />
+          <input type="text" value={newSource} onChange={(e) => setNewSource(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSourceLang() } }} placeholder={t.settings.addLanguage} className="neo-input flex-1" style={{ padding: '6px 10px', fontSize: '13px' }} />
           <button type="button" onClick={addSourceLang} className="neo-button" style={{ padding: '6px 12px', fontSize: '12px' }}><Plus size={14} /></button>
         </div>
       </div>
@@ -318,7 +380,7 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
       {/* Target Languages */}
       <div className="mb-5">
         <label className="flex items-center gap-1.5 mb-2" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-          <Languages size={12} /> Bahasa Target
+          <Languages size={12} /> {t.settings.targetLang}
         </label>
         <div className="flex flex-wrap gap-2 mb-2">
           {targetLangs.map(lang => (
@@ -331,13 +393,13 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
           ))}
         </div>
         <div className="flex gap-2">
-          <input type="text" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTargetLang() } }} placeholder="Tambah bahasa baru..." className="neo-input flex-1" style={{ padding: '6px 10px', fontSize: '13px' }} />
+          <input type="text" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTargetLang() } }} placeholder={t.settings.addLanguage} className="neo-input flex-1" style={{ padding: '6px 10px', fontSize: '13px' }} />
           <button type="button" onClick={addTargetLang} className="neo-button" style={{ padding: '6px 12px', fontSize: '12px' }}><Plus size={14} /></button>
         </div>
       </div>
 
       <button onClick={handleSave} disabled={saving} className="neo-button w-full" style={{ opacity: saving ? 0.5 : 1 }}>
-        {saving ? 'MENYIMPAN...' : 'SIMPAN BAHASA'}
+        {saving ? t.common.saving : t.settings.saveLanguages}
       </button>
     </div>
   )

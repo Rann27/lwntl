@@ -7,6 +7,7 @@ import { useState, useMemo, useRef, useEffect } from 'react'
 import { Plus, Search, Trash2, Check, X, Edit2, Download, Upload, FileJson, FileText } from 'lucide-react'
 import type { GlossaryEntry } from '../types'
 import { exportGlossaryFile } from '../api'
+import { useI18n } from '../i18n'
 
 interface GlossaryTableProps {
   entries: GlossaryEntry[]
@@ -121,6 +122,7 @@ function parseImportedFile(text: string, filename: string): Array<{ sourceTerm: 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onImport }: GlossaryTableProps) {
+  const { t } = useI18n()
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editSource, setEditSource] = useState('')
@@ -196,11 +198,11 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '2.5px solid var(--color-border)' }}>
         <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
-          GLOSSARY
+          {t.seriesSettings.glossary}
         </span>
         <div className="flex items-center gap-2">
           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            {entries.length} entri
+            {entries.length} {t.seriesSettings.addEntry.replace('+ ', '').toLowerCase()}
           </span>
 
           {/* Import */}
@@ -276,7 +278,7 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Cari istilah..."
+            placeholder={t.seriesSettings.searchGlossary}
             className="flex-1 text-sm outline-none"
             style={{ border: 'none', padding: '4px 0', fontFamily: "'Inter', sans-serif", background: 'transparent', color: 'var(--color-text)' }}
           />
@@ -288,9 +290,9 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
-              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Istilah Asli</th>
-              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Terjemahan</th>
-              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Catatan</th>
+              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.sourceTerm}</th>
+              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.translatedTerm}</th>
+              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.notes}</th>
               <th className="px-2 py-2" style={{ width: '80px' }}></th>
             </tr>
           </thead>
@@ -298,7 +300,7 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={4} className="text-center py-8" style={{ color: 'var(--color-text-subtle)', fontSize: '13px' }}>
-                  {entries.length === 0 ? 'Belum ada entri glossary' : 'Tidak ditemukan'}
+                  {entries.length === 0 ? t.seriesSettings.noGlossary : t.chapter.notFound}
                 </td>
               </tr>
             )}
@@ -386,7 +388,7 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
           <Plus size={16} />
-          ENTRI
+          {t.seriesSettings.addEntry}
         </button>
       </div>
 

@@ -1,0 +1,256 @@
+/**
+ * LWNTL Bahasa Indonesia Translations
+ */
+
+const id = {
+  // Common
+  common: {
+    save: 'SIMPAN',
+    saving: 'MENYIMPAN...',
+    cancel: 'BATAL',
+    delete: 'HAPUS',
+    add: 'TAMBAH',
+    edit: 'EDIT',
+    close: 'TUTUP',
+    loading: 'Memuat...',
+    search: 'Cari...',
+    confirm: 'KONFIRMASI',
+    reset: 'RESET',
+    back: 'KEMBALI',
+    export: 'EKSPOR',
+    test: 'TES',
+    active: 'AKTIF',
+    new: 'BARU',
+    exists: 'ADA',
+    done: 'SELESAI',
+    error: 'ERROR',
+    retry: 'COBA LAGI',
+    settings: 'PENGATURAN',
+    yes: 'Ya',
+    no: 'Tidak',
+    or: 'atau',
+    noData: 'Tidak ada data',
+    Untitled: 'Tanpa Judul',
+  },
+
+  // Topbar
+  topbar: {
+    settings: 'Pengaturan',
+    back: 'Kembali',
+  },
+
+  // Home page
+  home: {
+    title: 'KOLEKSI SERIES',
+    addSeries: '+ TAMBAH SERIES',
+    emptyTitle: 'Belum Ada Series',
+    emptyDesc: 'Klik "+ TAMBAH SERIES" untuk memulai proyek terjemahan pertamamu!',
+    chapters: 'bab',
+    language: 'Bahasa',
+  },
+
+  // Settings page
+  settings: {
+    title: 'Pengaturan',
+    appearance: 'TAMPILAN',
+    lightMode: 'LIGHT MODE',
+    darkMode: 'DARK MODE',
+    apiKeys: 'API KEYS',
+    apiKeysDesc: 'Isi key untuk provider yang ingin digunakan. Provider aktif:',
+    enterApiKey: 'Masukkan {label} API key...',
+    testProvider: 'TEST PROVIDER AKTIF',
+    saveApiKeys: 'SIMPAN API KEYS',
+    connectionSuccess: 'Koneksi berhasil!',
+    connectionFailed: 'Gagal. Periksa API key.',
+    testError: 'Terjadi kesalahan saat tes.',
+    saveSuccess: 'Pengaturan berhasil disimpan!',
+    saveFailed: 'Gagal menyimpan pengaturan',
+    languages: 'BAHASA',
+    sourceLang: 'Bahasa Sumber',
+    targetLang: 'Bahasa Target',
+    addLanguage: 'Tambah bahasa baru...',
+    saveLanguages: 'SIMPAN BAHASA',
+    seeModels: 'Lihat Model',
+    appLanguage: 'APP LANGUAGE',
+    appLanguageDesc: 'Pilih bahasa tampilan aplikasi',
+  },
+
+  // Series Settings page
+  seriesSettings: {
+    chapters: 'DAFTAR BAB',
+    addChapter: '+ TAMBAH BAB',
+    noChapters: 'Belum ada bab. Klik "+ TAMBAH BAB" untuk menambahkan.',
+    promptModel: 'PROMPT & MODEL',
+    notSaved: 'Belum Disimpan',
+    provider: 'Provider',
+    model: 'Model',
+    systemPrompt: 'System Prompt',
+    custom: 'CUSTOM',
+    default: 'DEFAULT',
+    instructionPrompt: 'Instruction Prompt (Per-Series)',
+    instructionPlaceholder: 'Pertahankan honorifik -san, -kun...',
+    instructionDesc: 'Instruksi khusus untuk series ini. Akan ditambahkan ke system prompt.',
+    maxTokens: 'Max Tokens',
+    temperature: 'Temperature',
+    saveSettings: 'SIMPAN PENGATURAN',
+    glossary: 'GLOSSARY',
+    addEntry: '+ ENTRI',
+    searchGlossary: 'Cari glossary...',
+    noGlossary: 'Belum ada entri glossary.',
+    sourceTerm: 'Istilah Asli',
+    translatedTerm: 'Terjemahan',
+    notes: 'Catatan',
+    templateVars: 'TEMPLATE VARIABLES',
+    templateVarsDesc: 'Variabel akan otomatis diganti saat terjemahan berjalan. Glossary dan context memory ditambahkan otomatis di bawah prompt.',
+    saveSuccess: 'Pengaturan berhasil disimpan!',
+    saveFailed: 'Gagal menyimpan pengaturan',
+  },
+
+  // Chapter Workspace
+  chapter: {
+    chapter: 'Bab',
+    chapterList: 'DAFTAR BAB',
+    addChapter: '+ TAMBAH BAB',
+    searchPlaceholder: 'Cari bab atau judul...',
+    noChapters: 'Belum ada bab',
+    notFound: 'Tidak ditemukan',
+    status: {
+      pending: 'Menunggu',
+      processing: 'Memproses',
+      done: 'Selesai',
+      error: 'Error',
+    },
+    rawContent: 'KONTEN RAW',
+    translation: 'TERJEMAHAN',
+    translate: 'TERJEMAHKAN',
+    export: 'EKSPOR',
+    iteration: 'ITERASI',
+    emptyRaw: '(Konten raw kosong)',
+    chapterNotFound: 'Bab tidak ditemukan',
+    loadingChapter: 'Memuat bab...',
+    translateFailed: 'Gagal memulai terjemahan: ',
+    cancelFailed: 'Gagal membatalkan terjemahan',
+    exportSuccess: 'Bab berhasil diekspor!',
+    exportFailed: 'Gagal mengekspor bab',
+    translationCancelled: 'Terjemahan dibatalkan',
+    translationStarted: 'Terjemahan dimulai...',
+    translationDone: 'Bab selesai diterjemahkan!',
+    translationFailed: 'Terjemahan gagal: ',
+  },
+
+  // Glossary Update Panel
+  glossaryUpdates: {
+    title: 'UPDATE GLOSSARY',
+    noUpdates: 'Belum ada update glossary. Jalankan terjemahan untuk mengekstrak istilah.',
+    extractionFailed: 'Gagal mengekstrak glossary: {error}',
+    addAllNew: 'TAMBAHKAN SEMUA YANG BARU',
+    entryAdded: 'Entri ditambahkan ke glossary!',
+    entryAddFailed: 'Gagal menambahkan entri',
+    allConfirmed: 'Semua update glossary dikonfirmasi!',
+    confirmFailed: 'Gagal mengkonfirmasi update glossary',
+  },
+
+  // Modals
+  modal: {
+    createSeries: 'BUAT SERIES BARU',
+    seriesTitle: 'Judul Series',
+    seriesTitlePlaceholder: 'Masukkan judul series...',
+    sourceLanguage: 'Bahasa Sumber',
+    targetLanguage: 'Bahasa Target',
+    create: 'BUAT',
+    editSeries: 'EDIT SERIES',
+    save: 'SIMPAN',
+    createChapter: 'BUAT BAB BARU',
+    chapterNumber: 'Nomor Bab',
+    chapterTitle: 'Judul Bab (opsional)',
+    chapterTitlePlaceholder: 'Masukkan judul bab...',
+    chapterContent: 'Konten Raw',
+    chapterContentPlaceholder: 'Tempel konten raw bab di sini...',
+    editChapter: 'EDIT BAB',
+    deleteConfirm: 'KONFIRMASI HAPUS',
+    deleteSeriesMsg: 'Series "{title}" dan semua {count} bab akan dihapus permanen.',
+    deleteChapterMsg: 'Bab {number} "{title}" akan dihapus permanen.',
+    deleteWarning: 'Tindakan ini tidak bisa dibatalkan!',
+    delete: 'HAPUS',
+    onboardingTitle: 'Selamat Datang di LWNTL!',
+    onboardingDesc: 'Aplikasi penerjemah light novel & web novel dengan AI.',
+    onboardingStep1: 'Atur API key di Pengaturan',
+    onboardingStep2: 'Buat series baru',
+    onboardingStep3: 'Tambahkan bab dan mulai terjemahan!',
+    getStarted: 'MULAI!',
+  },
+
+  // Status
+  status: {
+    pending: 'Menunggu',
+    processing: 'Memproses',
+    translating: 'Menerjemahkan',
+    summarizing: 'Meringkas',
+    extracting: 'Mengekstrak',
+    done: 'Selesai',
+    error: 'Error',
+    cancelled: 'Dibatalkan',
+    idle: 'Siap',
+  },
+
+  // Batch Translation
+  batch: {
+    title: 'TERJEMAHKAN SEMUA',
+    translating: 'Menerjemahkan bab {current}/{total}...',
+    done: 'Batch selesai! {completed}/{total} bab diterjemahkan.',
+    cancelled: 'Batch dibatalkan.',
+    failed: 'Gagal memulai batch translation',
+    confirmTitle: 'Terjemahkan Semua Bab?',
+    confirmDesc: 'Hanya bab berstatus "Menunggu" yang akan diterjemahkan. {count} bab akan diproses.',
+    start: 'MULAI',
+  },
+
+  // Context Info
+  context: {
+    tokens: 'token',
+    fitsInContext: 'Muat dalam context window',
+    exceedsContext: 'Melebihi context window!',
+    system: 'System',
+    rolling: 'Rolling',
+    memory: 'Memory',
+    current: 'Current',
+    summaries: 'ringkasan',
+    memories: 'memori',
+    utilization: 'Utilisasi',
+  },
+
+  // Memory Panel
+  memory: {
+    title: 'MEMORY',
+    noMemory: 'Belum ada memori. Memori akan terbentuk otomatis saat bab diterjemahkan.',
+    range: 'Rentang',
+    content: 'Konten',
+    compactedAt: 'Dikompak pada',
+    chapters: 'bab',
+  },
+
+  // Series Card
+  seriesCard: {
+    chapters: 'bab',
+    translated: 'diterjemahkan',
+    edit: 'Edit',
+    settings: 'Pengaturan',
+    delete: 'Hapus',
+  },
+
+  // Onboarding
+  onboarding: {
+    welcome: 'Selamat Datang di LWNTL!',
+    subtitle: 'Aplikasi penerjemah light novel & web novel dengan AI.',
+    step1Title: 'Atur API Key',
+    step1Desc: 'Masukkan API key dari provider AI pilihanmu di halaman Pengaturan.',
+    step2Title: 'Buat Series',
+    step2Desc: 'Buat series baru dan atur bahasa sumber serta target terjemahan.',
+    step3Title: 'Terjemahkan!',
+    step3Desc: 'Tambahkan bab, atur glossary, dan mulai terjemahan dengan satu klik.',
+    getStarted: 'MULAI!',
+  },
+}
+
+export default id
+export type TranslationStrings = typeof id

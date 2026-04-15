@@ -33,11 +33,13 @@ import {
   updateSeries,
 } from '../api'
 import { useAppStore } from '../store/appStore'
+import { useI18n } from '../i18n'
 import type { Series, Chapter, GlossaryEntry, AppConfig } from '../types'
 
 export function SeriesSettingsPage() {
   const { id: seriesId } = useParams<{ id: string }>()
   const toast = useToast()
+  const { t } = useI18n()
   const { config, setConfig, apiReady } = useAppStore()
   const { isBatchActive, startBatch, cancelBatch } = useBatchTranslation(seriesId!)
   const [showMemory, setShowMemory] = useState(false)
@@ -78,7 +80,7 @@ export function SeriesSettingsPage() {
       setInstructions(s?.instructions || '')
       setSystemPrompt(s?.systemPrompt || '')
     } catch {
-      toast.error('Gagal memuat data series')
+      toast.error(t.settings.saveFailed)
     } finally {
       setLoading(false)
     }
@@ -103,9 +105,9 @@ export function SeriesSettingsPage() {
       setSystemPrompt(newSystemPrompt)
       setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, instructions: newInstructions } : prev)
 
-      toast.success('Pengaturan berhasil disimpan!')
+      toast.success(t.seriesSettings.saveSuccess)
     } catch {
-      toast.error('Gagal menyimpan pengaturan')
+      toast.error(t.seriesSettings.saveFailed)
     } finally {
       setSaveLoading(false)
     }
@@ -122,9 +124,9 @@ export function SeriesSettingsPage() {
       const newChap = await createChapter(seriesId, number, title, rawContent)
       setChapters((prev) => [...prev, newChap])
       setCreateChapterOpen(false)
-      toast.success(`Bab ${number} berhasil dibuat!`)
+      toast.success(`✓`)
     } catch {
-      toast.error('Gagal membuat bab')
+      toast.error(t.settings.saveFailed)
     } finally {
       setCreateChapterLoading(false)
     }
@@ -139,9 +141,9 @@ export function SeriesSettingsPage() {
       const chaps = await getChapters(seriesId)
       setChapters(chaps)
       setCreateChapterOpen(false)
-      toast.success(`${bulk.length} bab berhasil ditambahkan!`)
+      toast.success(`✓ ${bulk.length}`)
     } catch {
-      toast.error('Gagal menambahkan bab')
+      toast.error(t.settings.saveFailed)
       throw new Error('bulk create failed')
     }
   }
@@ -153,9 +155,9 @@ export function SeriesSettingsPage() {
       const updated = await updateChapter(seriesId, chapterId, number, title, rawContent)
       setChapters((prev) => prev.map((c) => (c.id === chapterId ? updated : c)))
       setEditChapter(null)
-      toast.success('Bab berhasil diperbarui!')
+      toast.success('✓')
     } catch {
-      toast.error('Gagal memperbarui bab')
+      toast.error(t.settings.saveFailed)
     } finally {
       setEditChapterLoading(false)
     }
@@ -178,9 +180,9 @@ export function SeriesSettingsPage() {
       await deleteChapter(seriesId, deleteChapterTarget.id)
       setChapters((prev) => prev.filter((c) => c.id !== deleteChapterTarget.id))
       setDeleteChapterTarget(null)
-      toast.success('Bab berhasil dihapus')
+      toast.success('✓')
     } catch {
-      toast.error('Gagal menghapus bab')
+      toast.error(t.settings.saveFailed)
     } finally {
       setDeleteChapterLoading(false)
     }
@@ -193,9 +195,9 @@ export function SeriesSettingsPage() {
     try {
       const entry = await addGlossaryEntry(seriesId, '', '', '')
       setGlossary((prev) => [...prev, entry])
-      toast.success('Entri glossary ditambahkan')
+      toast.success('✓')
     } catch {
-      toast.error('Gagal menambahkan entri')
+      toast.error(t.settings.saveFailed)
     } finally {
       setAddGlossaryLoading(false)
     }
@@ -211,9 +213,9 @@ export function SeriesSettingsPage() {
     try {
       const updated = await updateGlossaryEntry(seriesId, entry.id, sourceTerm, translatedTerm, notes)
       setGlossary((prev) => prev.map((e) => (e.id === entry.id ? updated : e)))
-      toast.success('Entri glossary diperbarui')
+      toast.success('✓')
     } catch {
-      toast.error('Gagal memperbarui entri')
+      toast.error(t.settings.saveFailed)
     }
   }
 
@@ -228,9 +230,9 @@ export function SeriesSettingsPage() {
         setGlossary((prev) => [...prev, entry])
         added++
       }
-      toast.success(`${added} entri glossary berhasil diimpor!`)
+      toast.success(`✓ ${added}`)
     } catch {
-      toast.error(`Gagal mengimpor entri (${added} berhasil)`)
+      toast.error(t.settings.saveFailed)
     }
   }
 
@@ -241,9 +243,9 @@ export function SeriesSettingsPage() {
       await deleteGlossaryEntry(seriesId, deleteGlossaryTarget.id)
       setGlossary((prev) => prev.filter((e) => e.id !== deleteGlossaryTarget.id))
       setDeleteGlossaryTarget(null)
-      toast.success('Entri glossary dihapus')
+      toast.success('✓')
     } catch {
-      toast.error('Gagal menghapus entri')
+      toast.error(t.settings.saveFailed)
     } finally {
       setDeleteGlossaryLoading(false)
     }
@@ -252,9 +254,9 @@ export function SeriesSettingsPage() {
   if (loading) {
     return (
       <div className="app-layout">
-        <Topbar showBack title="Memuat..." />
+        <Topbar showBack title={t.common.loading} />
         <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
-          <p style={{ color: 'var(--color-text-subtle)' }}>Memuat data...</p>
+          <p style={{ color: 'var(--color-text-subtle)' }}>{t.common.loading}</p>
         </main>
       </div>
     )
@@ -263,9 +265,9 @@ export function SeriesSettingsPage() {
   if (!series) {
     return (
       <div className="app-layout">
-        <Topbar showBack title="Tidak Ditemukan" />
+        <Topbar showBack title={t.chapter.notFound} />
         <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
-          <p style={{ color: 'var(--color-text-subtle)' }}>Series tidak ditemukan</p>
+          <p style={{ color: 'var(--color-text-subtle)' }}>{t.chapter.notFound}</p>
         </main>
       </div>
     )
@@ -273,7 +275,7 @@ export function SeriesSettingsPage() {
 
   return (
     <div className="app-layout">
-      <Topbar showBack title={series.title} subtitle="Pengaturan" />
+      <Topbar showBack title={series.title} subtitle={t.topbar.settings} />
 
       <main
         className="flex-1 overflow-hidden p-4 gap-4"
@@ -288,9 +290,9 @@ export function SeriesSettingsPage() {
             className="w-full flex items-center justify-center gap-2 px-3 py-2.5 font-bold text-sm border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#28E272] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#111] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
           >
             <Play size={16} />
-            BATCH TERJEMAHKAN
+            {t.batch.title}
             <span className="text-xs font-normal">
-              ({chapters.filter(c => c.status === 'pending').length} bab)
+              ({chapters.filter(c => c.status === 'pending').length} {t.home.chapters})
             </span>
           </button>
 
@@ -308,7 +310,7 @@ export function SeriesSettingsPage() {
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FFEF33] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#111] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
           >
             <Brain size={14} />
-            MEMORY ({series.memory?.length || 0})
+            {t.memory.title} ({series.memory?.length || 0})
           </button>
 
           {showMemory && (
@@ -367,7 +369,7 @@ export function SeriesSettingsPage() {
         open={!!deleteChapterTarget}
         onClose={() => setDeleteChapterTarget(null)}
         onConfirm={handleDeleteChapterConfirm}
-        title="Hapus Bab"
+        title={t.common.delete}
         entityType="chapter"
         entityName={deleteChapterTarget ? `Bab ${deleteChapterTarget.chapterNumber}${deleteChapterTarget.title ? ` — ${deleteChapterTarget.title}` : ''}` : ''}
         details={deleteChapterDetails}
@@ -378,7 +380,7 @@ export function SeriesSettingsPage() {
         open={!!deleteGlossaryTarget}
         onClose={() => setDeleteGlossaryTarget(null)}
         onConfirm={handleDeleteGlossaryConfirm}
-        title="Hapus Entri"
+        title={t.common.delete}
         entityType="glossary"
         entityName={deleteGlossaryTarget?.sourceTerm || ''}
         details={['Entri glossary ini']}

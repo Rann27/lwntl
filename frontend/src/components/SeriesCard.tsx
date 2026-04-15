@@ -6,6 +6,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MoreVertical, Edit, Settings, Trash2 } from 'lucide-react'
+import { useI18n } from '../i18n'
 import type { Series, Chapter } from '../types'
 
 interface SeriesCardProps {
@@ -17,6 +18,7 @@ interface SeriesCardProps {
 
 export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardProps) {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
 
@@ -114,7 +116,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <Edit size={14} />
-                  Edit Series
+                  {t.seriesCard.edit}
                 </button>
                 <button
                   onClick={(e) => {
@@ -128,7 +130,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <Settings size={14} />
-                  Pengaturan Series
+                  {t.seriesCard.settings}
                 </button>
                 <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
                 <button
@@ -143,7 +145,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <Trash2 size={14} />
-                  Hapus Series
+                  {t.seriesCard.delete}
                 </button>
               </div>
             )}
@@ -152,7 +154,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
 
         {/* Language & chapter count */}
         <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-          {series.sourceLanguage} → {series.targetLanguage || 'Indonesian'} &nbsp;•&nbsp; {totalChapters} bab
+          {series.sourceLanguage} → {series.targetLanguage || 'Indonesian'} &nbsp;•&nbsp; {totalChapters} {t.seriesCard.chapters}
         </p>
 
         {/* Progress bar */}
@@ -165,7 +167,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
 
         {/* Progress text */}
         <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-          {doneChapters} / {totalChapters} selesai ({progress}%)
+          {doneChapters} / {totalChapters} {t.seriesCard.translated} ({progress}%)
         </p>
       </div>
     </div>

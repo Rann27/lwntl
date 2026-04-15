@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { Rocket, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { PROVIDERS } from '../types'
+import { useI18n } from '../i18n'
 
 interface OnboardingModalProps {
   open: boolean
@@ -13,6 +14,7 @@ interface OnboardingModalProps {
 }
 
 export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
+  const { t } = useI18n()
   const [step, setStep] = useState(0)
   const [provider, setProvider] = useState<'zhipuai' | 'qwen'>('zhipuai')
   const [apiKey, setApiKey] = useState('')
@@ -101,10 +103,10 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
           {step === 0 && (
             <div>
               <h2 className="text-center mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px' }}>
-                PILIH PROVIDER AI
+                {t.seriesSettings.provider}
               </h2>
               <p className="text-center mb-5" style={{ fontSize: '13px', color: '#666' }}>
-                Pilih provider LLM yang akan digunakan untuk terjemahan
+                {t.onboarding.step1Desc}
               </p>
 
               <div className="space-y-3">
@@ -162,10 +164,10 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
           {step === 1 && (
             <div>
               <h2 className="text-center mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px' }}>
-                MASUKKAN API KEY
+                API KEY
               </h2>
               <p className="text-center mb-5" style={{ fontSize: '13px', color: '#666' }}>
-                Masukkan API key untuk {providerInfo[provider].name}
+                {providerInfo[provider].name}
               </p>
 
               <div className="mb-4">
@@ -177,7 +179,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                     type={showKey ? 'text' : 'password'}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="Paste API key di sini..."
+                    placeholder="API key..."
                     className="neo-input"
                     style={{ paddingRight: '40px' }}
                     autoFocus
@@ -197,7 +199,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                 className="text-sm font-semibold"
                 style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#666', textDecoration: 'underline' }}
               >
-                ← Ganti provider
+                ← {t.seriesSettings.provider}
               </button>
             </div>
           )}
@@ -218,7 +220,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
-                  {step === 0 ? 'LANJUT' : 'MULAI MENGGUNAKAN LWNTL'}
+                  {step === 0 ? t.onboarding.getStarted : t.onboarding.getStarted}
                   <ArrowRight size={18} />
                 </>
               )}

@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react'
 import { Save, AlertCircle, RotateCcw, Info, ExternalLink } from 'lucide-react'
 import { PROVIDERS } from '../types'
 import { getDefaultSystemPrompt } from '../api'
+import { useI18n } from '../i18n'
 import type { AppConfig, Series } from '../types'
 
 interface PromptModelPanelProps {
@@ -38,6 +39,7 @@ export function PromptModelPanel({
   const [dirty, setDirty] = useState(false)
   const [defaultPrompt, setDefaultPrompt] = useState('')
   const [loadingDefault, setLoadingDefault] = useState(false)
+  const { t } = useI18n()
 
   useEffect(() => {
     if (config) {
@@ -109,12 +111,12 @@ export function PromptModelPanel({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '2.5px solid var(--color-border)' }}>
         <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
-          PROMPT & MODEL
+          {t.seriesSettings.promptModel}
         </span>
         {dirty && (
           <div className="flex items-center gap-1" style={{ color: '#FFEF33' }}>
             <AlertCircle size={12} />
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Belum Disimpan</span>
+            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t.seriesSettings.notSaved}</span>
           </div>
         )}
       </div>
@@ -123,7 +125,7 @@ export function PromptModelPanel({
         {/* Provider */}
         <div>
           <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-            Provider
+            {t.seriesSettings.provider}
           </label>
           <select
             value={provider}
@@ -143,7 +145,7 @@ export function PromptModelPanel({
           </select>
           {!config?.[PROVIDERS[provider]?.apiKeyName as keyof typeof config] && (
             <p style={{ fontSize: '11px', color: '#FF3C3C', marginTop: '4px', fontWeight: 600 }}>
-              ⚠ Provider ini belum memiliki API key. Tambahkan di halaman Pengaturan.
+              ⚠ {t.seriesSettings.provider} API key — {t.topbar.settings}
             </p>
           )}
         </div>
@@ -152,7 +154,7 @@ export function PromptModelPanel({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-              Model
+              {t.seriesSettings.model}
             </label>
             {docsUrl && (
               <a
@@ -161,7 +163,7 @@ export function PromptModelPanel({
                 rel="noreferrer"
                 style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--color-text-muted)', textDecoration: 'none', fontWeight: 600 }}
               >
-                <ExternalLink size={10} /> Daftar Model {providerLabel}
+                <ExternalLink size={10} /> {providerLabel}
               </a>
             )}
           </div>
@@ -200,13 +202,13 @@ export function PromptModelPanel({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-              System Prompt
+              {t.seriesSettings.systemPrompt}
             </label>
             <div className="flex items-center gap-2">
               {isCustomPrompt ? (
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#FFEF33', background: '#111', padding: '2px 6px', textTransform: 'uppercase' }}>Custom</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: '#FFEF33', background: '#111', padding: '2px 6px', textTransform: 'uppercase' }}>{t.seriesSettings.custom}</span>
               ) : (
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', background: '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>Default</span>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', background: '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>{t.seriesSettings.default}</span>
               )}
               <button
                 type="button"
@@ -222,14 +224,14 @@ export function PromptModelPanel({
           <textarea
             value={displayPrompt}
             onChange={(e) => { onSystemPromptChange(e.target.value); setDirty(true) }}
-            placeholder={loadingDefault ? 'Memuat template default...' : 'System prompt template...'}
+            placeholder={loadingDefault ? t.common.loading : 'System prompt...'}
             className="neo-textarea"
             style={{ minHeight: '200px', fontSize: '12px', fontFamily: "'Inter', monospace", backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           />
           {/* Template Variable Guide */}
           <div className="mt-2 p-2.5" style={{ backgroundColor: 'var(--color-surface-2)', border: '2px solid var(--color-separator)', fontSize: '11px' }}>
             <div className="flex items-center gap-1 mb-1.5" style={{ fontWeight: 700, color: 'var(--color-text-muted)' }}>
-              <Info size={11} /> TEMPLATE VARIABLES
+              <Info size={11} /> {t.seriesSettings.templateVars}
             </div>
             <div className="space-y-0.5">
               {TEMPLATE_VARS.map((tv) => (
@@ -251,7 +253,7 @@ export function PromptModelPanel({
               ))}
             </div>
             <p style={{ marginTop: '6px', color: 'var(--color-text-subtle)', fontSize: '10px', lineHeight: 1.4 }}>
-              Variabel akan otomatis diganti saat terjemahan berjalan. Glossary dan context memory ditambahkan otomatis di bawah prompt.
+              {t.seriesSettings.templateVarsDesc}
             </p>
           </div>
         </div>
@@ -261,17 +263,17 @@ export function PromptModelPanel({
         {/* Instruction Prompt */}
         <div>
           <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-            Instruction Prompt (Per-Series)
+            {t.seriesSettings.instructionPrompt}
           </label>
           <textarea
             value={instructions}
             onChange={(e) => { onInstructionsChange(e.target.value); setDirty(true) }}
-            placeholder="Pertahankan honorifik -san, -kun..."
+            placeholder={t.seriesSettings.instructionPlaceholder}
             className="neo-textarea"
             style={{ minHeight: '80px', fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           />
           <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
-            Instruksi khusus untuk series ini. Akan ditambahkan ke system prompt.
+            {t.seriesSettings.instructionDesc}
           </p>
         </div>
 
@@ -280,7 +282,7 @@ export function PromptModelPanel({
         {/* Max Tokens */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Max Tokens</label>
+            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.maxTokens}</label>
             <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>{maxTokens.toLocaleString()}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -292,7 +294,7 @@ export function PromptModelPanel({
         {/* Temperature */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Temperature</label>
+            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.temperature}</label>
             <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>{temperature.toFixed(1)}</span>
           </div>
           <div className="flex items-center gap-3">
@@ -306,7 +308,7 @@ export function PromptModelPanel({
       <div style={{ borderTop: '2.5px solid var(--color-border)', padding: '12px 16px' }}>
         <button onClick={handleSave} disabled={loading} className="neo-button flex items-center justify-center gap-2 w-full" style={{ opacity: loading ? 0.5 : 1 }}>
           <Save size={16} />
-          {loading ? 'MENYIMPAN...' : 'SIMPAN PENGATURAN'}
+          {loading ? t.common.saving : t.seriesSettings.saveSettings}
         </button>
       </div>
     </div>

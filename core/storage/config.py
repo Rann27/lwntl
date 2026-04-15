@@ -43,6 +43,7 @@ DEFAULT_CONFIG = {
     "temperature": 0.3,
     "maxTokensPerIteration": 16000,
     "theme": "light",
+    "uiLanguage": "id",
     "sourceLanguages": ["Japanese", "Chinese", "Korean"],
     "targetLanguages": ["Indonesian", "English"],
 }

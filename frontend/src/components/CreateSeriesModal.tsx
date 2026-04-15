@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react'
 import { Plus, X } from 'lucide-react'
 import { ComboBox } from './ComboBox'
 import { DEFAULT_SOURCE_LANGUAGES, DEFAULT_TARGET_LANGUAGES } from '../types'
+import { useI18n } from '../i18n'
 import type { AppConfig } from '../types'
 
 interface CreateSeriesModalProps {
@@ -17,6 +18,7 @@ interface CreateSeriesModalProps {
 }
 
 export function CreateSeriesModal({ open, onClose, onSubmit, config, loading }: CreateSeriesModalProps) {
+  const { t } = useI18n()
   const [title, setTitle] = useState('')
   const [language, setLanguage] = useState('Japanese')
   const [targetLanguage, setTargetLanguage] = useState('Indonesian')
@@ -60,7 +62,7 @@ export function CreateSeriesModal({ open, onClose, onSubmit, config, loading }: 
             <div className="flex items-center gap-2">
               <Plus size={20} />
               <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px' }}>
-                TAMBAH SERIES
+                {t.home.addSeries.replace('+ ', '')}
               </h2>
             </div>
             <button onClick={onClose} className="hover:opacity-70" style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
@@ -71,13 +73,13 @@ export function CreateSeriesModal({ open, onClose, onSubmit, config, loading }: 
           <form onSubmit={handleSubmit}>
             <div className="mb-4">
               <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Nama Series
+                {t.modal.seriesTitle}
               </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Contoh: Mushoku Tensei"
+                placeholder={t.modal.seriesTitlePlaceholder}
                 className="neo-input"
                 autoFocus
               />
@@ -88,8 +90,8 @@ export function CreateSeriesModal({ open, onClose, onSubmit, config, loading }: 
                 value={language}
                 onChange={setLanguage}
                 options={sourceLanguages}
-                label="Bahasa Sumber"
-                placeholder="Ketik atau pilih bahasa..."
+                label={t.modal.sourceLanguage}
+                placeholder={t.modal.sourceLanguage + '...'}
               />
             </div>
 
@@ -98,14 +100,14 @@ export function CreateSeriesModal({ open, onClose, onSubmit, config, loading }: 
                 value={targetLanguage}
                 onChange={setTargetLanguage}
                 options={targetLanguages}
-                label="Bahasa Target"
-                placeholder="Ketik atau pilih bahasa..."
+                label={t.modal.targetLanguage}
+                placeholder={t.modal.targetLanguage + '...'}
               />
             </div>
 
             <div className="flex justify-end gap-3">
               <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>
-                BATAL
+                {t.common.cancel}
               </button>
               <button
                 type="submit"
@@ -113,7 +115,7 @@ export function CreateSeriesModal({ open, onClose, onSubmit, config, loading }: 
                 className="neo-button"
                 style={{ opacity: title.trim() && !loading ? 1 : 0.5 }}
               >
-                {loading ? 'MEMBUAT...' : 'BUAT SERIES'}
+                {loading ? t.common.loading : t.modal.create}
               </button>
             </div>
           </form>

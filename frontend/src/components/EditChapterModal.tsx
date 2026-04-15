@@ -4,6 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { Edit, X } from 'lucide-react'
+import { useI18n } from '../i18n'
 import type { Chapter } from '../types'
 
 interface EditChapterModalProps {
@@ -15,6 +16,7 @@ interface EditChapterModalProps {
 }
 
 export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: EditChapterModalProps) {
+  const { t } = useI18n()
   const [number, setNumber] = useState(0)
   const [title, setTitle] = useState('')
   const [rawContent, setRawContent] = useState('')
@@ -50,7 +52,7 @@ export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: 
             <div className="flex items-center gap-2">
               <Edit size={20} />
               <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px' }}>
-                EDIT BAB
+                {t.modal.editChapter}
               </h2>
             </div>
             <button onClick={onClose} className="hover:opacity-70" style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
@@ -62,13 +64,13 @@ export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: 
             <div className="flex gap-4 mb-4">
               <div style={{ width: '120px' }}>
                 <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Nomor Bab
+                  {t.modal.chapterNumber}
                 </label>
                 <input type="number" value={number} onChange={(e) => setNumber(parseInt(e.target.value) || 0)} className="neo-input" min={1} />
               </div>
               <div className="flex-1">
                 <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Judul (opsional)
+                  {t.modal.chapterTitle}
                 </label>
                 <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="neo-input" />
               </div>
@@ -76,7 +78,7 @@ export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: 
 
             <div className="mb-6">
               <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Konten Raw
+                {t.modal.chapterContent}
               </label>
               <textarea
                 value={rawContent}
@@ -88,10 +90,10 @@ export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: 
 
             <div className="flex justify-end gap-3">
               <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>
-                BATAL
+                {t.common.cancel}
               </button>
               <button type="submit" disabled={!number || loading} className="neo-button" style={{ opacity: number && !loading ? 1 : 0.5 }}>
-                {loading ? 'MENYIMPAN...' : 'SIMPAN'}
+                {loading ? t.common.saving : t.modal.save}
               </button>
             </div>
           </form>

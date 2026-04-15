@@ -17,6 +17,7 @@ export interface AppConfig {
   temperature: number
   maxTokensPerIteration: number
   theme: string
+  uiLanguage: 'id' | 'en'
   sourceLanguages: string[]
   targetLanguages: string[]
 }
@@ -111,11 +112,20 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'zhipuaiApiKey',
   },
   qwen: {
-    models: ['qwen-plus', 'qwen-flash', 'qwen3.6-plus', 'deepseek-v3', 'custom'],
+    models: [
+      'qwen3.5-plus', 'qwen3.5-flash', 'qwen3.6-plus',
+      'qwen3.6-plus-2026-04-02', 'qwen3.5-122b-a10b',
+      'qwen3.5-plus-2026-02-15', 'qwen3.5-flash-2026-02-23',
+      'deepseek-v3', 'custom',
+    ],
     displayNames: {
-      'qwen-plus': 'Qwen3.5-Plus',
-      'qwen-flash': 'Qwen3.5-Flash',
+      'qwen3.5-plus': 'Qwen3.5-Plus',
+      'qwen3.5-flash': 'Qwen3.5-Flash',
       'qwen3.6-plus': 'Qwen3.6-Plus',
+      'qwen3.6-plus-2026-04-02': 'Qwen3.6-Plus (2026-04-02)',
+      'qwen3.5-122b-a10b': 'Qwen3.5-122B-A10B',
+      'qwen3.5-plus-2026-02-15': 'Qwen3.5-Plus (2026-02-15)',
+      'qwen3.5-flash-2026-02-23': 'Qwen3.5-Flash (2026-02-23)',
       'deepseek-v3': 'DeepSeek V3.2',
       'custom': '+ Custom Model',
     },

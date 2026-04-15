@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { DragEvent, ChangeEvent } from 'react'
 import { Plus, X, Upload, GripVertical, Trash2 } from 'lucide-react'
+import { useI18n } from '../i18n'
 
 interface BulkEntry {
   id: string
@@ -26,6 +27,7 @@ interface CreateChapterModalProps {
 export function CreateChapterModal({
   open, onClose, onSubmit, onBulkSubmit, nextChapterNumber, loading,
 }: CreateChapterModalProps) {
+  const { t: tx } = useI18n()
   const [tab, setTab] = useState<'single' | 'bulk'>('single')
 
   // Single tab state
@@ -181,7 +183,7 @@ export function CreateChapterModal({
           <div className="flex items-center gap-2">
             <Plus size={20} />
             <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px' }}>
-              TAMBAH BAB
+              {tx.chapter.addChapter.replace('+ ', '')}
             </h2>
           </div>
           <button
@@ -195,10 +197,10 @@ export function CreateChapterModal({
 
         {/* Tabs */}
         <div className="flex" style={{ borderBottom: '2.5px solid #111', flexShrink: 0 }}>
-          {(['single', 'bulk'] as const).map(t => (
+          {(['single', 'bulk'] as const).map(tabKey => (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tabKey}
+              onClick={() => setTab(tabKey)}
               style={{
                 padding: '10px 28px',
                 fontFamily: "'Space Grotesk', sans-serif",
@@ -209,12 +211,12 @@ export function CreateChapterModal({
                 border: 'none',
                 borderRight: '2px solid #eee',
                 cursor: 'pointer',
-                background: tab === t ? '#00F7FF' : 'transparent',
+                background: tab === tabKey ? '#00F7FF' : 'transparent',
                 color: '#111',
                 transition: 'background 0.1s',
               }}
             >
-              {t === 'single' ? 'Single' : 'Bulk'}
+              {tabKey === 'single' ? 'Single' : 'Bulk'}
             </button>
           ))}
         </div>
@@ -229,7 +231,7 @@ export function CreateChapterModal({
                 <div className="flex gap-4">
                   <div style={{ width: '130px' }}>
                     <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Nomor Bab
+                      {tx.modal.chapterNumber}
                     </label>
                     <input
                       type="number"
@@ -241,13 +243,13 @@ export function CreateChapterModal({
                   </div>
                   <div className="flex-1">
                     <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      Judul (Opsional)
+                      {tx.modal.chapterTitle}
                     </label>
                     <input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      placeholder="Contoh: The Return"
+                      placeholder={tx.modal.chapterTitlePlaceholder}
                       className="neo-input"
                     />
                   </div>
@@ -255,12 +257,12 @@ export function CreateChapterModal({
 
                 <div>
                   <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                    Konten Raw
+                    {tx.modal.chapterContent}
                   </label>
                   <textarea
                     value={rawContent}
                     onChange={(e) => setRawContent(e.target.value)}
-                    placeholder="Paste konten bab di sini..."
+                    placeholder={tx.modal.chapterContentPlaceholder}
                     className="neo-textarea"
                     style={{ minHeight: '360px', fontFamily: 'monospace', fontSize: '13px' }}
                   />
@@ -272,7 +274,7 @@ export function CreateChapterModal({
                 style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}
               >
                 <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>
-                  BATAL
+                  {tx.common.cancel}
                 </button>
                 <button
                   type="submit"
@@ -280,7 +282,7 @@ export function CreateChapterModal({
                   className="neo-button"
                   style={{ opacity: number && !loading ? 1 : 0.5 }}
                 >
-                  {loading ? 'MEMBUAT...' : 'BUAT BAB'}
+                  {loading ? tx.common.loading : tx.modal.create}
                 </button>
               </div>
             </form>
@@ -309,10 +311,10 @@ export function CreateChapterModal({
                 >
                   <Upload size={28} style={{ color: isDragOver ? '#00a8ad' : '#aaa' }} />
                   <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: isDragOver ? '#111' : '#666' }}>
-                    {isDragOver ? 'Lepaskan file di sini' : 'Drag & drop file .txt di sini'}
+                    {isDragOver ? '↓' : 'Drag & drop .txt'}
                   </p>
                   <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>
-                    atau klik untuk pilih file — bisa multiple, hanya .txt
+                    .txt
                   </p>
                   <input
                     ref={fileInputRef}
@@ -332,7 +334,7 @@ export function CreateChapterModal({
               >
                 {entries.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p style={{ color: '#ccc', fontSize: '13px' }}>Belum ada file yang diunggah</p>
+                    <p style={{ color: '#ccc', fontSize: '13px' }}>{tx.common.noData}</p>
                   </div>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
@@ -425,11 +427,11 @@ export function CreateChapterModal({
                 style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}
               >
                 <span style={{ fontSize: '13px', color: '#666', fontWeight: 600 }}>
-                  {entries.length > 0 ? `${entries.length} file dipilih` : 'Belum ada file'}
+                  {entries.length > 0 ? `${entries.length}` : tx.common.noData}
                 </span>
                 <div className="flex gap-3">
                   <button onClick={onClose} disabled={bulkLoading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>
-                    BATAL
+                    {tx.common.cancel}
                   </button>
                   <button
                     onClick={handleBulkSubmit}
@@ -437,7 +439,7 @@ export function CreateChapterModal({
                     className="neo-button"
                     style={{ opacity: entries.length && !bulkLoading ? 1 : 0.5 }}
                   >
-                    {bulkLoading ? 'MEMBUAT...' : `TAMBAH ${entries.length} BAB`}
+                    {bulkLoading ? tx.common.loading : `${tx.common.add} ${entries.length}`}
                   </button>
                 </div>
               </div>

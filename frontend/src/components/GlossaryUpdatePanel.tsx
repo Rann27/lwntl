@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import { ChevronDown, BookOpen, Plus, Check } from 'lucide-react'
 import type { GlossaryUpdates, GlossaryEntry } from '../types'
+import { useI18n } from '../i18n'
 
 interface GlossaryUpdatePanelProps {
   updates: GlossaryUpdates | null
@@ -15,6 +16,7 @@ interface GlossaryUpdatePanelProps {
 }
 
 export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loading }: GlossaryUpdatePanelProps) {
+  const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
   const [addedTerms, setAddedTerms] = useState<Set<string>>(new Set())
   const [addingTerm, setAddingTerm] = useState<string | null>(null)
@@ -77,7 +79,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
           />
           <BookOpen size={14} style={{ color: 'var(--color-text-muted)' }} />
           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', color: 'var(--color-text)' }}>
-            UPDATE GLOSSARY ({entryCount})
+            {t.glossaryUpdates.title} ({entryCount})
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -88,7 +90,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
           )}
           {pendingEntries.length > 0 && !expanded && (
             <span style={{ fontSize: '9px', fontWeight: 700, color: '#111', background: '#28E272', padding: '2px 6px', border: '2px solid var(--color-border)', textTransform: 'uppercase' }}>
-              {pendingEntries.length} BELUM DITAMBAHKAN
+              {pendingEntries.length} {t.common.new}
             </span>
           )}
         </div>
@@ -100,8 +102,8 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
           {entryCount === 0 ? (
             <div className="px-4 py-4 text-center" style={{ color: 'var(--color-text-subtle)', fontSize: '12px' }}>
               {hasError
-                ? `Gagal mengekstrak glossary: ${updates?.error}`
-                : 'Belum ada update glossary. Jalankan terjemahan untuk mengekstrak istilah.'}
+                ? t.glossaryUpdates.extractionFailed.replace('{error}', updates?.error || '')
+                : t.glossaryUpdates.noUpdates}
             </div>
           ) : (
             <>
@@ -114,7 +116,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                     style={{ padding: '6px 12px', fontSize: '11px', opacity: addingAll || loading ? 0.5 : 1 }}
                   >
                     <Plus size={12} />
-                    {addingAll ? 'MENAMBAHKAN...' : `TAMBAHKAN SEMUA YANG BELUM ADA (${pendingEntries.length})`}
+                    {addingAll ? t.common.saving : `${t.glossaryUpdates.addAllNew} (${pendingEntries.length})`}
                   </button>
                 </div>
               )}
@@ -122,9 +124,9 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ borderBottom: `2px solid var(--color-border)`, backgroundColor: 'var(--color-surface-2)' }}>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Istilah Asli</th>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Terjemahan</th>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>Catatan</th>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.sourceTerm}</th>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.translatedTerm}</th>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.notes}</th>
                     <th className="px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '90px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Status</th>
                     <th className="px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '110px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Aksi</th>
                   </tr>
@@ -143,11 +145,11 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                         <td className="px-3 py-1.5" style={{ textAlign: 'center' }}>
                           {inGlossary ? (
                             <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--color-text-muted)', padding: '2px 6px', border: `1.5px solid var(--color-separator)`, textTransform: 'uppercase' }}>
-                              Ada
+                              {t.common.exists}
                             </span>
                           ) : (
                             <span style={{ fontSize: '9px', fontWeight: 700, color: '#111', background: '#FFEF33', padding: '2px 6px', border: '1.5px solid #111', textTransform: 'uppercase' }}>
-                              Belum Ada
+                              {t.common.new}
                             </span>
                           )}
                         </td>
@@ -155,7 +157,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                         <td className="px-3 py-1.5" style={{ textAlign: 'center' }}>
                           {inGlossary ? (
                             <span style={{ color: '#28E272', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', fontSize: '10px', fontWeight: 700 }}>
-                              <Check size={11} /> Ditambahkan
+                              <Check size={11} /> ✓
                             </span>
                           ) : (
                             <button
@@ -176,7 +178,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                                 transition: 'all 0.1s',
                               }}
                             >
-                              {isBeingAdded ? '...' : 'Tambahkan'}
+                              {isBeingAdded ? '...' : t.common.add}
                             </button>
                           )}
                         </td>

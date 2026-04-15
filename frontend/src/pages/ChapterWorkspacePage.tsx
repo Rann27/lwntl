@@ -24,11 +24,13 @@ import {
   getContextInfo,
 } from '../api'
 import { useAppStore } from '../store/appStore'
+import { useI18n } from '../i18n'
 import type { Chapter, ContextInfo, GlossaryEntry } from '../types'
 
 export function ChapterWorkspacePage() {
   const { id: seriesId, chapterId } = useParams<{ id: string; chapterId: string }>()
   const toast = useToast()
+  const { t } = useI18n()
   const { apiReady } = useAppStore()
 
   const [chapter, setChapter] = useState<Chapter | null>(null)
@@ -66,7 +68,7 @@ export function ChapterWorkspacePage() {
         setContextInfo(info)
       } catch { /* non-critical */ }
     } catch {
-      toast.error('Gagal memuat data bab')
+      toast.error(t.chapter.translateFailed)
     } finally {
       setLoading(false)
     }
@@ -91,7 +93,7 @@ export function ChapterWorkspacePage() {
       startTranslating()
       await startTranslation(seriesId, chapterId)
     } catch (err: any) {
-      toast.error('Gagal memulai terjemahan: ' + (err.message || 'Unknown error'))
+      toast.error(t.chapter.translateFailed + (err.message || ''))
     }
   }
 
@@ -99,9 +101,9 @@ export function ChapterWorkspacePage() {
   const handleCancelTranslation = async () => {
     try {
       await cancelTranslation()
-      toast.info('Terjemahan dibatalkan')
+      toast.info(t.chapter.translationCancelled)
     } catch {
-      toast.error('Gagal membatalkan terjemahan')
+      toast.error(t.chapter.cancelFailed)
     }
   }
 
@@ -111,10 +113,10 @@ export function ChapterWorkspacePage() {
     try {
       const result = await exportChapter(seriesId, chapterId)
       if (!result?.cancelled) {
-        toast.success(result?.message || 'Bab berhasil diekspor!')
+        toast.success(result?.message || t.chapter.exportSuccess)
       }
     } catch (err: any) {
-      toast.error('Gagal mengekspor: ' + (err.message || 'Unknown error'))
+      toast.error(t.chapter.exportFailed + ' ' + (err.message || ''))
     }
   }
 
@@ -123,7 +125,7 @@ export function ChapterWorkspacePage() {
     if (!seriesId) return
     const newEntry = await addGlossaryEntry(seriesId, sourceTerm, translatedTerm, notes)
     setSeriesGlossary(prev => [...prev, newEntry])
-    toast.success(`"${sourceTerm}" ditambahkan ke glossary!`)
+    toast.success(t.glossaryUpdates.entryAdded)
   }
 
   // Resizable divider
@@ -163,9 +165,9 @@ export function ChapterWorkspacePage() {
   if (loading) {
     return (
       <div className="app-layout">
-        <Topbar showBack title="Memuat..." />
+        <Topbar showBack title={t.common.loading} />
         <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
-          <p style={{ color: 'var(--color-text-subtle)' }}>Memuat bab...</p>
+          <p style={{ color: 'var(--color-text-subtle)' }}>{t.chapter.loadingChapter}</p>
         </main>
       </div>
     )
@@ -174,9 +176,9 @@ export function ChapterWorkspacePage() {
   if (!chapter) {
     return (
       <div className="app-layout">
-        <Topbar showBack title="Tidak Ditemukan" />
+        <Topbar showBack title={t.chapter.notFound} />
         <main className="flex-1 flex items-center justify-center" style={{ backgroundColor: 'var(--color-bg)' }}>
-          <p style={{ color: 'var(--color-text-subtle)' }}>Bab tidak ditemukan</p>
+          <p style={{ color: 'var(--color-text-subtle)' }}>{t.chapter.chapterNotFound}</p>
         </main>
       </div>
     )
@@ -186,7 +188,7 @@ export function ChapterWorkspacePage() {
     <div className="app-layout">
       <Topbar
         showBack
-        title={chapter.title || `Bab ${chapter.chapterNumber}`}
+        title={chapter.title || `${t.chapter.chapter} ${chapter.chapterNumber}`}
         subtitle={`${seriesId ? 'Series' : ''}`}
       />
 
@@ -197,7 +199,7 @@ export function ChapterWorkspacePage() {
       >
         <div className="flex items-center gap-2">
           <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text)' }}>
-            Bab {chapter.chapterNumber}
+            {t.chapter.chapter} {chapter.chapterNumber}
           </span>
           {chapter.title && (
             <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>— {chapter.title}</span>
@@ -213,7 +215,7 @@ export function ChapterWorkspacePage() {
               style={{ padding: '6px 14px', fontSize: '12px' }}
             >
               <Square size={14} />
-              BATAL
+              {t.common.cancel}
             </button>
           ) : chapter?.status === 'done' ? (
             <button
@@ -222,7 +224,7 @@ export function ChapterWorkspacePage() {
               style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: '#FFEF33' }}
             >
               <RefreshCw size={14} />
-              TERJEMAHKAN ULANG
+              {t.chapter.translate}
             </button>
           ) : (
             <button
@@ -231,7 +233,7 @@ export function ChapterWorkspacePage() {
               style={{ padding: '6px 14px', fontSize: '12px' }}
             >
               <Play size={14} />
-              TERJEMAHKAN
+              {t.chapter.translate}
             </button>
           )}
 
@@ -243,7 +245,7 @@ export function ChapterWorkspacePage() {
               style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: '#F0F0F0' }}
             >
               <Download size={14} />
-              EKSPOR
+              {t.chapter.export}
             </button>
           )}
         </div>
@@ -267,7 +269,7 @@ export function ChapterWorkspacePage() {
         >
           <div className="px-3 py-2" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
-              KONTEN RAW
+              {t.chapter.rawContent}
             </span>
           </div>
           <pre
@@ -282,7 +284,7 @@ export function ChapterWorkspacePage() {
               margin: 0,
             }}
           >
-            {chapter.rawContent || '(Konten raw kosong)'}
+            {chapter.rawContent || t.chapter.emptyRaw}
           </pre>
         </div>
 
@@ -322,11 +324,11 @@ export function ChapterWorkspacePage() {
           <div className="px-3 py-2" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
             <div className="flex items-center justify-between">
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
-                TERJEMAHAN
+                {t.chapter.translation}
               </span>
               {isTranslating && (
                 <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: '#00F7FF', padding: '2px 6px', border: '2px solid var(--color-border)', fontWeight: 700 }}>
-                  ITERASI {iteration}
+                  {t.chapter.iteration} {iteration}
                 </span>
               )}
             </div>

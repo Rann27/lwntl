@@ -14,6 +14,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { useAppStore } from './store/appStore'
 import { waitForApi, getConfig, saveConfig } from './api'
 import { useToast } from './hooks/useToast'
+import { useI18n } from './i18n'
 
 // Error Boundary - catches render crashes and shows error instead of blank page
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -35,7 +36,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
             onClick={() => this.setState({ error: null })}
             style={{ marginTop: 16, padding: '8px 16px', border: '2px solid #111', background: '#00F7FF', fontWeight: 700, cursor: 'pointer' }}
           >
-            COBA LAGI
+            RETRY
           </button>
         </div>
       )
@@ -50,11 +51,20 @@ function AppInner() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [initializing, setInitializing] = useState(true)
 
+  const { setLanguage, t } = useI18n()
+
   // Apply theme to document root whenever config.theme changes
   useEffect(() => {
     const theme = config?.theme || 'light'
     document.documentElement.setAttribute('data-theme', theme)
   }, [config?.theme])
+
+  // Sync language from config to i18n
+  useEffect(() => {
+    if (config?.uiLanguage) {
+      setLanguage(config.uiLanguage)
+    }
+  }, [config?.uiLanguage, setLanguage])
 
   // Wait for pywebview API and load config
   useEffect(() => {
@@ -74,7 +84,7 @@ function AppInner() {
         }
       } catch (err) {
         console.error('Failed to initialize:', err)
-        toast.error('Gagal menginisialisasi aplikasi')
+        toast.error(t.settings.saveFailed)
       } finally {
         setInitializing(false)
       }
@@ -96,9 +106,9 @@ function AppInner() {
       await saveConfig(newConfig)
       setConfig(newConfig)
       setShowOnboarding(false)
-      toast.success('Setup selesai! Mulai dengan menambahkan series.')
+      toast.success(t.onboarding.subtitle)
     } catch {
-      toast.error('Gagal menyimpan konfigurasi')
+      toast.error(t.settings.saveFailed)
     }
   }
 
@@ -121,7 +131,7 @@ function AppInner() {
             LWNTL
           </h1>
           <p style={{ color: '#666', fontSize: '14px', marginTop: '8px' }}>
-            Memuat...
+            {t.common.loading}
           </p>
         </div>
       </div>
