@@ -27,6 +27,7 @@ const en: TranslationStrings = {
     error: 'ERROR',
     retry: 'RETRY',
     settings: 'SETTINGS',
+    copy: 'COPY',
     yes: 'Yes',
     no: 'No',
     or: 'or',
@@ -132,6 +133,11 @@ const en: TranslationStrings = {
     translationStarted: 'Translation started...',
     translationDone: 'Chapter translation complete!',
     translationFailed: 'Translation failed: ',
+    rawSaved: 'Raw content saved.',
+    rawSaveFailed: 'Failed to save raw content.',
+    rawEditedAfterTranslation: 'This chapter already has a translation. Editing raw content may cause it to be out of sync — consider retranslating after saving.',
+    copySuccess: 'Translation copied!',
+    copyFailed: 'Failed to copy translation.',
   },
 
   glossaryUpdates: {
@@ -195,6 +201,15 @@ const en: TranslationStrings = {
     confirmTitle: 'Translate All Chapters?',
     confirmDesc: 'Only chapters with "Pending" status will be translated. {count} chapters will be processed.',
     start: 'START',
+    selectChapter: 'SELECT',
+    cancelSelect: 'CANCEL SELECT',
+    translateSelected: 'TRANSLATE',
+    deleteSelected: 'DELETE',
+    selectedCount: '{count} selected',
+    confirmDeleteSelected: 'Delete Selected Chapters?',
+    confirmDeleteSelectedMsg: '{count} selected chapters will be permanently deleted along with all their translations.',
+    noSelection: 'Select at least 1 chapter first.',
+    autoApplied: 'Glossary auto-applied: {count} new term(s) added.',
   },
 
   context: {

@@ -3,7 +3,7 @@
  * Full page for API keys, dark mode, and language management
  */
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Eye, EyeOff, Plus, X, Globe, Languages, ExternalLink, Sun, Moon, TestTube, CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { Topbar } from '../components/Topbar'
 import { useAppStore } from '../store/appStore'
@@ -17,14 +17,16 @@ const API_KEY_FIELDS: Array<{
   provider: string
   field: keyof AppConfig
   label: string
+  hasBaseUrl?: boolean
 }> = [
-  { provider: 'zhipuai',   field: 'zhipuaiApiKey',   label: 'ZhipuAI (Z.AI)' },
-  { provider: 'qwen',      field: 'qwenApiKey',      label: 'Alibaba Cloud (Qwen/DS)' },
-  { provider: 'openai',    field: 'openaiApiKey',    label: 'OpenAI' },
-  { provider: 'gemini',    field: 'geminiApiKey',    label: 'Google Gemini' },
-  { provider: 'anthropic', field: 'anthropicApiKey', label: 'Anthropic (Claude)' },
-  { provider: 'xai',       field: 'xaiApiKey',       label: 'xAI (Grok)' },
-  { provider: 'moonshot',  field: 'moonshotApiKey',  label: 'Moonshot AI (Kimi)' },
+  { provider: 'zhipuai',      field: 'zhipuaiApiKey',      label: 'ZhipuAI (Z.AI)' },
+  { provider: 'qwen',         field: 'qwenApiKey',         label: 'Alibaba Cloud (Qwen/DS)' },
+  { provider: 'openai',       field: 'openaiApiKey',       label: 'OpenAI' },
+  { provider: 'gemini',       field: 'geminiApiKey',       label: 'Google Gemini' },
+  { provider: 'anthropic',    field: 'anthropicApiKey',    label: 'Anthropic (Claude)' },
+  { provider: 'xai',          field: 'xaiApiKey',          label: 'xAI (Grok)' },
+  { provider: 'moonshot',     field: 'moonshotApiKey',     label: 'Moonshot AI (Kimi)' },
+  { provider: 'openaicompat', field: 'openaicompatApiKey', label: 'OpenAI Compatible', hasBaseUrl: true },
 ]
 
 export function SettingsPage() {
@@ -150,6 +152,10 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
   const [saving, setSaving] = useState(false)
   const { t } = useI18n()
 
+  useEffect(() => {
+    setTheme(config.theme || 'light')
+  }, [config.theme])
+
   const handleSave = async (newTheme: string) => {
     setTheme(newTheme)
     setSaving(true)
@@ -221,6 +227,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     API_KEY_FIELDS.forEach(({ field }) => { init[field] = (config[field] as string) || '' })
     return init
   })
+  const [baseUrl, setBaseUrl] = useState(config.openaicompatBaseUrl || '')
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
@@ -231,6 +238,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   const buildConfig = (): AppConfig => {
     const updated = { ...config }
     API_KEY_FIELDS.forEach(({ field }) => { ;(updated as any)[field] = keys[field] || '' })
+    updated.openaicompatBaseUrl = baseUrl.trim()
     return updated
   }
 
@@ -257,7 +265,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
 
   return (
     <div>
-      {API_KEY_FIELDS.map(({ provider, field, label }) => {
+      {API_KEY_FIELDS.map(({ provider, field, label, hasBaseUrl }) => {
         const isActive = provider === config.provider
         const docsUrl = PROVIDERS[provider]?.docsUrl
         const hasKey = !!(keys[field] || '').trim()
@@ -300,6 +308,24 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 {showKey[field] ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
+            {hasBaseUrl && (
+              <div className="mt-2">
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+                  Base URL
+                </label>
+                <input
+                  type="text"
+                  value={baseUrl}
+                  onChange={(e) => { setBaseUrl(e.target.value); setTestResult(null) }}
+                  placeholder="http://localhost:11434/v1"
+                  className="neo-input"
+                  style={{ fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: isActive ? 'var(--color-border)' : 'var(--color-separator)' }}
+                />
+                <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
+                  Compatible with Ollama, LM Studio, LocalAI, or any OpenAI-compatible endpoint.
+                </p>
+              </div>
+            )}
           </div>
         )
       })}

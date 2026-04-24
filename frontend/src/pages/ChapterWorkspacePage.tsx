@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { Play, Square, Download, RefreshCw } from 'lucide-react'
+import { Play, Square, Download, RefreshCw, Save, AlertTriangle, Copy } from 'lucide-react'
 import { Topbar } from '../components/Topbar'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
 import { GlossaryUpdatePanel } from '../components/GlossaryUpdatePanel'
@@ -22,10 +22,45 @@ import {
   exportChapter,
   addGlossaryEntry,
   getContextInfo,
+  updateChapter,
 } from '../api'
 import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
 import type { Chapter, ContextInfo, GlossaryEntry } from '../types'
+
+/** Remove the trailing glossary table from translated content (same logic as Python extractor). */
+function stripGlossaryTable(content: string): string {
+  if (!content) return content
+  const lines = content.split('\n')
+
+  // Strategy 1: last '---' followed by a pipe table
+  for (let i = lines.length - 1; i >= 0; i--) {
+    if (/^-{3,}\s*$/.test(lines[i].trim())) {
+      const after = lines.slice(i + 1)
+      if (after.some(l => /^\|.+\|$/.test(l.trim()))) {
+        return lines.slice(0, i).join('\n').trimEnd()
+      }
+    }
+  }
+
+  // Strategy 2: last pipe table block + optional blank lines / bold heading above
+  let end = lines.length - 1
+  while (end >= 0 && !lines[end].trim()) end--
+
+  if (end >= 0 && /^\|.+\|$/.test(lines[end].trim())) {
+    let start = end
+    while (start > 0 && /^\|.+\|$/.test(lines[start - 1].trim())) start--
+
+    let stripFrom = start
+    for (let i = start - 1; i >= Math.max(-1, start - 5); i--) {
+      const s = lines[i].trim()
+      if (!s || /^\*\*[^*]+\*\*[:\s]*$/.test(s)) { stripFrom = i } else break
+    }
+    return lines.slice(0, stripFrom).join('\n').trimEnd()
+  }
+
+  return content
+}
 
 export function ChapterWorkspacePage() {
   const { id: seriesId, chapterId } = useParams<{ id: string; chapterId: string }>()
@@ -38,6 +73,10 @@ export function ChapterWorkspacePage() {
   const [seriesGlossary, setSeriesGlossary] = useState<GlossaryEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [splitPos, setSplitPos] = useState(50) // percentage
+
+  const [isSavingRaw, setIsSavingRaw] = useState(false)
+  const [isRawDirty, setIsRawDirty] = useState(false)
+  const rawRef = useRef<HTMLTextAreaElement>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
@@ -77,6 +116,8 @@ export function ChapterWorkspacePage() {
   useEffect(() => {
     if (apiReady) loadChapter()
   }, [apiReady, loadChapter])
+
+  useEffect(() => { setIsRawDirty(false) }, [chapter?.id])
 
   // Reload chapter when translation finishes (isTranslating: true → false)
   useEffect(() => {
@@ -126,6 +167,41 @@ export function ChapterWorkspacePage() {
     const newEntry = await addGlossaryEntry(seriesId, sourceTerm, translatedTerm, notes)
     setSeriesGlossary(prev => [...prev, newEntry])
     toast.success(t.glossaryUpdates.entryAdded)
+  }
+
+  // Copy clean translation (strips glossary table)
+  const handleCopyTranslation = async () => {
+    const raw = isTranslating ? streamingText : chapter?.translatedContent || ''
+    const clean = stripGlossaryTable(raw)
+    try {
+      await navigator.clipboard.writeText(clean)
+      toast.success(t.chapter.copySuccess)
+    } catch {
+      toast.error(t.chapter.copyFailed)
+    }
+  }
+
+  // Save raw content — reads from DOM ref, zero re-renders while typing
+  const handleSaveRaw = async () => {
+    if (!seriesId || !chapterId || !chapter) return
+    const value = rawRef.current?.value ?? chapter.rawContent
+    setIsSavingRaw(true)
+    try {
+      await updateChapter(seriesId, chapterId, chapter.chapterNumber, chapter.title, value)
+      setIsRawDirty(false)
+      await loadChapter()
+      toast.success(t.chapter.rawSaved)
+    } catch {
+      toast.error(t.chapter.rawSaveFailed)
+    } finally {
+      setIsSavingRaw(false)
+    }
+  }
+
+  // Track dirty state — fires on every input but only calls setState when status changes (max 2 re-renders per session)
+  const handleRawInput = () => {
+    const dirty = rawRef.current?.value !== chapter?.rawContent
+    if (dirty !== isRawDirty) setIsRawDirty(dirty)
   }
 
   // Resizable divider
@@ -257,35 +333,76 @@ export function ChapterWorkspacePage() {
         className="flex-1 flex overflow-hidden"
         style={{ backgroundColor: 'var(--color-bg)' }}
       >
-        {/* Left: Raw content */}
+        {/* Left: Raw content — always-editable textarea, save reads from DOM ref (no re-render on type) */}
         <div
-          className="overflow-y-auto"
+          className="flex flex-col"
           style={{
             width: `${splitPos}%`,
             backgroundColor: 'var(--color-surface)',
             border: '2.5px solid var(--color-border)',
             borderRight: 'none',
+            overflow: 'hidden',
           }}
         >
-          <div className="px-3 py-2" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+          {/* Header — fixed height */}
+          <div
+            className="flex items-center justify-between px-3 py-2"
+            style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', flexShrink: 0 }}
+          >
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
               {t.chapter.rawContent}
             </span>
+            <button
+              onClick={handleSaveRaw}
+              disabled={!isRawDirty || isSavingRaw || isTranslating}
+              className="flex items-center gap-1"
+              style={{
+                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                padding: '3px 8px', border: '1.5px solid var(--color-border)',
+                backgroundColor: '#28E272', color: '#111',
+                cursor: (!isRawDirty || isSavingRaw || isTranslating) ? 'not-allowed' : 'pointer',
+                opacity: (!isRawDirty || isSavingRaw || isTranslating) ? 0.35 : 1,
+                transition: 'opacity 150ms',
+              }}
+            >
+              <Save size={10} /> {isSavingRaw ? t.common.saving : t.common.save}
+            </button>
           </div>
-          <pre
+
+          {/* Warning note — fixed height, only when translation exists */}
+          {chapter.translatedContent && (
+            <div
+              className="flex items-start gap-2 px-3 py-1.5"
+              style={{ backgroundColor: 'rgba(255,239,51,0.1)', borderBottom: '1.5px solid #FFEF33', fontSize: '10px', color: 'var(--color-text-muted)', lineHeight: 1.4, flexShrink: 0 }}
+            >
+              <AlertTriangle size={11} style={{ color: '#FFEF33', flexShrink: 0, marginTop: '1px' }} />
+              <span>{t.chapter.rawEditedAfterTranslation}</span>
+            </div>
+          )}
+
+          {/* Textarea — fills remaining space via flex: 1 */}
+          <textarea
+            key={chapter.id}
+            ref={rawRef}
+            defaultValue={chapter.rawContent || ''}
+            onInput={handleRawInput}
+            disabled={isTranslating}
             style={{
+              flex: '1 1 0',
+              minHeight: 0,
               padding: '16px',
               fontFamily: "'Courier New', Courier, monospace",
               fontSize: '13px',
               lineHeight: '1.6',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
               color: 'var(--color-text)',
-              margin: 0,
+              backgroundColor: isTranslating ? 'var(--color-surface-2)' : 'var(--color-surface)',
+              border: 'none',
+              outline: 'none',
+              resize: 'none',
+              boxSizing: 'border-box',
+              overflowY: 'auto',
             }}
-          >
-            {chapter.rawContent || t.chapter.emptyRaw}
-          </pre>
+          />
         </div>
 
         {/* Resizable Divider */}
@@ -326,11 +443,27 @@ export function ChapterWorkspacePage() {
               <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
                 {t.chapter.translation}
               </span>
-              {isTranslating && (
-                <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: '#00F7FF', padding: '2px 6px', border: '2px solid var(--color-border)', fontWeight: 700 }}>
-                  {t.chapter.iteration} {iteration}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {isTranslating && (
+                  <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: '#00F7FF', padding: '2px 6px', border: '2px solid var(--color-border)', fontWeight: 700 }}>
+                    {t.chapter.iteration} {iteration}
+                  </span>
+                )}
+                {translatedText && (
+                  <button
+                    onClick={handleCopyTranslation}
+                    className="flex items-center gap-1"
+                    style={{
+                      fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                      padding: '3px 8px', border: '1.5px solid var(--color-border)',
+                      backgroundColor: 'var(--color-surface)', color: 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <Copy size={10} /> {t.common.copy}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">

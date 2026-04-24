@@ -4,11 +4,9 @@ Implements anti-truncation translation with real-time streaming per Section 8.4-
 """
 
 import threading
-import asyncio
 import json
 import time
 from typing import Dict, List, Any, Optional, Callable
-from datetime import datetime
 from .llm_client import LLMClient
 from .storage.series import get_series
 from .storage.chapters import (
@@ -16,7 +14,7 @@ from .storage.chapters import (
     update_chapter_summary, update_translation_log, get_chapter
 )
 from .prompt_builder import build_system_prompt, build_user_prompt
-from .extractor import extract_glossary_terms
+from .extractor import extract_glossary_terms, parse_glossary_from_translation
 from .context_window import build_context_window, generate_chapter_summary
 
 
@@ -58,19 +56,22 @@ class Translator:
         self,
         series_id: str,
         chapter_ids: List[str],
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
+        force: bool = False,
     ) -> threading.Thread:
         """
         Start batch translation for multiple chapters in sequence.
-        Only translates chapters with status 'pending' (never translated).
+        force=False: skip non-pending chapters (Translate All behaviour).
+        force=True:  translate regardless of status (Translate Selected behaviour).
         """
+        self._cancelled = False
         self._batch_active = True
         self._batch_total = len(chapter_ids)
         self._batch_completed = 0
-        
+
         thread = threading.Thread(
             target=self._batch_translate,
-            args=(series_id, chapter_ids, progress_callback),
+            args=(series_id, chapter_ids, progress_callback, force),
             daemon=True
         )
         thread.start()
@@ -80,41 +81,93 @@ class Translator:
         self,
         series_id: str,
         chapter_ids: List[str],
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
+        force: bool = False,
     ):
-        """Internal batch translation - translates chapters sequentially, skips non-pending."""
+        """
+        Translate chapters sequentially.
+        force=False: skip non-pending (Translate All).
+        force=True:  translate regardless of status (Translate Selected).
+        After each chapter, auto-apply new glossary terms to the series glossary
+        so subsequent chapters benefit from them immediately.
+        """
         for i, chapter_id in enumerate(chapter_ids):
             if not self._batch_active or self._cancelled:
                 if self.window_eval:
                     self.window_eval(f"window.onBatchStatus({json.dumps({'status': 'cancelled', 'completed': self._batch_completed, 'total': self._batch_total})})")
                 break
-            
-            # Check chapter status - skip if not pending
+
             chapter = get_chapter(series_id, chapter_id)
-            if not chapter or chapter.get("status") != "pending":
+
+            if not chapter:
                 self._batch_completed += 1
                 continue
-            
+
+            # Skip non-pending chapters unless force=True
+            if not force and chapter.get("status") != "pending":
+                self._batch_completed += 1
+                continue
+
             # Send batch progress
             if self.window_eval:
                 self.window_eval(f"window.onBatchStatus({json.dumps({'status': 'translating', 'current': i + 1, 'total': self._batch_total, 'chapterId': chapter_id, 'chapterNumber': chapter.get('chapterNumber', '?'), 'chapterTitle': chapter.get('title', '')})})")
-            
+
             # Translate this chapter
             self._translate(series_id, chapter_id, progress_callback)
-            
+
+            # Auto-apply extracted glossary terms to series (cross-chapter awareness)
+            self._auto_apply_glossary(series_id, chapter_id)
+
             self._batch_completed += 1
-            
+
             # Small pause between chapters
             if self._batch_active and not self._cancelled and i < len(chapter_ids) - 1:
-                import time
                 time.sleep(1)
-        
+
         # Batch complete
         if self._batch_active and not self._cancelled:
             if self.window_eval:
                 self.window_eval(f"window.onBatchStatus({json.dumps({'status': 'done', 'completed': self._batch_completed, 'total': self._batch_total})})")
-        
+
         self._batch_active = False
+
+    def _auto_apply_glossary(self, series_id: str, chapter_id: str):
+        """
+        After a chapter is translated, auto-apply its extracted glossary terms
+        to the series glossary — skipping any term whose sourceTerm already exists
+        (case-insensitive). This gives the next chapter in the batch up-to-date context.
+        """
+        from .storage.series import get_series, add_glossary_entry
+        try:
+            chapter = get_chapter(series_id, chapter_id)
+            if not chapter or chapter.get("status") != "done":
+                return
+            glossary_updates = chapter.get("glossaryUpdates") or {}
+            new_entries = glossary_updates.get("entries", [])
+            if not new_entries:
+                return
+
+            series = get_series(series_id)
+            current = series.get("glossary", []) if series else []
+            existing = {e.get("sourceTerm", "").lower().strip() for e in current}
+
+            added = 0
+            for entry in new_entries:
+                src = (entry.get("sourceTerm") or "").strip()
+                if src and src.lower() not in existing:
+                    add_glossary_entry(
+                        series_id,
+                        src,
+                        entry.get("translatedTerm", ""),
+                        entry.get("notes", ""),
+                    )
+                    existing.add(src.lower())
+                    added += 1
+
+            if added:
+                print(f"[Glossary] Auto-applied {added} new term(s) from chapter {chapter_id}")
+        except Exception as e:
+            print(f"[Glossary] Auto-apply error: {e}")
     
     def start_translation(
         self,
@@ -124,15 +177,16 @@ class Translator:
     ) -> threading.Thread:
         """
         Start translation in a separate thread
-        
+
         Args:
             series_id: Series UUID
             chapter_id: Chapter UUID
             progress_callback: Optional callback for progress updates
-            
+
         Returns:
             threading.Thread: The translation thread
         """
+        self._cancelled = False
         # Start translation in background thread
         self._translation_thread = threading.Thread(
             target=self._translate,
@@ -157,8 +211,7 @@ class Translator:
             progress_callback: Optional callback for progress updates
         """
         try:
-            # Reset state
-            self._cancelled = False
+            # Reset counters (cancelled flag is set by caller before thread starts)
             self._total_tokens = 0
             self._iteration = 0
             
@@ -254,6 +307,26 @@ class Translator:
                     chapter_id,
                     messages
                 )
+
+                # Empty stream output — retry with non-stream fallback.
+                # Thinking-mode models (GLM-5.1 coding, etc.) can consume the entire
+                # token budget on reasoning and produce 0 content chars.
+                if not chunk_text:
+                    print(f"[Translator] Empty stream output (iteration {self._iteration}), trying non-stream fallback...")
+                    chunk_text = self._sync_completion(
+                        messages,
+                        max_tokens=min(self.client.max_tokens, 16000)
+                    )
+                    if chunk_text:
+                        print(f"[Translator] Fallback succeeded: {len(chunk_text)} chars")
+                        self._total_tokens += max(1, len(chunk_text) // 4)
+                        self._send_chunk({
+                            "chunk": chunk_text,
+                            "iteration": self._iteration,
+                            "fullText": full_translation + chunk_text
+                        })
+                    else:
+                        print("[Translator] Fallback also returned empty")
                 
                 if not chunk_text:
                     # Empty response, break
@@ -279,6 +352,21 @@ class Translator:
                 # Translation was cancelled
                 self._send_status("cancelled")
                 return
+
+            # Do not continue with summary/extraction if main translation is empty
+            # or suspiciously short compared to raw content (thinking-mode models
+            # can return near-empty output after minutes of reasoning).
+            raw_len = len(raw_content.strip()) if raw_content else 0
+            trans_len = len(full_translation.strip())
+            if trans_len == 0:
+                err = "Translation returned empty output from provider"
+                print(f"[Translator] {err}")
+                update_chapter_status(series_id, chapter_id, "error")
+                self._send_error(err)
+                return
+            if raw_len > 500 and trans_len < raw_len * 0.05:
+                print(f"[Translator] WARNING: Translation suspiciously short ({trans_len} chars vs {raw_len} chars raw). Possible thinking-mode output.")
+                # Still continue — might be valid short translation
             
             # Translation complete!
             update_chapter_status(series_id, chapter_id, "done")
@@ -301,27 +389,35 @@ class Translator:
             except Exception as e:
                 print(f"[Translator] Summary generation failed: {e}")
             
-            # Run extraction pass (glossary auto-extract)
+            # Glossary extraction — parse table from translation output first.
+            # Models instructed to append a markdown glossary table incur zero
+            # extra API calls this way.  Fall back to a separate LLM extraction
+            # call only when the table is absent (custom prompt without that rule).
             self._send_status("extracting")
-            print(f"[Glossary] Extracting terms from chapter...")
             try:
-                glossary_updates = extract_glossary_terms(
-                    self.client,
-                    raw_content,
-                    full_translation
-                )
-                # Save glossary updates to chapter
+                glossary_updates = parse_glossary_from_translation(full_translation)
+
+                if not glossary_updates.get("entries"):
+                    print("[Glossary] No table found in translation — falling back to LLM extraction...")
+                    glossary_updates = extract_glossary_terms(
+                        self.client, raw_content, full_translation
+                    )
+                else:
+                    print(f"[Glossary] {len(glossary_updates['entries'])} term(s) parsed from translation table (no extra API call)")
+
                 from .storage.chapters import update_glossary_updates
                 update_glossary_updates(series_id, chapter_id, glossary_updates)
             except Exception as e:
-                print(f"Extraction failed: {e}")
+                print(f"[Glossary] Extraction failed: {e}")
                 glossary_updates = {"extractedAt": None, "entries": []}
 
             term_count = len(glossary_updates.get("entries", []))
             print(f"[Glossary] Extracted {term_count} term(s)")
 
             # Final status update
-            print(f"[✓] Translation complete — {self._iteration} iteration(s) | ~{self._total_tokens} tokens")
+            raw_len = len(raw_content) if raw_content else 0
+            trans_len = len(full_translation)
+            print(f"[✓] Translation complete — {self._iteration} iteration(s) | ~{self._total_tokens} tokens | {raw_len} → {trans_len} chars")
             self._send_status("done")
             self._send_result({
                 "status": "done",
@@ -361,42 +457,152 @@ class Translator:
             str: Complete streamed text
         """
         full_text = ""
-        
+
         # Get stream from client
         stream = self.client.complete(messages, stream=True, max_tokens=self.client.max_tokens)
-        
-        # Process stream
+
+        # Batch settings: flush to frontend every ~80 chars OR every 120ms.
+        # Without batching, every single token triggers a synchronous Control.Invoke()
+        # on the Windows Forms UI thread, which saturates it and causes the app to freeze.
+        BATCH_CHARS = 80
+        BATCH_SECS  = 0.12
+        _buf = ""
+        _last_flush = time.time()
+
         t0 = time.time()
+        first_token_at = None
+        thinking_chars = 0
+
         for chunk in stream:
             if self._cancelled:
                 break
 
-            # Handle different provider response formats
+            # Track thinking tokens (models with reasoning mode)
+            if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
+                delta = chunk.choices[0].delta
+                rc = getattr(delta, 'reasoning_content', None)
+                if rc:
+                    thinking_chars += len(rc)
+                    if first_token_at is None:
+                        first_token_at = time.time()
+                        print(f"[API ←] TTFT (thinking): {first_token_at - t0:.2f}s")
+
             chunk_text = self._extract_chunk_text(chunk)
 
             if chunk_text:
-                full_text += chunk_text
-                self._total_tokens += 1  # Approximate token count
+                if first_token_at is None:
+                    first_token_at = time.time()
+                    print(f"[API ←] TTFT: {first_token_at - t0:.2f}s")
 
-                # Stream to frontend in real-time
-                self._send_chunk({
-                    "chunk": chunk_text,
-                    "iteration": self._iteration,
-                    "fullText": full_text
-                })
+                full_text += chunk_text
+                self._total_tokens += 1
+                _buf += chunk_text
+
+                now = time.time()
+                if len(_buf) >= BATCH_CHARS or (now - _last_flush) >= BATCH_SECS:
+                    self._send_chunk({
+                        "chunk": _buf,
+                        "iteration": self._iteration,
+                        "fullText": full_text,
+                    })
+                    _buf = ""
+                    _last_flush = now
+
+        # Flush remaining buffer
+        if _buf:
+            self._send_chunk({
+                "chunk": _buf,
+                "iteration": self._iteration,
+                "fullText": full_text,
+            })
 
         elapsed = time.time() - t0
+        if first_token_at is None:
+            print("[API ←] stream ended without output tokens")
+        if thinking_chars > 0:
+            print(f"[API ←] thinking: {thinking_chars} chars | content: {len(full_text)} chars")
         print(f"[API ←] stream done in {elapsed:.1f}s | ~{len(full_text)} chars output")
 
         return full_text
+
+    def _sync_completion(self, messages: List[Dict[str, str]], max_tokens: int) -> str:
+        """Fallback completion path (non-stream) for providers that return empty streams."""
+        try:
+            # Inject a direct-output instruction to bypass thinking mode
+            fallback_messages = list(messages)
+            if fallback_messages:
+                last = fallback_messages[-1]
+                fallback_messages[-1] = {
+                    "role": last["role"],
+                    "content": (
+                        "IMPORTANT: Output your translation directly. "
+                        "Do NOT think, reason, or explain. Just translate.\n\n"
+                        + last.get("content", "")
+                    ),
+                }
+
+            response = self.client.complete(
+                fallback_messages,
+                stream=False,
+                max_tokens=max_tokens,
+            )
+            text = self._extract_response_text(response)
+            if text:
+                print(f"[Translator] Non-stream fallback returned {len(text)} chars")
+            else:
+                # Check if response had reasoning but no content (thinking mode)
+                if hasattr(response, 'choices') and response.choices:
+                    msg = response.choices[0].message if hasattr(response.choices[0], 'message') else None
+                    if msg:
+                        rc = getattr(msg, 'reasoning_content', None)
+                        if rc:
+                            print(f"[Translator] Non-stream fallback: model produced {len(rc)} chars of reasoning but 0 chars of content")
+            return text
+        except Exception as e:
+            print(f"[Translator] Non-stream fallback failed: {e}")
+            return ""
+
+    def _extract_response_text(self, response: Any) -> str:
+        """Extract text from non-stream completion response."""
+        try:
+            if not (hasattr(response, "choices") and response.choices):
+                return ""
+
+            choice = response.choices[0]
+            if not hasattr(choice, "message"):
+                return ""
+
+            content = getattr(choice.message, "content", "")
+            if isinstance(content, str):
+                return content
+
+            # Some OpenAI-compatible servers can return content parts.
+            if isinstance(content, list):
+                parts: List[str] = []
+                for item in content:
+                    if isinstance(item, str):
+                        parts.append(item)
+                    elif isinstance(item, dict):
+                        text = item.get("text") or item.get("content") or ""
+                        if text:
+                            parts.append(str(text))
+                return "".join(parts)
+
+        except Exception as e:
+            print(f"[Translator] Failed to extract non-stream response text: {e}")
+
+        return ""
     
+    # Debug: log raw chunk structure once for empty extractions
+    _chunk_debug_logged = False
+
     def _extract_chunk_text(self, chunk: Any) -> str:
         """
         Extract text from stream chunk
-        
+
         Args:
             chunk: Stream chunk (varies by provider)
-            
+
         Returns:
             str: Extracted text
         """
@@ -404,18 +610,37 @@ class Translator:
             # Handle ZhipuAI format
             if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
                 delta = chunk.choices[0].delta
-                if hasattr(delta, 'content'):
-                    return delta.content or ""
-            
+                if hasattr(delta, 'content') and delta.content:
+                    return delta.content
+                if hasattr(delta, 'content') and delta.content is None:
+                    # Content is None — likely a thinking-mode chunk
+                    return ""
+
             # Handle Qwen format
             if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
                 delta = chunk.choices[0].delta
                 if isinstance(delta, dict):
-                    return delta.get('content', '')
-            
+                    return delta.get('content', '') or ""
+
+            # Debug: if we got here, standard extraction failed.
+            # Log the raw chunk structure ONCE to help diagnose format mismatches.
+            if not Translator._chunk_debug_logged:
+                Translator._chunk_debug_logged = True
+                try:
+                    attrs = {k: type(v).__name__ for k, v in vars(chunk).items()} if hasattr(chunk, '__dict__') else str(type(chunk))
+                    print(f"[DEBUG] Unhandled chunk format: {attrs}")
+                    if hasattr(chunk, 'choices') and chunk.choices:
+                        c0 = chunk.choices[0]
+                        if hasattr(c0, 'delta'):
+                            d = c0.delta
+                            d_attrs = {k: (repr(v)[:80] if v else str(v)) for k, v in vars(d).items()} if hasattr(d, '__dict__') else str(type(d))
+                            print(f"[DEBUG] delta fields: {d_attrs}")
+                except Exception:
+                    pass
+
         except Exception as e:
             print(f"Error extracting chunk: {e}")
-        
+
         return ""
     
     def _is_translation_complete(self, text: str) -> bool:

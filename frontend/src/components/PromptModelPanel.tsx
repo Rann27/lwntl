@@ -66,9 +66,12 @@ export function PromptModelPanel({
 
   const handleProviderChange = (newProvider: string) => {
     setProvider(newProvider as AppConfig['provider'])
-    const models = PROVIDERS[newProvider]?.models || []
-    const firstModel = models[0] || ''
-    setModel(firstModel)
+    if (newProvider === 'openaicompat') {
+      setModel(config?.customModels?.['openaicompat'] || '')
+    } else {
+      const models = PROVIDERS[newProvider]?.models || []
+      setModel(models[0] || '')
+    }
     setCustomModel(config?.customModels?.[newProvider] || '')
     setDirty(true)
   }
@@ -83,11 +86,16 @@ export function PromptModelPanel({
     setDirty(true)
   }
 
+  const isOpenAICompat = provider === 'openaicompat'
+
   const handleSave = () => {
     if (!config) return
     const newCustomModels = { ...(config.customModels || {}) }
     if (isCustomModel && customModel.trim()) {
       newCustomModels[provider] = customModel.trim()
+    }
+    if (isOpenAICompat && model.trim()) {
+      newCustomModels['openaicompat'] = model.trim()
     }
     const nc: AppConfig = {
       ...config,
@@ -167,32 +175,50 @@ export function PromptModelPanel({
               </a>
             )}
           </div>
-          <select
-            value={model}
-            onChange={(e) => handleModelChange(e.target.value)}
-            className="neo-input"
-            style={{ cursor: 'pointer', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
-          >
-            {currentModels.map((m) => (
-              <option key={m} value={m}>{displayNames[m] || m}</option>
-            ))}
-          </select>
-
-          {/* Custom model input */}
-          {isCustomModel && (
-            <div className="mt-2">
+          {isOpenAICompat ? (
+            <div>
               <input
                 type="text"
-                value={customModel}
-                onChange={(e) => handleCustomModelChange(e.target.value)}
-                placeholder={`Nama model ${providerLabel}...`}
+                value={model}
+                onChange={(e) => { setModel(e.target.value); setDirty(true) }}
+                placeholder="e.g. llama3, mistral, qwen2.5..."
                 className="neo-input"
                 style={{ fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
               />
               <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '3px' }}>
-                Nama model kustom akan disimpan per-provider.
+                Enter the model ID served by your endpoint. Set Base URL in Settings.
               </p>
             </div>
+          ) : (
+            <>
+              <select
+                value={model}
+                onChange={(e) => handleModelChange(e.target.value)}
+                className="neo-input"
+                style={{ cursor: 'pointer', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+              >
+                {currentModels.map((m) => (
+                  <option key={m} value={m}>{displayNames[m] || m}</option>
+                ))}
+              </select>
+
+              {/* Custom model input */}
+              {isCustomModel && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    value={customModel}
+                    onChange={(e) => handleCustomModelChange(e.target.value)}
+                    placeholder={`Nama model ${providerLabel}...`}
+                    className="neo-input"
+                    style={{ fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+                  />
+                  <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '3px' }}>
+                    Nama model kustom akan disimpan per-provider.
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
 

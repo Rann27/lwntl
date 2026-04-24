@@ -26,6 +26,7 @@ const id = {
     error: 'ERROR',
     retry: 'COBA LAGI',
     settings: 'PENGATURAN',
+    copy: 'SALIN',
     yes: 'Ya',
     no: 'Tidak',
     or: 'atau',
@@ -136,6 +137,11 @@ const id = {
     translationStarted: 'Terjemahan dimulai...',
     translationDone: 'Bab selesai diterjemahkan!',
     translationFailed: 'Terjemahan gagal: ',
+    rawSaved: 'Konten raw berhasil disimpan.',
+    rawSaveFailed: 'Gagal menyimpan konten raw.',
+    rawEditedAfterTranslation: 'Bab ini sudah memiliki terjemahan. Mengubah konten raw akan membuat terjemahan tidak sinkron — pertimbangkan untuk menerjemahkan ulang setelah menyimpan.',
+    copySuccess: 'Terjemahan disalin!',
+    copyFailed: 'Gagal menyalin terjemahan.',
   },
 
   // Glossary Update Panel
@@ -203,6 +209,15 @@ const id = {
     confirmTitle: 'Terjemahkan Semua Bab?',
     confirmDesc: 'Hanya bab berstatus "Menunggu" yang akan diterjemahkan. {count} bab akan diproses.',
     start: 'MULAI',
+    selectChapter: 'PILIH',
+    cancelSelect: 'BATAL PILIH',
+    translateSelected: 'TERJEMAHKAN',
+    deleteSelected: 'HAPUS',
+    selectedCount: '{count} dipilih',
+    confirmDeleteSelected: 'Hapus Bab Terpilih?',
+    confirmDeleteSelectedMsg: '{count} bab yang dipilih akan dihapus permanen beserta seluruh terjemahannya.',
+    noSelection: 'Pilih minimal 1 bab terlebih dahulu.',
+    autoApplied: 'Auto-apply glossary: {count} term baru ditambahkan.',
   },
 
   // Context Info

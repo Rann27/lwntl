@@ -279,10 +279,11 @@ export async function cancelTranslation(): Promise<boolean> {
 
 export async function startBatchTranslation(
   seriesId: string,
-  chapterIds: string[]
+  chapterIds: string[],
+  force = false,
 ): Promise<{ status: string; total: number }> {
   const api = getApi()
-  const result = await api.start_batch_translation(seriesId, JSON.stringify(chapterIds))
+  const result = await api.start_batch_translation(seriesId, JSON.stringify(chapterIds), force)
   if (isApiError(result)) throw new Error(result.message)
   return result as { status: string; total: number }
 }

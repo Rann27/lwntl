@@ -8,6 +8,7 @@ import re
 from typing import Dict, Any
 
 from docx import Document
+from .extractor import strip_glossary_table
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
@@ -93,7 +94,7 @@ def export_chapter_to_docx(series: Dict[str, Any], chapter: Dict[str, Any]) -> b
     series_title   = series.get('title', '')
     chapter_num    = chapter.get('chapterNumber', 1)
     chapter_title  = chapter.get('title', '').strip()
-    content        = chapter.get('translatedContent', '')
+    content        = strip_glossary_table(chapter.get('translatedContent', ''))
 
     # ── Chapter heading ──────────────────────────────────────────────
     heading_text = f'Bab {chapter_num}'

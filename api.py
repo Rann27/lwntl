@@ -252,12 +252,16 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
     
-    def start_batch_translation(self, series_id: str, chapter_ids: str):
-        """Start batch translation for multiple chapters (JSON string of IDs). Only pending chapters."""
+    def start_batch_translation(self, series_id: str, chapter_ids: str, force: bool = False):
+        """
+        Start batch translation.
+        force=False: only pending chapters (Translate All).
+        force=True:  translate regardless of status (Translate Selected).
+        """
         try:
             ids = json.loads(chapter_ids) if isinstance(chapter_ids, str) else chapter_ids
             translator = self._get_translator()
-            translator.start_batch_translation(series_id, ids)
+            translator.start_batch_translation(series_id, ids, force=bool(force))
             return {"status": "started", "total": len(ids)}
         except Exception as e:
             return {"error": True, "message": str(e)}

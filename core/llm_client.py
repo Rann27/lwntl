@@ -26,7 +26,7 @@ PROVIDERS = {
             "qwen3.5-plus", "qwen3.5-flash", "qwen3.6-plus",
             "qwen3.6-plus-2026-04-02", "qwen3.5-122b-a10b",
             "qwen3.5-plus-2026-02-15", "qwen3.5-flash-2026-02-23",
-            "deepseek-v3", "custom",
+            "deepseek-v3.2", "custom",
         ],
         "displayNames": {
             "qwen3.5-plus": "Qwen3.5-Plus",
@@ -36,7 +36,7 @@ PROVIDERS = {
             "qwen3.5-122b-a10b": "Qwen3.5-122B-A10B",
             "qwen3.5-plus-2026-02-15": "Qwen3.5-Plus (2026-02-15)",
             "qwen3.5-flash-2026-02-23": "Qwen3.5-Flash (2026-02-23)",
-            "deepseek-v3.2": "DeepSeek V3.2",
+            "deepseek-v3.2": "DeepSeek V3.2 (via Qwen)",
             "custom": "+ Custom Model",
         },
         "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
@@ -116,6 +116,13 @@ PROVIDERS = {
         "label": "Moonshot AI (Kimi)",
         "docsUrl": "https://platform.moonshot.cn/docs/api/chat",
         "apiKeyName": "moonshotApiKey",
+    },
+    "openaicompat": {
+        "models": [],
+        "displayNames": {},
+        "label": "OpenAI Compatible",
+        "docsUrl": "",
+        "apiKeyName": "openaicompatApiKey",
     },
 }
 
@@ -200,7 +207,46 @@ class LLMClient:
         self._client = None
         self._init_provider(config)
 
+    def _close_current_client(self):
+        """Close the current client if it exposes a close() method."""
+        if self._client is None:
+            return
+        close_fn = getattr(self._client, "close", None)
+        if callable(close_fn):
+            try:
+                close_fn()
+            except Exception:
+                pass
+
+    def _build_openaicompat_headers(self, config: Dict[str, Any]) -> Dict[str, str]:
+        """Build default headers for OpenAI-compatible provider only."""
+        headers: Dict[str, str] = {}
+
+        extra = config.get("openaicompatExtraHeaders", {})
+        if isinstance(extra, dict):
+            for k, v in extra.items():
+                if k is None or v is None:
+                    continue
+                key = str(k).strip()
+                value = str(v).strip()
+                if key and value:
+                    headers[key] = value
+
+        ua = str(config.get("openaicompatUserAgent", "") or "").strip()
+        client_name = str(config.get("openaicompatClientName", "") or "").strip()
+
+        if ua:
+            headers["User-Agent"] = ua
+        if client_name:
+            headers["X-Client-Name"] = client_name
+
+        # Keep neutral defaults to avoid tool-impersonation anti-abuse heuristics.
+        headers.setdefault("User-Agent", "lwntl/1.0 (+openai-compatible)")
+        headers.setdefault("X-Client-Name", "lwntl")
+        return headers
+
     def _init_provider(self, config: Dict[str, Any]):
+        self._close_current_client()
         p = self.provider
         if p == "zhipuai":
             self._init_zhipuai(config.get("zhipuaiApiKey", ""))
@@ -216,6 +262,13 @@ class LLMClient:
             self._init_openai_compat(config.get("xaiApiKey", ""), PROVIDERS["xai"]["baseUrl"])
         elif p == "moonshot":
             self._init_openai_compat(config.get("moonshotApiKey", ""), PROVIDERS["moonshot"]["baseUrl"])
+        elif p == "openaicompat":
+            self._init_openai_compat(
+                config.get("openaicompatApiKey", ""),
+                config.get("openaicompatBaseUrl", "") or None,
+                default_headers=self._build_openaicompat_headers(config),
+                optimize_stream=True,
+            )
         else:
             raise ValueError(f"Unknown provider: {p}")
 
@@ -226,15 +279,60 @@ class LLMClient:
         self._client = ZaiClient(api_key=api_key)
         self._client_type = "zhipuai"
 
-    def _init_openai_compat(self, api_key: str, base_url: Optional[str]):
-        if not api_key:
+    def _init_openai_compat(
+        self,
+        api_key: str,
+        base_url: Optional[str],
+        default_headers: Optional[Dict[str, str]] = None,
+        optimize_stream: bool = False,
+    ):
+        if not api_key and self.provider != "openaicompat":
             raise ValueError(f"{self.provider} API key is required")
         from openai import OpenAI
-        kwargs: Dict[str, Any] = {"api_key": api_key}
+        import httpx
+
+        kwargs: Dict[str, Any] = {"api_key": api_key or "not-required"}
+
+        if optimize_stream:
+            # OpenAI-compatible path tuning:
+            # - keepalive pool to reduce repeated TCP/TLS handshake overhead
+            # - HTTP/2 where supported to improve long streaming stability
+            # - retries for transient connect errors
+            import importlib.util
+            http2_supported = importlib.util.find_spec("h2") is not None
+
+            transport = httpx.HTTPTransport(retries=2)
+            kwargs["http_client"] = httpx.Client(
+                # Disable timeout entirely for long-running generations.
+                timeout=None,
+                limits=httpx.Limits(
+                    max_connections=100,
+                    max_keepalive_connections=20,
+                    keepalive_expiry=120.0,
+                ),
+                http2=http2_supported,
+                transport=transport,
+            )
+            if not http2_supported:
+                print("[OpenAICompat] HTTP/2 disabled (package 'h2' not installed), using HTTP/1.1")
+        else:
+            # read=None: no per-chunk read timeout — slow models can pause
+            # arbitrarily long mid-stream without the client killing the connection.
+            kwargs["timeout"] = httpx.Timeout(connect=15.0, read=None, write=None, pool=None)
+
         if base_url:
             kwargs["base_url"] = base_url
+        if default_headers:
+            kwargs["default_headers"] = default_headers
+
         self._client = OpenAI(**kwargs)
         self._client_type = "openai"
+
+        if optimize_stream and default_headers:
+            print(
+                "[OpenAICompat] Stream tuning enabled | default headers: "
+                + ", ".join(default_headers.keys())
+            )
 
     def _init_anthropic(self, api_key: str):
         if not api_key:
@@ -339,7 +437,7 @@ class LLMClient:
             self.model = raw_model
         self.temperature = config.get("temperature", self.temperature)
         self.max_tokens = config.get("maxTokensPerIteration", self.max_tokens)
-        if self.provider != old_provider:
+        if self.provider != old_provider or self.provider == "openaicompat":
             self._init_provider(config)
 
 

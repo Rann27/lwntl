@@ -15,7 +15,7 @@ def get_app_data_dir() -> Path:
         app_data = os.environ.get('APPDATA', os.path.expanduser('~'))
         return Path(app_data) / 'lwntl'
     elif os.name == 'posix':
-        if 'darwin' in os.uname().sysname:  # macOS
+        if os.uname().sysname.lower() == 'darwin':  # macOS
             return Path.home() / 'Library' / 'Application Support' / 'lwntl'
         else:  # Linux
             return Path.home() / '.config' / 'lwntl'
@@ -40,6 +40,11 @@ DEFAULT_CONFIG = {
     "anthropicApiKey": "",
     "xaiApiKey": "",
     "moonshotApiKey": "",
+    "openaicompatApiKey": "",
+    "openaicompatBaseUrl": "",
+    "openaicompatUserAgent": "lwntl/1.0 (+openai-compatible)",
+    "openaicompatClientName": "lwntl",
+    "openaicompatExtraHeaders": {},
     "temperature": 0.3,
     "maxTokensPerIteration": 16000,
     "theme": "light",
@@ -51,22 +56,22 @@ DEFAULT_CONFIG = {
 
 def get_config() -> Dict[str, Any]:
     """
-    Read config.json
-    
-    Returns:
-        dict: Configuration data
-        
+    Read config.json, merged with DEFAULT_CONFIG so new fields added in later
+    versions always have a value even on old installs.
+
     Raises:
         FileNotFoundError: If config file doesn't exist
         json.JSONDecodeError: If config file is invalid JSON
     """
     config_path = get_config_path()
-    
+
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found at {config_path}")
-    
+
     with open(config_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        stored = json.load(f)
+
+    return {**DEFAULT_CONFIG, **stored}
 
 
 def save_config(config: Dict[str, Any]) -> bool:

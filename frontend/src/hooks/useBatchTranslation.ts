@@ -36,27 +36,36 @@ export function useBatchTranslation(seriesId: string) {
     }
   }, [setBatch])
 
+  // Translate All: only pending chapters, no force
   const startBatch = useCallback(async (chapters: Chapter[]) => {
-    // Filter only pending chapters (never translated)
     const pendingChapters = chapters
       .filter((ch) => ch.status === 'pending')
       .sort((a, b) => a.chapterNumber - b.chapterNumber)
       .map((ch) => ch.id)
 
     if (pendingChapters.length === 0) {
-      addToastRef.current({ type: 'info', message: 'Tidak ada bab yang perlu diterjemahkan (semua sudah selesai).' })
+      addToastRef.current({ type: 'info', message: 'Tidak ada bab yang perlu diterjemahkan.' })
       return
     }
 
     try {
-      setBatch({
-        status: 'translating',
-        current: 0,
-        total: pendingChapters.length,
-        completed: 0,
-      })
-      await startBatchTranslation(seriesId, pendingChapters)
-      addToastRef.current({ type: 'info', message: `Batch dimulai: ${pendingChapters.length} bab akan diterjemahkan.` })
+      setBatch({ status: 'translating', current: 0, total: pendingChapters.length, completed: 0 })
+      await startBatchTranslation(seriesId, pendingChapters, false)
+      addToastRef.current({ type: 'info', message: `Batch dimulai: ${pendingChapters.length} bab.` })
+    } catch (e: any) {
+      addToastRef.current({ type: 'error', message: `Gagal memulai batch: ${e.message}` })
+      setBatch(null)
+    }
+  }, [seriesId, setBatch])
+
+  // Translate Selected: explicit IDs, force=true (translate regardless of status)
+  const startSelectedBatch = useCallback(async (chapterIds: string[]) => {
+    if (chapterIds.length === 0) return
+
+    try {
+      setBatch({ status: 'translating', current: 0, total: chapterIds.length, completed: 0 })
+      await startBatchTranslation(seriesId, chapterIds, true)
+      addToastRef.current({ type: 'info', message: `Batch dimulai: ${chapterIds.length} bab dipilih.` })
     } catch (e: any) {
       addToastRef.current({ type: 'error', message: `Gagal memulai batch: ${e.message}` })
       setBatch(null)
@@ -78,6 +87,7 @@ export function useBatchTranslation(seriesId: string) {
     batch,
     isBatchActive,
     startBatch,
+    startSelectedBatch,
     cancelBatch,
   }
 }

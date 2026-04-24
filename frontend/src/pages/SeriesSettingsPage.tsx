@@ -16,7 +16,7 @@ import BatchTranslationPanel from '../components/BatchTranslationPanel'
 import MemoryPanel from '../components/MemoryPanel'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X } from 'lucide-react'
 import {
   getAllSeries,
   getChapters,
@@ -41,8 +41,12 @@ export function SeriesSettingsPage() {
   const toast = useToast()
   const { t } = useI18n()
   const { config, setConfig, apiReady } = useAppStore()
-  const { isBatchActive, startBatch, cancelBatch } = useBatchTranslation(seriesId!)
+  const { isBatchActive, startBatch, startSelectedBatch, cancelBatch } = useBatchTranslation(seriesId!)
   const [showMemory, setShowMemory] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false)
+  const [deletingSelected, setDeletingSelected] = useState(false)
 
   const [series, setSeries] = useState<Series | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
@@ -189,15 +193,16 @@ export function SeriesSettingsPage() {
   }
 
   // Glossary CRUD
-  const handleAddGlossary = async () => {
+  const handleAddGlossary = async (sourceTerm: string, translatedTerm: string, notes: string) => {
     if (!seriesId) return
     setAddGlossaryLoading(true)
     try {
-      const entry = await addGlossaryEntry(seriesId, '', '', '')
+      const entry = await addGlossaryEntry(seriesId, sourceTerm, translatedTerm, notes)
       setGlossary((prev) => [...prev, entry])
       toast.success('✓')
     } catch {
       toast.error(t.settings.saveFailed)
+      throw new Error('add failed')
     } finally {
       setAddGlossaryLoading(false)
     }
@@ -251,6 +256,56 @@ export function SeriesSettingsPage() {
     }
   }
 
+  // Select mode handlers
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  const handleEnterSelectMode = () => {
+    setSelectMode(true)
+    setSelectedIds(new Set())
+  }
+
+  const handleExitSelectMode = () => {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  const handleTranslateSelected = () => {
+    if (selectedIds.size === 0) {
+      toast.info(t.batch.noSelection)
+      return
+    }
+    const sorted = chapters
+      .filter(c => selectedIds.has(c.id))
+      .sort((a, b) => a.chapterNumber - b.chapterNumber)
+      .map(c => c.id)
+    startSelectedBatch(sorted)
+    handleExitSelectMode()
+  }
+
+  const handleDeleteSelectedConfirm = async () => {
+    if (!seriesId || selectedIds.size === 0) return
+    setDeletingSelected(true)
+    try {
+      for (const id of selectedIds) {
+        await deleteChapter(seriesId, id)
+      }
+      setChapters(prev => prev.filter(c => !selectedIds.has(c.id)))
+      toast.success(`✓ ${selectedIds.size} bab dihapus`)
+      setDeleteSelectedOpen(false)
+      handleExitSelectMode()
+    } catch {
+      toast.error(t.settings.saveFailed)
+    } finally {
+      setDeletingSelected(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="app-layout">
@@ -283,18 +338,71 @@ export function SeriesSettingsPage() {
       >
         {/* Left: Chapter List */}
         <div className="flex flex-col gap-2" style={{ minWidth: '240px', maxWidth: '280px' }}>
-          {/* Batch translate button */}
-          <button
-            onClick={() => startBatch(chapters)}
-            disabled={isBatchActive || chapters.filter(c => c.status === 'pending').length === 0}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 font-bold text-sm border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#28E272] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#111] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
-          >
-            <Play size={16} />
-            {t.batch.title}
-            <span className="text-xs font-normal">
-              ({chapters.filter(c => c.status === 'pending').length} {t.home.chapters})
-            </span>
-          </button>
+
+          {!selectMode ? (
+            /* Normal mode: Translate All + Select */
+            <div className="flex flex-col gap-1.5">
+              <button
+                onClick={() => startBatch(chapters)}
+                disabled={isBatchActive || chapters.filter(c => c.status === 'pending').length === 0}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 font-bold text-sm border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#28E272] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
+              >
+                <Play size={16} />
+                {t.batch.title}
+                <span className="text-xs font-normal">
+                  ({chapters.filter(c => c.status === 'pending').length} {t.home.chapters})
+                </span>
+              </button>
+              <button
+                onClick={handleEnterSelectMode}
+                disabled={isBatchActive || chapters.length === 0}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-(--color-surface) hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                style={{ color: 'var(--color-text)' }}
+              >
+                <CheckSquare size={13} />
+                {t.batch.selectChapter}
+              </button>
+            </div>
+          ) : (
+            /* Select mode: Translate Selected + Delete Selected + Cancel */
+            <div className="flex flex-col gap-1.5">
+              <div className="flex gap-1.5">
+                <button
+                  onClick={handleTranslateSelected}
+                  disabled={isBatchActive || selectedIds.size === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#28E272] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  style={{ color: '#111' }}
+                >
+                  <Play size={12} />
+                  {t.batch.translateSelected}
+                  {selectedIds.size > 0 && <span className="font-normal">({selectedIds.size})</span>}
+                </button>
+                <button
+                  onClick={() => { if (selectedIds.size > 0) setDeleteSelectedOpen(true) }}
+                  disabled={selectedIds.size === 0}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FF3C3C] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  style={{ color: '#fff' }}
+                >
+                  <Trash2 size={12} />
+                  {t.batch.deleteSelected}
+                  {selectedIds.size > 0 && <span className="font-normal">({selectedIds.size})</span>}
+                </button>
+              </div>
+              <button
+                onClick={handleExitSelectMode}
+                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 font-bold text-xs border-2 border-(--color-border) bg-transparent hover:bg-(--color-surface-2) transition-colors"
+                style={{ color: 'var(--color-text-muted)' }}
+              >
+                <X size={12} /> {t.batch.cancelSelect}
+              </button>
+              {/* Selection count indicator */}
+              <p style={{ fontSize: '11px', textAlign: 'center', color: 'var(--color-text-muted)', margin: 0 }}>
+                {selectedIds.size > 0
+                  ? t.batch.selectedCount.replace('{count}', String(selectedIds.size))
+                  : 'Klik bab untuk memilih'}
+              </p>
+            </div>
+          )}
 
           <ChapterList
             seriesId={seriesId!}
@@ -302,12 +410,15 @@ export function SeriesSettingsPage() {
             onAddChapter={() => setCreateChapterOpen(true)}
             onEditChapter={setEditChapter}
             onDeleteChapter={handleDeleteChapterClick}
+            selectMode={selectMode}
+            selectedIds={selectedIds}
+            onToggleSelect={handleToggleSelect}
           />
 
           {/* Memory toggle */}
           <button
             onClick={() => setShowMemory(!showMemory)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FFEF33] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_#111] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FFEF33] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
           >
             <Brain size={14} />
             {t.memory.title} ({series.memory?.length || 0})
@@ -385,6 +496,18 @@ export function SeriesSettingsPage() {
         entityName={deleteGlossaryTarget?.sourceTerm || ''}
         details={['Entri glossary ini']}
         loading={deleteGlossaryLoading}
+      />
+
+      {/* Delete Selected Confirm */}
+      <DeleteConfirmModal
+        open={deleteSelectedOpen}
+        onClose={() => setDeleteSelectedOpen(false)}
+        onConfirm={handleDeleteSelectedConfirm}
+        title={t.batch.confirmDeleteSelected}
+        entityType="chapter"
+        entityName={t.batch.confirmDeleteSelectedMsg.replace('{count}', String(selectedIds.size))}
+        details={[]}
+        loading={deletingSelected}
       />
 
       {/* Batch Translation Overlay */}

@@ -4,7 +4,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import { Plus, Search, Trash2, Check, X, Edit2, Download, Upload, FileJson, FileText } from 'lucide-react'
+import { Plus, Search, Trash2, Check, X, Edit2, Download, Upload, FileJson, FileText, ChevronUp } from 'lucide-react'
 import type { GlossaryEntry } from '../types'
 import { exportGlossaryFile } from '../api'
 import { useI18n } from '../i18n'
@@ -12,7 +12,7 @@ import { useI18n } from '../i18n'
 interface GlossaryTableProps {
   entries: GlossaryEntry[]
   seriesId: string
-  onAdd: () => void
+  onAdd: (sourceTerm: string, translatedTerm: string, notes: string) => void
   onEdit: (entry: GlossaryEntry, sourceTerm: string, translatedTerm: string, notes: string) => void
   onDelete: (entry: GlossaryEntry) => void
   onImport: (entries: Array<{ sourceTerm: string; translatedTerm: string; notes: string }>) => void
@@ -133,6 +133,14 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
   const exportRef = useRef<HTMLDivElement>(null)
 
+  // Inline add form
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newSource, setNewSource] = useState('')
+  const [newTranslated, setNewTranslated] = useState('')
+  const [newNotes, setNewNotes] = useState('')
+  const [adding, setAdding] = useState(false)
+  const newSourceRef = useRef<HTMLInputElement>(null)
+
   // Close export menu on outside click
   useEffect(() => {
     if (!showExportMenu) return
@@ -145,6 +153,33 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
     return () => document.removeEventListener('mousedown', handler)
   }, [showExportMenu])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Auto-focus source input when form opens
+  useEffect(() => {
+    if (showAddForm) setTimeout(() => newSourceRef.current?.focus(), 50)
+  }, [showAddForm])
+
+  const handleOpenAddForm = () => {
+    setNewSource(''); setNewTranslated(''); setNewNotes('')
+    setShowAddForm(true)
+  }
+
+  const handleCancelAdd = () => {
+    setShowAddForm(false)
+    setNewSource(''); setNewTranslated(''); setNewNotes('')
+  }
+
+  const handleSubmitAdd = async () => {
+    if (!newSource.trim() || !newTranslated.trim()) return
+    setAdding(true)
+    try {
+      await onAdd(newSource.trim(), newTranslated.trim(), newNotes.trim())
+      setNewSource(''); setNewTranslated(''); setNewNotes('')
+      setShowAddForm(false)
+    } finally {
+      setAdding(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return entries
@@ -378,18 +413,84 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
         </table>
       </div>
 
-      {/* Add button */}
+      {/* Add entry — toggle between button and inline form */}
       <div style={{ borderTop: '2.5px solid var(--color-border)' }}>
-        <button
-          onClick={onAdd}
-          className="flex items-center justify-center gap-2 w-full py-3 font-bold transition-colors"
-          style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif", fontSize: '13px', color: 'var(--color-text)' }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-        >
-          <Plus size={16} />
-          {t.seriesSettings.addEntry}
-        </button>
+        {!showAddForm ? (
+          <button
+            onClick={handleOpenAddForm}
+            className="flex items-center justify-center gap-2 w-full py-3 font-bold transition-colors"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif", fontSize: '13px', color: 'var(--color-text)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <Plus size={16} />
+            {t.seriesSettings.addEntry}
+          </button>
+        ) : (
+          <div style={{ padding: '10px 12px', backgroundColor: 'var(--color-surface-2)' }}>
+            {/* Header row */}
+            <div className="flex items-center justify-between mb-2">
+              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+                {t.seriesSettings.addEntry}
+              </span>
+              <button
+                onClick={handleCancelAdd}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-subtle)', padding: 0 }}
+              >
+                <ChevronUp size={14} />
+              </button>
+            </div>
+            {/* Inputs */}
+            <div className="flex flex-col gap-1.5 mb-2">
+              <input
+                ref={newSourceRef}
+                type="text"
+                value={newSource}
+                onChange={(e) => setNewSource(e.target.value)}
+                placeholder={t.seriesSettings.sourceTerm}
+                className="neo-input"
+                style={{ padding: '5px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)' }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmitAdd() } if (e.key === 'Escape') handleCancelAdd() }}
+              />
+              <input
+                type="text"
+                value={newTranslated}
+                onChange={(e) => setNewTranslated(e.target.value)}
+                placeholder={t.seriesSettings.translatedTerm}
+                className="neo-input"
+                style={{ padding: '5px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)' }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmitAdd() } if (e.key === 'Escape') handleCancelAdd() }}
+              />
+              <input
+                type="text"
+                value={newNotes}
+                onChange={(e) => setNewNotes(e.target.value)}
+                placeholder={t.seriesSettings.notes + ' (opsional)'}
+                className="neo-input"
+                style={{ padding: '5px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)' }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmitAdd() } if (e.key === 'Escape') handleCancelAdd() }}
+              />
+            </div>
+            {/* Submit */}
+            <button
+              onClick={handleSubmitAdd}
+              disabled={adding || !newSource.trim() || !newTranslated.trim()}
+              className="flex items-center justify-center gap-1.5 w-full py-2 font-bold"
+              style={{
+                fontSize: '12px', fontFamily: "'Space Grotesk', sans-serif",
+                border: '2px solid var(--color-border)',
+                backgroundColor: (!newSource.trim() || !newTranslated.trim() || adding) ? 'var(--color-surface)' : '#28E272',
+                color: (!newSource.trim() || !newTranslated.trim() || adding) ? 'var(--color-text-muted)' : '#111',
+                cursor: (!newSource.trim() || !newTranslated.trim() || adding) ? 'not-allowed' : 'pointer',
+                opacity: adding ? 0.5 : 1,
+                transition: 'background-color 150ms',
+              }}
+            >
+              <Plus size={13} />
+              {adding ? t.common.saving : t.common.add}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Fixed-position tooltip — renders outside overflow context */}
