@@ -142,6 +142,16 @@ const id = {
     rawEditedAfterTranslation: 'Bab ini sudah memiliki terjemahan. Mengubah konten raw akan membuat terjemahan tidak sinkron — pertimbangkan untuk menerjemahkan ulang setelah menyimpan.',
     copySuccess: 'Terjemahan disalin!',
     copyFailed: 'Gagal menyalin terjemahan.',
+    retranslateConfirm: 'Bab ini sudah diterjemahkan. Versi saat ini akan disimpan ke riwayat sebelum ditimpa.',
+    proceedRetranslate: 'TERJEMAHKAN ULANG',
+    translationHistory: 'RIWAYAT',
+    version: 'v',
+    restoreVersion: 'Pulihkan',
+    restoreSuccess: 'Versi terjemahan berhasil dipulihkan!',
+    restoreFailed: 'Gagal memulihkan versi.',
+    viewingVersion: 'Melihat v{n} — ',
+    backToCurrent: 'Kembali ke Saat Ini',
+    translationBusy: 'Terjemahan sedang berjalan. Tunggu atau batalkan terlebih dahulu.',
   },
 
   // Glossary Update Panel
@@ -218,6 +228,7 @@ const id = {
     confirmDeleteSelectedMsg: '{count} bab yang dipilih akan dihapus permanen beserta seluruh terjemahannya.',
     noSelection: 'Pilih minimal 1 bab terlebih dahulu.',
     autoApplied: 'Auto-apply glossary: {count} term baru ditambahkan.',
+    retryFailed: 'RETRY GAGAL',
   },
 
   // Context Info

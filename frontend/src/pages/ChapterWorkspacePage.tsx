@@ -6,7 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { Play, Square, Download, RefreshCw, Save, AlertTriangle, Copy } from 'lucide-react'
+import { Play, Square, Download, RefreshCw, Save, AlertTriangle, Copy, History } from 'lucide-react'
 import { Topbar } from '../components/Topbar'
 import { MarkdownRenderer } from '../components/MarkdownRenderer'
 import { GlossaryUpdatePanel } from '../components/GlossaryUpdatePanel'
@@ -23,10 +23,11 @@ import {
   addGlossaryEntry,
   getContextInfo,
   updateChapter,
+  restoreTranslationVersion,
 } from '../api'
 import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
-import type { Chapter, ContextInfo, GlossaryEntry } from '../types'
+import type { Chapter, ContextInfo, GlossaryEntry, TranslationVersion } from '../types'
 
 /** Remove the trailing glossary table from translated content (same logic as Python extractor). */
 function stripGlossaryTable(content: string): string {
@@ -78,6 +79,11 @@ export function ChapterWorkspacePage() {
   const [isRawDirty, setIsRawDirty] = useState(false)
   const rawRef = useRef<HTMLTextAreaElement>(null)
 
+  // Re-translate confirmation + version history
+  const [confirmRetranslate, setConfirmRetranslate] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
+  const [viewingVersion, setViewingVersion] = useState<TranslationVersion | null>(null)
+
   const containerRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
   const wasTranslatingRef = useRef(false)
@@ -90,6 +96,7 @@ export function ChapterWorkspacePage() {
     progress,
     glossaryUpdates,
     startTranslating,
+    resetTranslation,
   } = useTranslation(seriesId!, chapterId!)
 
   // Load chapter data + context info + series glossary
@@ -127,14 +134,41 @@ export function ChapterWorkspacePage() {
     wasTranslatingRef.current = isTranslating
   }, [isTranslating, loadChapter])
 
-  // Start translation
-  const handleStartTranslation = async () => {
+  // Start translation — if chapter is "done", show confirmation first
+  const handleStartTranslation = () => {
     if (!seriesId || !chapterId) return
+    if (chapter?.status === 'done' && chapter.translatedContent) {
+      setConfirmRetranslate(true)
+      setShowHistory(false)
+      setViewingVersion(null)
+    } else {
+      _doStartTranslation(false)
+    }
+  }
+
+  const _doStartTranslation = async (archivePrevious: boolean) => {
+    if (!seriesId || !chapterId) return
+    setConfirmRetranslate(false)
     try {
       startTranslating()
-      await startTranslation(seriesId, chapterId)
+      await startTranslation(seriesId, chapterId, archivePrevious)
     } catch (err: any) {
+      resetTranslation()
       toast.error(t.chapter.translateFailed + (err.message || ''))
+    }
+  }
+
+  // Restore a version from history
+  const handleRestoreVersion = async (versionIndex: number) => {
+    if (!seriesId || !chapterId) return
+    try {
+      await restoreTranslationVersion(seriesId, chapterId, versionIndex)
+      setViewingVersion(null)
+      setShowHistory(false)
+      await loadChapter()
+      toast.success(t.chapter.restoreSuccess)
+    } catch (err: any) {
+      toast.error(t.chapter.restoreFailed + ' ' + (err.message || ''))
     }
   }
 
@@ -236,7 +270,9 @@ export function ChapterWorkspacePage() {
   // After done: chapter state is reloaded, fall back streamingText while reload happens
   const translatedText = isTranslating
     ? streamingText
-    : chapter?.translatedContent || streamingText || ''
+    : viewingVersion
+      ? viewingVersion.translatedContent
+      : chapter?.translatedContent || streamingText || ''
 
   if (loading) {
     return (
@@ -326,6 +362,33 @@ export function ChapterWorkspacePage() {
           )}
         </div>
       </div>
+
+      {/* Retranslate confirmation bar */}
+      {confirmRetranslate && (
+        <div
+          className="flex items-center justify-between px-4 py-2.5"
+          style={{ backgroundColor: 'rgba(255,239,51,0.12)', borderBottom: '2px solid #FFEF33', flexShrink: 0 }}
+        >
+          <span style={{ fontSize: '12px', color: 'var(--color-text)', fontWeight: 500 }}>
+            {t.chapter.retranslateConfirm}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => _doStartTranslation(true)}
+              className="neo-button flex items-center gap-1"
+              style={{ padding: '5px 12px', fontSize: '11px', backgroundColor: '#FFEF33', color: '#111' }}
+            >
+              <RefreshCw size={12} /> {t.chapter.proceedRetranslate}
+            </button>
+            <button
+              onClick={() => setConfirmRetranslate(false)}
+              style={{ padding: '5px 10px', fontSize: '11px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+            >
+              {t.common.cancel}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Split View */}
       <div
@@ -463,9 +526,84 @@ export function ChapterWorkspacePage() {
                     <Copy size={10} /> {t.common.copy}
                   </button>
                 )}
+                {(chapter?.translationHistory?.length ?? 0) > 0 && (
+                  <button
+                    onClick={() => { setShowHistory(s => !s); setViewingVersion(null) }}
+                    className="flex items-center gap-1"
+                    style={{
+                      fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                      padding: '3px 8px', border: '1.5px solid var(--color-border)',
+                      backgroundColor: showHistory ? '#00F7FF' : 'var(--color-surface)',
+                      color: showHistory ? '#111' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <History size={10} /> {t.chapter.translationHistory} ({chapter.translationHistory.length})
+                  </button>
+                )}
               </div>
             </div>
           </div>
+
+          {/* Version viewing banner */}
+          {viewingVersion && (
+            <div
+              className="flex items-center justify-between px-3 py-1.5"
+              style={{ backgroundColor: 'rgba(0,247,255,0.1)', borderBottom: '1.5px solid #00F7FF', flexShrink: 0 }}
+            >
+              <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text)' }}>
+                {t.chapter.viewingVersion.replace('{n}', String(viewingVersion.version))}
+              </span>
+              <button
+                onClick={() => { setViewingVersion(null); setShowHistory(false) }}
+                style={{ fontSize: '10px', fontWeight: 700, color: '#00F7FF', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                {t.chapter.backToCurrent}
+              </button>
+            </div>
+          )}
+
+          {/* History dropdown */}
+          {showHistory && !viewingVersion && (
+            <div style={{ borderBottom: '2px solid var(--color-border)', flexShrink: 0, maxHeight: '200px', overflowY: 'auto', backgroundColor: 'var(--color-surface-2)' }}>
+              {chapter.translationHistory.map((v, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between px-3 py-2"
+                  style={{ borderBottom: i < chapter.translationHistory.length - 1 ? '1px solid var(--color-border)' : undefined }}
+                >
+                  <div className="flex items-center gap-3">
+                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text)' }}>
+                      {t.chapter.version}{v.version}
+                    </span>
+                    <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                      {new Date(v.translatedAt).toLocaleString()}
+                    </span>
+                    {v.charCount != null && (
+                      <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                        {v.charCount.toLocaleString()} chars
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => { setViewingVersion(v); setShowHistory(false) }}
+                      style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                    >
+                      View
+                    </button>
+                    <button
+                      onClick={() => handleRestoreVersion(i)}
+                      style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', border: '1.5px solid var(--color-border)', backgroundColor: '#00F7FF', color: '#111', cursor: 'pointer' }}
+                    >
+                      {t.chapter.restoreVersion}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex-1 overflow-y-auto">
             <MarkdownRenderer content={translatedText} />
           </div>

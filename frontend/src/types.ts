@@ -41,6 +41,15 @@ export interface Series {
   updatedAt: string
 }
 
+// Translation version (history entry)
+export interface TranslationVersion {
+  version: number
+  translatedContent: string
+  glossaryUpdates: GlossaryUpdates | null
+  translatedAt: string
+  charCount: number
+}
+
 // Chapter
 export type ChapterStatus = 'pending' | 'processing' | 'done' | 'error'
 
@@ -74,6 +83,7 @@ export interface Chapter {
   status: ChapterStatus
   glossaryUpdates: GlossaryUpdates | null
   translationLog: TranslationLog | null
+  translationHistory: TranslationVersion[]
   createdAt: string
   updatedAt: string
 }

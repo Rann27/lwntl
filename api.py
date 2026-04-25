@@ -14,7 +14,8 @@ from core.storage.chapters import (
     get_chapters, create_chapter, update_chapter as update_chapter_db,
     get_chapter, get_chapter_delete_info, delete_chapter,
     update_chapter_status, update_chapter_translation, update_chapter_summary,
-    update_glossary_updates, update_translation_log
+    update_glossary_updates, update_translation_log,
+    restore_translation_version as restore_version_db,
 )
 from core.llm_client import LLMClient, test_client as test_llm_client
 from core.translator import Translator
@@ -235,11 +236,13 @@ class API:
             return {"error": True, "message": str(e)}
 
     # Translation
-    def start_translation(self, series_id: str, chapter_id: str):
-        """Start translating a chapter"""
+    def start_translation(self, series_id: str, chapter_id: str, archive_previous: bool = False):
+        """Start translating a chapter. archive_previous=True saves current translation to history first."""
         try:
             translator = self._get_translator()
-            translator.start_translation(series_id, chapter_id)
+            if translator.is_running():
+                return {"error": True, "message": "Terjemahan sedang berjalan. Tunggu atau batalkan terlebih dahulu."}
+            translator.start_translation(series_id, chapter_id, archive_previous=bool(archive_previous))
             return {"status": "started"}
         except Exception as e:
             return {"error": True, "message": str(e)}
@@ -252,16 +255,27 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
     
-    def start_batch_translation(self, series_id: str, chapter_ids: str, force: bool = False):
+    def restore_translation_version(self, series_id: str, chapter_id: str, version_index: int):
+        """Restore a previous translation version by index (0 = most recent previous)."""
+        try:
+            chapter = restore_version_db(series_id, chapter_id, int(version_index))
+            return chapter
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def start_batch_translation(self, series_id: str, chapter_ids: str, force: bool = False, archive_previous: bool = False):
         """
         Start batch translation.
         force=False: only pending chapters (Translate All).
         force=True:  translate regardless of status (Translate Selected).
+        archive_previous: archive existing translation before overwriting.
         """
         try:
             ids = json.loads(chapter_ids) if isinstance(chapter_ids, str) else chapter_ids
             translator = self._get_translator()
-            translator.start_batch_translation(series_id, ids, force=bool(force))
+            if translator.is_running():
+                return {"error": True, "message": "Terjemahan sedang berjalan. Tunggu atau batalkan terlebih dahulu."}
+            translator.start_batch_translation(series_id, ids, force=bool(force), archive_previous=bool(archive_previous))
             return {"status": "started", "total": len(ids)}
         except Exception as e:
             return {"error": True, "message": str(e)}

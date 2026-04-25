@@ -11,7 +11,8 @@ from .llm_client import LLMClient
 from .storage.series import get_series
 from .storage.chapters import (
     update_chapter_status, update_chapter_translation,
-    update_chapter_summary, update_translation_log, get_chapter
+    update_chapter_summary, update_translation_log, get_chapter,
+    archive_current_translation,
 )
 from .prompt_builder import build_system_prompt, build_user_prompt
 from .extractor import extract_glossary_terms, parse_glossary_from_translation
@@ -41,10 +42,18 @@ class Translator:
         self._batch_total = 0
         self._batch_completed = 0
     
+    def is_running(self) -> bool:
+        """Return True if a translation or batch is currently active."""
+        if self._batch_active:
+            return True
+        if self._translation_thread and self._translation_thread.is_alive():
+            return True
+        return False
+
     def cancel(self) -> bool:
         """
         Cancel ongoing translation (including batch)
-        
+
         Returns:
             bool: True if cancellation was successful
         """
@@ -58,11 +67,13 @@ class Translator:
         chapter_ids: List[str],
         progress_callback: Optional[Callable] = None,
         force: bool = False,
+        archive_previous: bool = False,
     ) -> threading.Thread:
         """
         Start batch translation for multiple chapters in sequence.
         force=False: skip non-pending chapters (Translate All behaviour).
         force=True:  translate regardless of status (Translate Selected behaviour).
+        archive_previous: archive existing translation before overwriting.
         """
         self._cancelled = False
         self._batch_active = True
@@ -71,23 +82,25 @@ class Translator:
 
         thread = threading.Thread(
             target=self._batch_translate,
-            args=(series_id, chapter_ids, progress_callback, force),
+            args=(series_id, chapter_ids, progress_callback, force, archive_previous),
             daemon=True
         )
         thread.start()
         return thread
-    
+
     def _batch_translate(
         self,
         series_id: str,
         chapter_ids: List[str],
         progress_callback: Optional[Callable] = None,
         force: bool = False,
+        archive_previous: bool = False,
     ):
         """
         Translate chapters sequentially.
         force=False: skip non-pending (Translate All).
         force=True:  translate regardless of status (Translate Selected).
+        archive_previous: archive existing translation before overwriting.
         After each chapter, auto-apply new glossary terms to the series glossary
         so subsequent chapters benefit from them immediately.
         """
@@ -113,7 +126,7 @@ class Translator:
                 self.window_eval(f"window.onBatchStatus({json.dumps({'status': 'translating', 'current': i + 1, 'total': self._batch_total, 'chapterId': chapter_id, 'chapterNumber': chapter.get('chapterNumber', '?'), 'chapterTitle': chapter.get('title', '')})})")
 
             # Translate this chapter
-            self._translate(series_id, chapter_id, progress_callback)
+            self._translate(series_id, chapter_id, progress_callback, archive_previous=archive_previous)
 
             # Auto-apply extracted glossary terms to series (cross-chapter awareness)
             self._auto_apply_glossary(series_id, chapter_id)
@@ -173,34 +186,28 @@ class Translator:
         self,
         series_id: str,
         chapter_id: str,
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
+        archive_previous: bool = False,
     ) -> threading.Thread:
         """
-        Start translation in a separate thread
-
-        Args:
-            series_id: Series UUID
-            chapter_id: Chapter UUID
-            progress_callback: Optional callback for progress updates
-
-        Returns:
-            threading.Thread: The translation thread
+        Start translation in a separate thread.
+        archive_previous=True: archive existing translation before overwriting.
         """
         self._cancelled = False
-        # Start translation in background thread
         self._translation_thread = threading.Thread(
             target=self._translate,
-            args=(series_id, chapter_id, progress_callback),
+            args=(series_id, chapter_id, progress_callback, archive_previous),
             daemon=True
         )
         self._translation_thread.start()
         return self._translation_thread
-    
+
     def _translate(
         self,
         series_id: str,
         chapter_id: str,
-        progress_callback: Optional[Callable] = None
+        progress_callback: Optional[Callable] = None,
+        archive_previous: bool = False,
     ):
         """
         Internal translation method (runs in separate thread)
@@ -228,7 +235,14 @@ class Translator:
                 return
             
             raw_content = chapter.get("rawContent", "")
-            
+
+            # Archive existing translation before overwriting (versioning)
+            if archive_previous and chapter.get("translatedContent", "").strip():
+                try:
+                    archive_current_translation(series_id, chapter_id)
+                except Exception as e:
+                    print(f"[Version] Archive failed (non-fatal): {e}")
+
             # Update status to processing
             update_chapter_status(series_id, chapter_id, "processing")
             self._send_status("processing")

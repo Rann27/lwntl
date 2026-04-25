@@ -69,6 +69,12 @@ def get_chapters(series_id: str) -> List[Dict[str, Any]]:
     return chapter_list
 
 
+def _normalize_chapter(chapter: Dict[str, Any]) -> Dict[str, Any]:
+    """Backfill fields introduced in later versions so old chapter.json files keep working."""
+    chapter.setdefault("translationHistory", [])
+    return chapter
+
+
 def create_chapter(series_id: str, number: int, title: str, raw_content: str) -> Dict[str, Any]:
     """
     Create a new chapter
@@ -106,6 +112,7 @@ def create_chapter(series_id: str, number: int, title: str, raw_content: str) ->
             "totalTokens": 0,
             "translatedAt": None
         },
+        "translationHistory": [],
         "createdAt": now,
         "updatedAt": now
     }
@@ -142,7 +149,91 @@ def get_chapter(series_id: str, chapter_id: str) -> Optional[Dict[str, Any]]:
         return None
     
     with open(chapter_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        return _normalize_chapter(json.load(f))
+
+
+def archive_current_translation(series_id: str, chapter_id: str) -> bool:
+    """
+    Move the current translatedContent + glossaryUpdates into translationHistory
+    before a re-translation begins. No-op if translatedContent is empty.
+    Returns True if something was archived, False otherwise.
+    """
+    chapter = get_chapter(series_id, chapter_id)
+    if not chapter:
+        return False
+
+    content = chapter.get("translatedContent", "").strip()
+    if not content:
+        return False
+
+    history = chapter.get("translationHistory", [])
+    version_number = len(history) + 1
+
+    entry = {
+        "version": version_number,
+        "translatedContent": chapter.get("translatedContent", ""),
+        "glossaryUpdates": chapter.get("glossaryUpdates"),
+        "translatedAt": (chapter.get("translationLog") or {}).get("translatedAt") or chapter.get("updatedAt"),
+        "charCount": len(content),
+    }
+    history.insert(0, entry)  # newest first
+
+    chapter["translationHistory"] = history
+    chapter["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
+
+    chapter_path = get_chapter_path(series_id, chapter_id)
+    with open(chapter_path, 'w', encoding='utf-8') as f:
+        json.dump(chapter, f, indent=2, ensure_ascii=False)
+
+    print(f"[Version] Archived v{version_number} for chapter {chapter_id} ({len(content)} chars)")
+    return True
+
+
+def restore_translation_version(series_id: str, chapter_id: str, version_index: int) -> Dict[str, Any]:
+    """
+    Restore a version from translationHistory at the given index (0 = most recent previous).
+    The current translatedContent is first archived into history, then replaced.
+    """
+    chapter = get_chapter(series_id, chapter_id)
+    if not chapter:
+        raise FileNotFoundError(f"Chapter {chapter_id} not found")
+
+    history = chapter.get("translationHistory", [])
+    if version_index < 0 or version_index >= len(history):
+        raise ValueError(f"Version index {version_index} out of range (history has {len(history)} entries)")
+
+    target = history[version_index]
+
+    # Archive current before replacing (if it has content)
+    current = chapter.get("translatedContent", "").strip()
+    if current:
+        current_version = len(history) + 1
+        archive_entry = {
+            "version": current_version,
+            "translatedContent": chapter.get("translatedContent", ""),
+            "glossaryUpdates": chapter.get("glossaryUpdates"),
+            "translatedAt": (chapter.get("translationLog") or {}).get("translatedAt") or chapter.get("updatedAt"),
+            "charCount": len(current),
+        }
+        history.insert(0, archive_entry)
+        # Re-index so the removed target uses the updated list
+        version_index += 1
+
+    # Remove the target from history and promote to current
+    history.pop(version_index)
+
+    chapter["translatedContent"] = target["translatedContent"]
+    chapter["glossaryUpdates"] = target.get("glossaryUpdates")
+    chapter["translationHistory"] = history
+    chapter["status"] = "done"
+    chapter["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
+
+    chapter_path = get_chapter_path(series_id, chapter_id)
+    with open(chapter_path, 'w', encoding='utf-8') as f:
+        json.dump(chapter, f, indent=2, ensure_ascii=False)
+
+    print(f"[Version] Restored v{target['version']} for chapter {chapter_id}")
+    return chapter
 
 
 def update_chapter(series_id: str, chapter_id: str, number: int, title: str, raw_content: str) -> Dict[str, Any]:

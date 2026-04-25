@@ -263,10 +263,21 @@ export async function saveInstructions(
 // ===== Translation =====
 export async function startTranslation(
   seriesId: string,
-  chapterId: string
+  chapterId: string,
+  archivePrevious = false,
 ): Promise<void> {
   const api = getApi()
-  const result = await api.start_translation(seriesId, chapterId)
+  const result = await api.start_translation(seriesId, chapterId, archivePrevious)
+  if (isApiError(result)) throw new Error(result.message)
+}
+
+export async function restoreTranslationVersion(
+  seriesId: string,
+  chapterId: string,
+  versionIndex: number,
+): Promise<void> {
+  const api = getApi()
+  const result = await api.restore_translation_version(seriesId, chapterId, versionIndex)
   if (isApiError(result)) throw new Error(result.message)
 }
 

@@ -138,6 +138,16 @@ const en: TranslationStrings = {
     rawEditedAfterTranslation: 'This chapter already has a translation. Editing raw content may cause it to be out of sync — consider retranslating after saving.',
     copySuccess: 'Translation copied!',
     copyFailed: 'Failed to copy translation.',
+    retranslateConfirm: 'This chapter already has a translation. The current version will be saved to history before being overwritten.',
+    proceedRetranslate: 'RETRANSLATE',
+    translationHistory: 'HISTORY',
+    version: 'v',
+    restoreVersion: 'Restore',
+    restoreSuccess: 'Translation version restored!',
+    restoreFailed: 'Failed to restore version.',
+    viewingVersion: 'Viewing v{n} — ',
+    backToCurrent: 'Back to Current',
+    translationBusy: 'A translation is already running. Please wait or cancel first.',
   },
 
   glossaryUpdates: {
@@ -210,6 +220,7 @@ const en: TranslationStrings = {
     confirmDeleteSelectedMsg: '{count} selected chapters will be permanently deleted along with all their translations.',
     noSelection: 'Select at least 1 chapter first.',
     autoApplied: 'Glossary auto-applied: {count} new term(s) added.',
+    retryFailed: 'RETRY FAILED',
   },
 
   context: {

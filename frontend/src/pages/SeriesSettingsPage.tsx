@@ -16,7 +16,7 @@ import BatchTranslationPanel from '../components/BatchTranslationPanel'
 import MemoryPanel from '../components/MemoryPanel'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw } from 'lucide-react'
 import {
   getAllSeries,
   getChapters,
@@ -340,7 +340,7 @@ export function SeriesSettingsPage() {
         <div className="flex flex-col gap-2" style={{ minWidth: '240px', maxWidth: '280px' }}>
 
           {!selectMode ? (
-            /* Normal mode: Translate All + Select */
+            /* Normal mode: Translate All + Retry Failed (if any) + Select */
             <div className="flex flex-col gap-1.5">
               <button
                 onClick={() => startBatch(chapters)}
@@ -353,6 +353,21 @@ export function SeriesSettingsPage() {
                   ({chapters.filter(c => c.status === 'pending').length} {t.home.chapters})
                 </span>
               </button>
+              {chapters.filter(c => c.status === 'error').length > 0 && (
+                <button
+                  onClick={() => {
+                    const ids = chapters.filter(c => c.status === 'error').sort((a, b) => a.chapterNumber - b.chapterNumber).map(c => c.id)
+                    startSelectedBatch(ids)
+                  }}
+                  disabled={isBatchActive}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FF3C3C] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  style={{ color: '#fff' }}
+                >
+                  <RefreshCw size={13} />
+                  {t.batch.retryFailed}
+                  <span className="font-normal">({chapters.filter(c => c.status === 'error').length})</span>
+                </button>
+              )}
               <button
                 onClick={handleEnterSelectMode}
                 disabled={isBatchActive || chapters.length === 0}
