@@ -36,6 +36,7 @@ export function PromptModelPanel({
   const [customModel, setCustomModel] = useState(config?.customModels?.[config?.provider || 'zhipuai'] || '')
   const [temperature, setTemperature] = useState(config?.temperature ?? 0.3)
   const [maxTokens, setMaxTokens] = useState(config?.maxTokensPerIteration ?? 16000)
+  const [glossaryPreFilter, setGlossaryPreFilter] = useState(config?.glossaryPreFilter ?? true)
   const [dirty, setDirty] = useState(false)
   const [defaultPrompt, setDefaultPrompt] = useState('')
   const [loadingDefault, setLoadingDefault] = useState(false)
@@ -48,6 +49,7 @@ export function PromptModelPanel({
       setCustomModel(config.customModels?.[config.provider] || '')
       setTemperature(config.temperature)
       setMaxTokens(config.maxTokensPerIteration)
+      setGlossaryPreFilter(config.glossaryPreFilter ?? true)
     }
   }, [config])
 
@@ -104,6 +106,7 @@ export function PromptModelPanel({
       customModels: newCustomModels,
       temperature,
       maxTokensPerIteration: maxTokens,
+      glossaryPreFilter,
     }
     onSave(nc, instructions, systemPrompt)
     setDirty(false)
@@ -327,6 +330,36 @@ export function PromptModelPanel({
             <input type="range" min={0} max={1} step={0.1} value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: '#00F7FF' }} />
             <input type="number" value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value) || 0.3); setDirty(true) }} className="neo-input" style={{ width: '70px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} min={0} max={1} step={0.1} />
           </div>
+        </div>
+
+        {/* Glossary Pre-filter Toggle */}
+        <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+          <div>
+            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+              {t.seriesSettings.glossaryPreFilter}
+            </span>
+            <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+              {t.seriesSettings.glossaryPreFilterDesc}
+            </p>
+          </div>
+          <button
+            onClick={() => { setGlossaryPreFilter(v => !v); setDirty(true) }}
+            style={{
+              flexShrink: 0,
+              marginLeft: '12px',
+              padding: '4px 12px',
+              fontSize: '11px',
+              fontWeight: 700,
+              border: '2px solid var(--color-border)',
+              backgroundColor: glossaryPreFilter ? '#28E272' : 'var(--color-surface)',
+              color: glossaryPreFilter ? '#111' : 'var(--color-text-muted)',
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              letterSpacing: '0.4px',
+            }}
+          >
+            {glossaryPreFilter ? 'ON' : 'OFF'}
+          </button>
         </div>
       </div>
 

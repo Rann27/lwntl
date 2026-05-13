@@ -40,7 +40,7 @@ export function useBatchTranslation(seriesId: string) {
   const startBatch = useCallback(async (chapters: Chapter[]) => {
     const pendingChapters = chapters
       .filter((ch) => ch.status === 'pending')
-      .sort((a, b) => a.chapterNumber - b.chapterNumber)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
       .map((ch) => ch.id)
 
     if (pendingChapters.length === 0) {

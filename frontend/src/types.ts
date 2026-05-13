@@ -4,16 +4,19 @@
 
 // Config
 export interface AppConfig {
-  provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'openaicompat'
+  provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'openaicompat'
   model: string
   customModels: Record<string, string> // provider -> custom model name
   zhipuaiApiKey: string
+  zhipuaiThinking: boolean
   qwenApiKey: string
   openaiApiKey: string
   geminiApiKey: string
   anthropicApiKey: string
   xaiApiKey: string
   moonshotApiKey: string
+  deepseekApiKey: string
+  deepseekThinking: boolean
   openaicompatApiKey: string
   openaicompatBaseUrl: string
   openaicompatUserAgent: string
@@ -21,6 +24,7 @@ export interface AppConfig {
   openaicompatExtraHeaders: Record<string, string>
   temperature: number
   maxTokensPerIteration: number
+  glossaryPreFilter: boolean
   theme: string
   uiLanguage: 'id' | 'en'
   sourceLanguages: string[]
@@ -75,7 +79,7 @@ export interface TranslationLog {
 export interface Chapter {
   id: string
   seriesId: string
-  chapterNumber: number
+  chapterNumber: string
   title: string
   rawContent: string
   translatedContent: string
@@ -222,6 +226,17 @@ export const PROVIDERS: Record<string, {
     docsUrl: 'https://platform.moonshot.cn/docs/api/chat',
     apiKeyName: 'moonshotApiKey',
   },
+  deepseek: {
+    models: ['deepseek-v4-flash', 'deepseek-v4-pro'],
+    displayNames: {
+      'deepseek-v4-flash': 'DeepSeek V4 Flash',
+      'deepseek-v4-pro': 'DeepSeek V4 Pro',
+    },
+    baseUrl: 'https://api.deepseek.com',
+    label: 'DeepSeek',
+    docsUrl: 'https://api-docs.deepseek.com/',
+    apiKeyName: 'deepseekApiKey',
+  },
   openaicompat: {
     models: [] as string[],
     displayNames: {} as Record<string, string>,
@@ -262,7 +277,7 @@ export interface BatchStatusEvent {
   total?: number
   completed?: number
   chapterId?: string
-  chapterNumber?: number | string
+  chapterNumber?: string
   chapterTitle?: string
 }
 
@@ -302,3 +317,17 @@ export interface ApiError {
 // Default languages (used when config doesn't have them yet)
 export const DEFAULT_SOURCE_LANGUAGES = ['Japanese', 'Chinese', 'Korean']
 export const DEFAULT_TARGET_LANGUAGES = ['Indonesian', 'English']
+
+// Chapter number sort helpers
+export function chapterNumFloat(num: string | number | undefined): number {
+  const n = parseFloat(String(num ?? ''))
+  if (!isNaN(n)) return n
+  const s = String(num ?? '').toLowerCase().trim()
+  if (s === 'prolog' || s === 'prologue' || s === 'pendahuluan' || s === 'foreword') return -1
+  if (s === 'epilog' || s === 'epilogue' || s === 'penutup' || s === 'afterword') return 9999
+  return 0
+}
+
+export function compareChapterNumbers(a: string | number | undefined, b: string | number | undefined): number {
+  return chapterNumFloat(a) - chapterNumFloat(b)
+}

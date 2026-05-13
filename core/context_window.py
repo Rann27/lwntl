@@ -8,7 +8,7 @@ import json
 from typing import Dict, Any, List, Optional, Callable
 from datetime import datetime
 from .storage.series import get_series, get_series_path
-from .storage.chapters import get_chapters, get_chapter, update_chapter_summary
+from .storage.chapters import get_chapters, get_chapter, update_chapter_summary, chapter_num_float
 from .llm_client import LLMClient
 from .prompt_builder import build_system_prompt
 
@@ -95,7 +95,7 @@ def get_context_info(series_id: str, chapter_id: str) -> Optional[Dict[str, Any]
     system_tokens = estimate_tokens(system_context)
     
     rolling_context, rolling_tokens = _build_rolling_context(
-        chapters, current_chapter.get("chapterNumber", 1)
+        chapters, current_chapter.get("createdAt", "")
     )
     
     memory_context = _build_memory_context(series.get("memory", []))
@@ -119,7 +119,7 @@ def get_context_info(series_id: str, chapter_id: str) -> Optional[Dict[str, Any]
             "current": current_tokens,
             "reserved": RESERVED_RESPONSE_TOKENS,
         },
-        "summariesAvailable": len([c for c in chapters if c.get("chapterNumber", 0) < current_chapter.get("chapterNumber", 1) and c.get("summary", "").strip()]),
+        "summariesAvailable": len([c for c in chapters if c.get("createdAt", "") < current_chapter.get("createdAt", "") and c.get("summary", "").strip()]),
         "memoriesAvailable": len(series.get("memory", [])),
     }
 
@@ -341,31 +341,31 @@ def _build_system_context(series: Dict[str, Any]) -> str:
 
 def _build_rolling_context(
     chapters: List[Dict[str, Any]],
-    current_chapter_number: int,
+    current_chapter_created: str,
     max_summaries: int = 10
 ) -> tuple:
     """
     Build Layer 2: Rolling context from recent chapter summaries.
-    
+
     Returns:
         tuple: (context_text, estimated_tokens)
     """
-    # Get chapters BEFORE current that have summaries
+    # Get chapters created BEFORE current that have summaries
     previous = [
         ch for ch in chapters
-        if ch.get("chapterNumber", 0) < current_chapter_number
+        if ch.get("createdAt", "") < current_chapter_created
         and ch.get("summary", "").strip()
     ]
-    
+
     if not previous:
         return "", 0
-    
-    # Sort by chapter number descending, take most recent
-    previous.sort(key=lambda c: c.get("chapterNumber", 0), reverse=True)
+
+    # Sort by creation date descending, take most recent
+    previous.sort(key=lambda c: c.get("createdAt", ""), reverse=True)
     recent = previous[:max_summaries]
-    
+
     # Sort back ascending for chronological display
-    recent.sort(key=lambda c: c.get("chapterNumber", 0))
+    recent.sort(key=lambda c: c.get("createdAt", ""))
     
     context = "Konteks Bab Sebelumnya:\n\n"
     for ch in recent:
@@ -424,12 +424,13 @@ def _auto_compact(
         return "", 0, True
     
     # Step 1: Reduce rolling summaries to fit
+    current_created = current_chapter.get("createdAt", "")
     previous_with_summary = [
         ch for ch in chapters
-        if ch.get("chapterNumber", 0) < current_chapter.get("chapterNumber", 1)
+        if ch.get("createdAt", "") < current_created
         and ch.get("summary", "").strip()
     ]
-    previous_with_summary.sort(key=lambda c: c.get("chapterNumber", 0), reverse=True)
+    previous_with_summary.sort(key=lambda c: c.get("createdAt", ""), reverse=True)
     
     rolling_context = ""
     rolling_tokens = 0
@@ -474,13 +475,14 @@ def _trigger_memory_compaction(
     and uses LLM to create a condensed story memory.
     """
     # Get all summarized chapters before current
+    current_created = current_chapter.get("createdAt", "")
     previous = [
         ch for ch in chapters
-        if ch.get("chapterNumber", 0) < current_chapter.get("chapterNumber", 1)
+        if ch.get("createdAt", "") < current_created
         and ch.get("summary", "").strip()
     ]
-    previous.sort(key=lambda c: c.get("chapterNumber", 0))
-    
+    previous.sort(key=lambda c: c.get("createdAt", ""))
+
     if len(previous) < 5:
         return  # Not enough to compact
     
@@ -494,8 +496,8 @@ def _trigger_memory_compaction(
         last_range = last_mem.get("range", "")
         # Simple check: if the last memory already covers up to the same point, skip
         try:
-            last_end = int(last_range.split("-")[-1].replace("Bab ", "").strip())
-            if last_end >= to_compact[-1].get("chapterNumber", 0):
+            last_end_str = last_range.split("-")[-1].replace("Bab ", "").strip()
+            if chapter_num_float(last_end_str) >= chapter_num_float(to_compact[-1].get("chapterNumber", 0)):
                 return  # Already compacted up to this point
         except (ValueError, IndexError):
             pass

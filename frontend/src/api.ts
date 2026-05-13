@@ -132,7 +132,7 @@ export async function getChapters(seriesId: string): Promise<Chapter[]> {
 
 export async function createChapter(
   seriesId: string,
-  number: number,
+  number: string,
   title: string,
   rawContent: string
 ): Promise<Chapter> {
@@ -145,7 +145,7 @@ export async function createChapter(
 export async function updateChapter(
   seriesId: string,
   chapterId: string,
-  number: number,
+  number: string,
   title: string,
   rawContent: string
 ): Promise<Chapter> {

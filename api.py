@@ -59,11 +59,11 @@ class API:
         """Get or create translator"""
         if self._translator is None:
             client = self._get_llm_client()
-            # Use window.evaluate_js for streaming
             window_eval = self._window.evaluate_js if self._window else None
             self._translator = Translator(client, window_eval=window_eval)
+            config = self._get_config()
+            self._translator._glossary_pre_filter = config.get("glossaryPreFilter", True)
         else:
-            # Update window reference in case it was set after init
             if self._window:
                 self._translator.window_eval = self._window.evaluate_js
         return self._translator
@@ -157,14 +157,14 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
-    def create_chapter(self, series_id: str, number: int, title: str, raw_content: str):
+    def create_chapter(self, series_id: str, number: str, title: str, raw_content: str):
         """Create a new chapter"""
         try:
-            return create_chapter(series_id, number, title, raw_content)
+            return create_chapter(series_id, str(number), title, raw_content)
         except Exception as e:
             return {"error": True, "message": str(e)}
 
-    def update_chapter(self, series_id: str, chapter_id: str, number: int, title: str, raw_content: str):
+    def update_chapter(self, series_id: str, chapter_id: str, number: str, title: str, raw_content: str):
         """Update a chapter"""
         try:
             return update_chapter_db(series_id, chapter_id, number, title, raw_content)

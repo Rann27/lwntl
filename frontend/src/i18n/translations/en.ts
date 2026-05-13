@@ -72,6 +72,9 @@ const en: TranslationStrings = {
     seeModels: 'See Models',
     appLanguage: 'APP LANGUAGE',
     appLanguageDesc: 'Choose the application display language',
+    deepseekThinking: 'Thinking Mode',
+    deepseekThinkingDesc: 'Extended reasoning for better quality (slower & more expensive)',
+    zhipuaiThinkingDesc: 'GLM thinking is ON by default. Disable to get faster, cheaper output.',
   },
 
   seriesSettings: {
@@ -90,6 +93,8 @@ const en: TranslationStrings = {
     instructionDesc: 'Custom instructions for this series. Will be appended to the system prompt.',
     maxTokens: 'Max Tokens',
     temperature: 'Temperature',
+    glossaryPreFilter: 'Glossary Pre-filter',
+    glossaryPreFilterDesc: 'Only inject glossary terms that appear in the chapter. Disable if important terms are being missed.',
     saveSettings: 'SAVE SETTINGS',
     glossary: 'GLOSSARY',
     addEntry: '+ ENTRY',

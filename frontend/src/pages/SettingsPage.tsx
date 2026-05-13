@@ -18,14 +18,16 @@ const API_KEY_FIELDS: Array<{
   field: keyof AppConfig
   label: string
   hasBaseUrl?: boolean
+  hasThinkingToggle?: boolean
 }> = [
-  { provider: 'zhipuai',      field: 'zhipuaiApiKey',      label: 'ZhipuAI (Z.AI)' },
+  { provider: 'zhipuai',      field: 'zhipuaiApiKey',      label: 'ZhipuAI (Z.AI)', hasThinkingToggle: true },
   { provider: 'qwen',         field: 'qwenApiKey',         label: 'Alibaba Cloud (Qwen/DS)' },
   { provider: 'openai',       field: 'openaiApiKey',       label: 'OpenAI' },
   { provider: 'gemini',       field: 'geminiApiKey',       label: 'Google Gemini' },
   { provider: 'anthropic',    field: 'anthropicApiKey',    label: 'Anthropic (Claude)' },
   { provider: 'xai',          field: 'xaiApiKey',          label: 'xAI (Grok)' },
   { provider: 'moonshot',     field: 'moonshotApiKey',     label: 'Moonshot AI (Kimi)' },
+  { provider: 'deepseek',     field: 'deepseekApiKey',     label: 'DeepSeek', hasThinkingToggle: true },
   { provider: 'openaicompat', field: 'openaicompatApiKey', label: 'OpenAI Compatible', hasBaseUrl: true },
 ]
 
@@ -228,6 +230,8 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     return init
   })
   const [baseUrl, setBaseUrl] = useState(config.openaicompatBaseUrl || '')
+  const [deepseekThinking, setDeepseekThinking] = useState(config.deepseekThinking ?? false)
+  const [zhipuaiThinking, setZhipuaiThinking] = useState(config.zhipuaiThinking ?? true)
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
@@ -239,6 +243,8 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     const updated = { ...config }
     API_KEY_FIELDS.forEach(({ field }) => { ;(updated as any)[field] = keys[field] || '' })
     updated.openaicompatBaseUrl = baseUrl.trim()
+    updated.deepseekThinking = deepseekThinking
+    updated.zhipuaiThinking = zhipuaiThinking
     return updated
   }
 
@@ -265,7 +271,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
 
   return (
     <div>
-      {API_KEY_FIELDS.map(({ provider, field, label, hasBaseUrl }) => {
+      {API_KEY_FIELDS.map(({ provider, field, label, hasBaseUrl, hasThinkingToggle }) => {
         const isActive = provider === config.provider
         const docsUrl = PROVIDERS[provider]?.docsUrl
         const hasKey = !!(keys[field] || '').trim()
@@ -326,6 +332,44 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 </p>
               </div>
             )}
+            {hasThinkingToggle && (() => {
+              const isZhipuai = provider === 'zhipuai'
+              const thinkingOn = isZhipuai ? zhipuaiThinking : deepseekThinking
+              const toggle = () => {
+                if (isZhipuai) setZhipuaiThinking(v => !v)
+                else setDeepseekThinking(v => !v)
+                setTestResult(null)
+              }
+              return (
+                <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+                  <div>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                      {t.settings.deepseekThinking}
+                    </span>
+                    <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                      {isZhipuai ? t.settings.zhipuaiThinkingDesc : t.settings.deepseekThinkingDesc}
+                    </p>
+                  </div>
+                  <button
+                    onClick={toggle}
+                    style={{
+                      flexShrink: 0,
+                      padding: '4px 12px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      border: '2px solid var(--color-border)',
+                      backgroundColor: thinkingOn ? '#00F7FF' : 'var(--color-surface)',
+                      color: thinkingOn ? '#111' : 'var(--color-text-muted)',
+                      cursor: 'pointer',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.4px',
+                    }}
+                  >
+                    {thinkingOn ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+              )
+            })()}
           </div>
         )
       })}

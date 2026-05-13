@@ -37,7 +37,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
 
   // Sort chapters by number
   const sorted = useMemo(
-    () => [...chapters].sort((a, b) => a.chapterNumber - b.chapterNumber),
+    () => [...chapters].sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     [chapters]
   )
 
@@ -79,7 +79,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
 
   return (
     <div
-      className="flex flex-col h-full"
+      className="flex flex-col flex-1 min-h-0"
       style={{
         backgroundColor: 'var(--color-surface)',
         border: '2.5px solid var(--color-border)',

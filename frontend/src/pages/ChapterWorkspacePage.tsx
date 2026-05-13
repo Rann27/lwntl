@@ -120,6 +120,18 @@ export function ChapterWorkspacePage() {
     }
   }, [seriesId, chapterId])
 
+  // Reset local chapter state when navigating to a different chapter.
+  // Prevents stale chapter data (from the previous chapter) from showing
+  // during the brief window while loadChapter fetches new data.
+  useEffect(() => {
+    setChapter(null)
+    setLoading(true)
+    setIsRawDirty(false)
+    setViewingVersion(null)
+    setShowHistory(false)
+    setConfirmRetranslate(false)
+  }, [chapterId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (apiReady) loadChapter()
   }, [apiReady, loadChapter])
@@ -265,14 +277,16 @@ export function ChapterWorkspacePage() {
     }
   }, [])
 
-  // Determine display text
-  // During translation: show live streamingText
-  // After done: chapter state is reloaded, fall back streamingText while reload happens
+  // Determine display text.
+  // streamingText is only used while actively translating (live stream).
+  // After done, rely on chapter.translatedContent (refreshed by loadChapter).
+  // Never fall back to streamingText for a completed chapter — it's global state
+  // and would leak the previous chapter's translation into pending chapters.
   const translatedText = isTranslating
     ? streamingText
     : viewingVersion
       ? viewingVersion.translatedContent
-      : chapter?.translatedContent || streamingText || ''
+      : chapter?.translatedContent ?? ''
 
   if (loading) {
     return (

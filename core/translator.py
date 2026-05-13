@@ -41,6 +41,7 @@ class Translator:
         self._batch_active = False
         self._batch_total = 0
         self._batch_completed = 0
+        self._glossary_pre_filter = True
     
     def is_running(self) -> bool:
         """Return True if a translation or batch is currently active."""
@@ -262,7 +263,9 @@ class Translator:
                 system_prompt = build_system_prompt(
                     series,
                     rolling_context=context.get("rolling_context", ""),
-                    memory_context=context.get("memory_context", "")
+                    memory_context=context.get("memory_context", ""),
+                    raw_content=raw_content,
+                    pre_filter=self._glossary_pre_filter,
                 )
                 # Use the raw content from context (in case of future pre-processing)
                 user_prompt = build_user_prompt(
@@ -278,7 +281,7 @@ class Translator:
                       f"{' [COMPACTED]' if context.get('compacted') else ''}")
             else:
                 # Fallback: build prompts without context window
-                system_prompt = build_system_prompt(series)
+                system_prompt = build_system_prompt(series, raw_content=raw_content, pre_filter=self._glossary_pre_filter)
                 user_prompt = build_user_prompt(raw_content, chapter, series.get("targetLanguage", "Indonesian"))
             
             # Smart iteration - translate in chunks if needed

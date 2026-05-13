@@ -10,7 +10,7 @@ import { useI18n } from '../i18n'
 interface BulkEntry {
   id: string
   filename: string
-  number: number
+  number: string
   title: string
   content: string
 }
@@ -18,9 +18,9 @@ interface BulkEntry {
 interface CreateChapterModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (number: number, title: string, rawContent: string) => void
-  onBulkSubmit: (chapters: { number: number; title: string; rawContent: string }[]) => Promise<void>
-  nextChapterNumber: number
+  onSubmit: (number: string, title: string, rawContent: string) => void
+  onBulkSubmit: (chapters: { number: string; title: string; rawContent: string }[]) => Promise<void>
+  nextChapterNumber: string
   loading?: boolean
 }
 
@@ -31,7 +31,7 @@ export function CreateChapterModal({
   const [tab, setTab] = useState<'single' | 'bulk'>('single')
 
   // Single tab state
-  const [number, setNumber] = useState(nextChapterNumber)
+  const [number, setNumber] = useState<string>(nextChapterNumber)
   const [title, setTitle] = useState('')
   const [rawContent, setRawContent] = useState('')
 
@@ -95,7 +95,7 @@ export function CreateChapterModal({
           ...prev,
           ...newEntries.map((e, i) => ({
             ...e,
-            number: nextChapterNumber + prev.length + i,
+            number: String(parseFloat(nextChapterNumber || '1') + prev.length + i),
           })),
         ]
         return combined
@@ -234,11 +234,11 @@ export function CreateChapterModal({
                       {tx.modal.chapterNumber}
                     </label>
                     <input
-                      type="number"
+                      type="text"
                       value={number}
-                      onChange={(e) => setNumber(parseInt(e.target.value) || 0)}
+                      onChange={(e) => setNumber(e.target.value)}
                       className="neo-input"
-                      min={1}
+                      placeholder="1"
                     />
                   </div>
                   <div className="flex-1">
@@ -370,10 +370,9 @@ export function CreateChapterModal({
                           {/* Chapter number */}
                           <td style={{ padding: '5px 8px' }}>
                             <input
-                              type="number"
+                              type="text"
                               value={entry.number}
-                              onChange={(e) => updateEntry(entry.id, 'number', parseInt(e.target.value) || 0)}
-                              min={1}
+                              onChange={(e) => updateEntry(entry.id, 'number', e.target.value)}
                               style={{
                                 width: '64px',
                                 border: '2px solid #111',

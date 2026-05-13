@@ -74,6 +74,9 @@ const id = {
     seeModels: 'Lihat Model',
     appLanguage: 'APP LANGUAGE',
     appLanguageDesc: 'Pilih bahasa tampilan aplikasi',
+    deepseekThinking: 'Thinking Mode',
+    deepseekThinkingDesc: 'Penalaran diperluas untuk kualitas lebih baik (lebih lambat & lebih mahal)',
+    zhipuaiThinkingDesc: 'GLM thinking aktif secara default. Matikan untuk output lebih cepat dan hemat.',
   },
 
   // Series Settings page
@@ -93,6 +96,8 @@ const id = {
     instructionDesc: 'Instruksi khusus untuk series ini. Akan ditambahkan ke system prompt.',
     maxTokens: 'Max Tokens',
     temperature: 'Temperature',
+    glossaryPreFilter: 'Glossary Pre-filter',
+    glossaryPreFilterDesc: 'Hanya injeksi term glossary yang muncul di chapter. Nonaktifkan jika term penting sering terlewat.',
     saveSettings: 'SIMPAN PENGATURAN',
     glossary: 'GLOSSARY',
     addEntry: '+ ENTRI',

@@ -1,6 +1,6 @@
 """
 LLM Client - Unified Multi-Provider Support
-Supports: ZhipuAI, Qwen, OpenAI, Google Gemini, Anthropic, xAI (Grok), Moonshot (Kimi)
+Supports: ZhipuAI, Qwen, OpenAI, Google Gemini, Anthropic, xAI (Grok), Moonshot (Kimi), DeepSeek
 """
 
 import time
@@ -117,6 +117,17 @@ PROVIDERS = {
         "docsUrl": "https://platform.moonshot.cn/docs/api/chat",
         "apiKeyName": "moonshotApiKey",
     },
+    "deepseek": {
+        "models": ["deepseek-v4-flash", "deepseek-v4-pro"],
+        "displayNames": {
+            "deepseek-v4-flash": "DeepSeek V4 Flash",
+            "deepseek-v4-pro": "DeepSeek V4 Pro",
+        },
+        "baseUrl": "https://api.deepseek.com",
+        "label": "DeepSeek",
+        "docsUrl": "https://api-docs.deepseek.com/",
+        "apiKeyName": "deepseekApiKey",
+    },
     "openaicompat": {
         "models": [],
         "displayNames": {},
@@ -205,6 +216,7 @@ class LLMClient:
         self.temperature = config.get("temperature", 0.3)
         self.max_tokens = config.get("maxTokensPerIteration", 16000)
         self._client = None
+        self._extra_body: Optional[Dict[str, Any]] = None  # provider-specific extra params (e.g. DeepSeek thinking)
         self._init_provider(config)
 
     def _close_current_client(self):
@@ -249,6 +261,10 @@ class LLMClient:
         self._close_current_client()
         p = self.provider
         if p == "zhipuai":
+            # ZhipuAI GLM models have thinking ON by default.
+            # Only inject a param when the user explicitly turns it OFF.
+            thinking = config.get("zhipuaiThinking", True)
+            self._extra_body = None if thinking else {"thinking": {"type": "disabled"}}
             self._init_zhipuai(config.get("zhipuaiApiKey", ""))
         elif p == "qwen":
             self._init_openai_compat(config.get("qwenApiKey", ""), PROVIDERS["qwen"]["baseUrl"])
@@ -262,7 +278,15 @@ class LLMClient:
             self._init_openai_compat(config.get("xaiApiKey", ""), PROVIDERS["xai"]["baseUrl"])
         elif p == "moonshot":
             self._init_openai_compat(config.get("moonshotApiKey", ""), PROVIDERS["moonshot"]["baseUrl"])
+        elif p == "deepseek":
+            thinking = config.get("deepseekThinking", False)
+            self._extra_body = (
+                {"thinking": {"type": "enabled", "reasoning_effort": "high"}}
+                if thinking else None
+            )
+            self._init_openai_compat(config.get("deepseekApiKey", ""), PROVIDERS["deepseek"]["baseUrl"])
         elif p == "openaicompat":
+            self._extra_body = None
             self._init_openai_compat(
                 config.get("openaicompatApiKey", ""),
                 config.get("openaicompatBaseUrl", "") or None,
@@ -383,22 +407,28 @@ class LLMClient:
         return result
 
     def _complete_zhipuai(self, messages, stream, max_tokens, temperature):
-        return self._client.chat.completions.create(
+        kwargs: Dict[str, Any] = dict(
             model=self.model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
             stream=stream,
         )
+        if self._extra_body:
+            kwargs["extra_body"] = self._extra_body
+        return self._client.chat.completions.create(**kwargs)
 
     def _complete_openai(self, messages, stream, max_tokens, temperature):
-        return self._client.chat.completions.create(
+        kwargs: Dict[str, Any] = dict(
             model=self.model,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
             stream=stream,
         )
+        if self._extra_body:
+            kwargs["extra_body"] = self._extra_body
+        return self._client.chat.completions.create(**kwargs)
 
     def _complete_anthropic(self, messages, stream, max_tokens, temperature):
         # Separate system message (Anthropic API uses a dedicated param)
@@ -437,7 +467,7 @@ class LLMClient:
             self.model = raw_model
         self.temperature = config.get("temperature", self.temperature)
         self.max_tokens = config.get("maxTokensPerIteration", self.max_tokens)
-        if self.provider != old_provider or self.provider == "openaicompat":
+        if self.provider != old_provider or self.provider in ("openaicompat", "deepseek", "zhipuai"):
             self._init_provider(config)
 
 

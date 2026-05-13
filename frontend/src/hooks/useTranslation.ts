@@ -25,6 +25,12 @@ export function useTranslation(seriesId: string, chapterId: string) {
   const chapterIdRef = useRef(chapterId)
   chapterIdRef.current = chapterId
 
+  // Always reset streaming state when navigating to a different chapter.
+  // No isTranslating guard — we must clear stale content unconditionally.
+  useEffect(() => {
+    resetTranslation()
+  }, [chapterId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Register window event callbacks
   useEffect(() => {
     const handleChunk = (data: TranslationChunkEvent) => {
@@ -44,9 +50,18 @@ export function useTranslation(seriesId: string, chapterId: string) {
     }
 
     const handleDone = async (data: TranslationDoneEvent) => {
-      // Reload chapter to get fresh data
+      // Capture which chapter triggered this done event BEFORE the async call.
+      // If the user navigates away mid-await, chapterIdRef will point to the new chapter
+      // and we must not pollute state with a different chapter's translation.
+      const triggeredForChapterId = chapterIdRef.current
+      const triggeredForSeriesId = seriesIdRef.current
+
       try {
-        const chapter = await getChapter(seriesIdRef.current, chapterIdRef.current)
+        const chapter = await getChapter(triggeredForSeriesId, triggeredForChapterId)
+
+        // Guard: user navigated to a different chapter while we were awaiting
+        if (chapterIdRef.current !== triggeredForChapterId) return
+
         setTranslationState({
           isTranslating: false,
           status: 'done',
@@ -56,6 +71,8 @@ export function useTranslation(seriesId: string, chapterId: string) {
         })
         addToastRef.current({ type: 'success', message: 'Bab selesai diterjemahkan!' })
       } catch {
+        if (chapterIdRef.current !== triggeredForChapterId) return
+
         setTranslationState({
           isTranslating: false,
           status: 'done',

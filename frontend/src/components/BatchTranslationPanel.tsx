@@ -67,7 +67,7 @@ export default function BatchTranslationPanel({ chapters, onCancel }: Props) {
         <div className="max-h-48 overflow-y-auto px-4 py-2">
           {chapters
             .filter((ch) => ch.status === 'pending' || ch.status === 'processing' || ch.status === 'done')
-            .sort((a, b) => a.chapterNumber - b.chapterNumber)
+            .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
             .map((ch) => {
               const isCurrent = batch.chapterId === ch.id
               return (

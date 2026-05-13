@@ -10,14 +10,14 @@ import type { Chapter } from '../types'
 interface EditChapterModalProps {
   open: boolean
   onClose: () => void
-  onSubmit: (chapterId: string, number: number, title: string, rawContent: string) => void
+  onSubmit: (chapterId: string, number: string, title: string, rawContent: string) => void
   chapter: Chapter | null
   loading?: boolean
 }
 
 export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: EditChapterModalProps) {
   const { t } = useI18n()
-  const [number, setNumber] = useState(0)
+  const [number, setNumber] = useState('')
   const [title, setTitle] = useState('')
   const [rawContent, setRawContent] = useState('')
 
@@ -66,7 +66,7 @@ export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: 
                 <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {t.modal.chapterNumber}
                 </label>
-                <input type="number" value={number} onChange={(e) => setNumber(parseInt(e.target.value) || 0)} className="neo-input" min={1} />
+                <input type="text" value={number} onChange={(e) => setNumber(e.target.value)} className="neo-input" placeholder="1" />
               </div>
               <div className="flex-1">
                 <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>

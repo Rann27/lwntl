@@ -27,33 +27,61 @@ def get_chapter_path(series_id: str, chapter_id: str) -> Path:
     return get_chapters_dir(series_id) / chapter_id / 'chapter.json'
 
 
+def _chapter_sort_key(num) -> tuple:
+    """Sort key for chapter numbers that handles int, float strings, and named chapters."""
+    try:
+        return (0, float(str(num)), '')
+    except (ValueError, TypeError):
+        s = str(num).lower().strip()
+        if s in ('prolog', 'prologue', 'pendahuluan', 'foreword'):
+            return (-1, 0.0, s)
+        if s in ('epilog', 'epilogue', 'penutup', 'afterword'):
+            return (2, 0.0, s)
+        if s in ('interlude', 'intermission', 'interlud', 'intemezzo'):
+            return (1, 0.0, s)
+        return (1, 0.0, s)  # other non-numeric: after numeric, alphabetical
+
+
+def chapter_num_float(num, default: float = 0.0) -> float:
+    """Convert a chapter number (int/str) to float for numeric comparisons."""
+    try:
+        return float(str(num))
+    except (ValueError, TypeError):
+        s = str(num).lower().strip()
+        if s in ('prolog', 'prologue', 'pendahuluan', 'foreword'):
+            return -1.0
+        if s in ('epilog', 'epilogue', 'penutup', 'afterword'):
+            return 9999.0
+        return default
+
+
 def get_chapters(series_id: str) -> List[Dict[str, Any]]:
     """
     Get all chapters for a series
-    
+
     Args:
         series_id: Series UUID
-        
+
     Returns:
         list: List of all chapter dictionaries sorted by chapter number
-        
+
     Raises:
         json.JSONDecodeError: If any chapter.json is invalid
         OSError: If unable to read files
     """
     chapters_dir = get_chapters_dir(series_id)
-    
+
     if not chapters_dir.exists():
         return []
-    
+
     chapter_list = []
-    
+
     for chapter_path in chapters_dir.iterdir():
         if not chapter_path.is_dir():
             continue
-        
+
         chapter_json = chapter_path / 'chapter.json'
-        
+
         if chapter_json.exists():
             try:
                 with open(chapter_json, 'r', encoding='utf-8') as f:
@@ -62,20 +90,22 @@ def get_chapters(series_id: str) -> List[Dict[str, Any]]:
             except (json.JSONDecodeError, OSError) as e:
                 print(f"Error reading chapter {chapter_path.name}: {e}")
                 continue
-    
-    # Sort by chapter number
-    chapter_list.sort(key=lambda c: c.get('chapterNumber', 0))
-    
+
+    chapter_list.sort(key=lambda c: c.get('createdAt', ''))
+
     return chapter_list
 
 
 def _normalize_chapter(chapter: Dict[str, Any]) -> Dict[str, Any]:
     """Backfill fields introduced in later versions so old chapter.json files keep working."""
     chapter.setdefault("translationHistory", [])
+    # Migrate chapterNumber from int → str (backward compat for old chapter.json files)
+    if isinstance(chapter.get("chapterNumber"), int):
+        chapter["chapterNumber"] = str(chapter["chapterNumber"])
     return chapter
 
 
-def create_chapter(series_id: str, number: int, title: str, raw_content: str) -> Dict[str, Any]:
+def create_chapter(series_id: str, number: str, title: str, raw_content: str) -> Dict[str, Any]:
     """
     Create a new chapter
     
@@ -236,7 +266,7 @@ def restore_translation_version(series_id: str, chapter_id: str, version_index: 
     return chapter
 
 
-def update_chapter(series_id: str, chapter_id: str, number: int, title: str, raw_content: str) -> Dict[str, Any]:
+def update_chapter(series_id: str, chapter_id: str, number: str, title: str, raw_content: str) -> Dict[str, Any]:
     """
     Update a chapter
     

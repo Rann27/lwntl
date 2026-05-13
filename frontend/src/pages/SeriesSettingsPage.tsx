@@ -35,6 +35,7 @@ import {
 import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
 import type { Series, Chapter, GlossaryEntry, AppConfig } from '../types'
+import { chapterNumFloat } from '../types'
 
 export function SeriesSettingsPage() {
   const { id: seriesId } = useParams<{ id: string }>()
@@ -118,10 +119,12 @@ export function SeriesSettingsPage() {
   }
 
   // Chapter CRUD
-  const nextChapterNumber =
-    chapters.length > 0 ? Math.max(...chapters.map((c) => c.chapterNumber)) + 1 : 1
+  const nextChapterNumber: string = (() => {
+    const nums = chapters.map(c => chapterNumFloat(c.chapterNumber)).filter(n => !isNaN(n) && n < 9000)
+    return nums.length > 0 ? String(Math.max(...nums) + 1) : '1'
+  })()
 
-  const handleCreateChapter = async (number: number, title: string, rawContent: string) => {
+  const handleCreateChapter = async (number: string, title: string, rawContent: string) => {
     if (!seriesId) return
     setCreateChapterLoading(true)
     try {
@@ -136,7 +139,7 @@ export function SeriesSettingsPage() {
     }
   }
 
-  const handleBulkCreateChapter = async (bulk: { number: number; title: string; rawContent: string }[]) => {
+  const handleBulkCreateChapter = async (bulk: { number: string; title: string; rawContent: string }[]) => {
     if (!seriesId) return
     try {
       for (const ch of bulk) {
@@ -152,7 +155,7 @@ export function SeriesSettingsPage() {
     }
   }
 
-  const handleEditChapter = async (chapterId: string, number: number, title: string, rawContent: string) => {
+  const handleEditChapter = async (chapterId: string, number: string, title: string, rawContent: string) => {
     if (!seriesId) return
     setEditChapterLoading(true)
     try {
@@ -282,7 +285,7 @@ export function SeriesSettingsPage() {
     }
     const sorted = chapters
       .filter(c => selectedIds.has(c.id))
-      .sort((a, b) => a.chapterNumber - b.chapterNumber)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
       .map(c => c.id)
     startSelectedBatch(sorted)
     handleExitSelectMode()
@@ -337,7 +340,7 @@ export function SeriesSettingsPage() {
         style={{ backgroundColor: 'var(--color-bg)', display: 'flex' }}
       >
         {/* Left: Chapter List */}
-        <div className="flex flex-col gap-2" style={{ minWidth: '240px', maxWidth: '280px' }}>
+        <div className="flex flex-col gap-2 overflow-hidden" style={{ minWidth: '240px', maxWidth: '280px', minHeight: 0 }}>
 
           {!selectMode ? (
             /* Normal mode: Translate All + Retry Failed (if any) + Select */
@@ -356,7 +359,7 @@ export function SeriesSettingsPage() {
               {chapters.filter(c => c.status === 'error').length > 0 && (
                 <button
                   onClick={() => {
-                    const ids = chapters.filter(c => c.status === 'error').sort((a, b) => a.chapterNumber - b.chapterNumber).map(c => c.id)
+                    const ids = chapters.filter(c => c.status === 'error').sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(c => c.id)
                     startSelectedBatch(ids)
                   }}
                   disabled={isBatchActive}
