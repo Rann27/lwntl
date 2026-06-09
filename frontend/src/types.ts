@@ -6,6 +6,7 @@
 export interface AppConfig {
   provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'openaicompat'
   model: string
+  workers: WorkerProfile[]
   customModels: Record<string, string> // provider -> custom model name
   zhipuaiApiKey: string
   zhipuaiThinking: boolean
@@ -17,6 +18,7 @@ export interface AppConfig {
   moonshotApiKey: string
   deepseekApiKey: string
   deepseekThinking: boolean
+  deepseekReasoningEffort: 'low' | 'medium' | 'high'
   openaicompatApiKey: string
   openaicompatBaseUrl: string
   openaicompatUserAgent: string
@@ -31,12 +33,29 @@ export interface AppConfig {
   targetLanguages: string[]
 }
 
+export interface WorkerProfile {
+  id: string
+  label: string
+  provider: AppConfig['provider']
+  model: string
+}
+
+export interface WorkerStatus extends WorkerProfile {
+  modelDisplay: string
+  active: boolean
+  jobId?: string | null
+  seriesId?: string | null
+  chapterId?: string | null
+  assignedSeriesIds: string[]
+}
+
 // Series
 export interface Series {
   id: string
   title: string
   sourceLanguage: string
   targetLanguage: string
+  workerId: string
   systemPrompt: string
   instructions: string
   glossary: GlossaryEntry[]
@@ -251,10 +270,19 @@ export interface TranslationChunkEvent {
   chunk: string
   iteration: number
   fullText?: string
+  jobId?: string
+  workerId?: string
+  workerLabel?: string
+  seriesId?: string
+  chapterId?: string
 }
 
 export interface TranslationStatusEvent {
   status: string
+  jobId?: string
+  workerId?: string
+  seriesId?: string
+  chapterId?: string
 }
 
 export interface TranslationDoneEvent {
@@ -263,16 +291,28 @@ export interface TranslationDoneEvent {
   iterations: number
   tokens: number
   glossaryUpdates?: GlossaryUpdates
+  jobId?: string
+  workerId?: string
+  seriesId?: string
+  chapterId?: string
 }
 
 export interface TranslationErrorEvent {
   error: string
   message: string
+  jobId?: string
+  workerId?: string
+  seriesId?: string
+  chapterId?: string
 }
 
 // Batch Translation Events
 export interface BatchStatusEvent {
   status: 'translating' | 'done' | 'cancelled'
+  jobId?: string
+  workerId?: string
+  workerLabel?: string
+  seriesId?: string
   current?: number
   total?: number
   completed?: number

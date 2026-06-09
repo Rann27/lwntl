@@ -77,6 +77,8 @@ const id = {
     deepseekThinking: 'Thinking Mode',
     deepseekThinkingDesc: 'Penalaran diperluas untuk kualitas lebih baik (lebih lambat & lebih mahal)',
     zhipuaiThinkingDesc: 'GLM thinking aktif secara default. Matikan untuk output lebih cepat dan hemat.',
+    deepseekReasoningEffort: 'Reasoning Effort',
+    deepseekReasoningEffortDesc: 'Seberapa dalam model berpikir. High = terbaik tapi paling lambat.',
   },
 
   // Series Settings page
@@ -88,6 +90,7 @@ const id = {
     notSaved: 'Belum Disimpan',
     provider: 'Provider',
     model: 'Model',
+    worker: 'Worker',
     systemPrompt: 'System Prompt',
     custom: 'CUSTOM',
     default: 'DEFAULT',

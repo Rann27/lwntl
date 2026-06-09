@@ -35,9 +35,14 @@ interface AppState {
 
   // Translation
   translation: TranslationState
+  translationsByChapter: Record<string, TranslationState>
   setTranslationState: (partial: Partial<TranslationState>) => void
   resetTranslation: () => void
   appendStreamingText: (chunk: string) => void
+  setChapterTranslationState: (key: string, partial: Partial<TranslationState>) => void
+  resetChapterTranslation: (key: string) => void
+  appendChapterStreamingText: (key: string, chunk: string) => void
+  clearChapterStreamingText: (key: string) => void
 
   // Batch translation
   batch: BatchStatusEvent | null
@@ -100,6 +105,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   // Translation
   translation: { ...initialTranslationState },
+  translationsByChapter: {},
 
   setTranslationState: (partial) =>
     set((state) => ({
@@ -118,6 +124,51 @@ export const useAppStore = create<AppState>((set) => ({
         streamingText: state.translation.streamingText + chunk,
       },
     })),
+
+  setChapterTranslationState: (key, partial) =>
+    set((state) => {
+      const current = state.translationsByChapter[key] || initialTranslationState
+      return {
+        translationsByChapter: {
+          ...state.translationsByChapter,
+          [key]: { ...current, ...partial },
+        },
+      }
+    }),
+
+  resetChapterTranslation: (key) =>
+    set((state) => ({
+      translationsByChapter: {
+        ...state.translationsByChapter,
+        [key]: { ...initialTranslationState },
+      },
+    })),
+
+  appendChapterStreamingText: (key, chunk) =>
+    set((state) => {
+      const current = state.translationsByChapter[key] || initialTranslationState
+      return {
+        translationsByChapter: {
+          ...state.translationsByChapter,
+          [key]: {
+            ...current,
+            streamingText: current.streamingText + chunk,
+          },
+        },
+      }
+    }),
+
+  clearChapterStreamingText: (key) =>
+    set((state) => {
+      const current = state.translationsByChapter[key]
+      if (!current) return state
+      return {
+        translationsByChapter: {
+          ...state.translationsByChapter,
+          [key]: { ...current, streamingText: '' },
+        },
+      }
+    }),
 
   // Batch translation
   batch: null,

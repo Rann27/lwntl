@@ -81,6 +81,7 @@ def create_series(title: str, language: str, target_language: str = "Indonesian"
         "title": title,
         "sourceLanguage": language,
         "targetLanguage": target_language,
+        "workerId": "",
         "systemPrompt": "",
         "instructions": "",
         "glossary": [],
@@ -124,11 +125,14 @@ def get_series(series_id: str) -> Optional[Dict[str, Any]]:
         return None
     
     with open(series_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+        series = json.load(f)
+    series.setdefault("workerId", "")
+    return series
 
 
 def update_series(series_id: str, title: str, language: str, 
-                  target_language: str = None, system_prompt: str = None) -> Dict[str, Any]:
+                  target_language: str = None, system_prompt: str = None,
+                  worker_id: str = None) -> Dict[str, Any]:
     """
     Update a series
     
@@ -153,6 +157,8 @@ def update_series(series_id: str, title: str, language: str,
         series["targetLanguage"] = target_language
     if system_prompt is not None:
         series["systemPrompt"] = system_prompt
+    if worker_id is not None:
+        series["workerId"] = worker_id
     series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
     
     # Write updated series.json

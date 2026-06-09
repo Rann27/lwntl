@@ -10,7 +10,7 @@ import { useAppStore } from '../store/appStore'
 import { saveConfig, testConfig as testConfigApi } from '../api'
 import { useToast } from '../hooks/useToast'
 import { PROVIDERS } from '../types'
-import type { AppConfig } from '../types'
+import type { AppConfig, WorkerProfile } from '../types'
 import { useI18n, LANGUAGE_OPTIONS, type Language } from '../i18n'
 
 const API_KEY_FIELDS: Array<{
@@ -75,6 +75,9 @@ export function SettingsPage() {
             )}
           </div>
 
+          {/* Workers */}
+          {config && <WorkerSection config={config} onSave={handleSave} />}
+
           {/* Language Management */}
           <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
             <h2 className="flex items-center gap-2 mb-5" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
@@ -89,6 +92,150 @@ export function SettingsPage() {
           </div>
         </div>
       </main>
+    </div>
+  )
+}
+
+// Worker Section
+
+function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppConfig) => void }) {
+  const [workers, setWorkers] = useState<WorkerProfile[]>(config.workers || [])
+  const [saving, setSaving] = useState(false)
+  const { t } = useI18n()
+
+  useEffect(() => {
+    setWorkers(config.workers || [])
+  }, [config.workers])
+
+  const updateWorker = (id: string, patch: Partial<WorkerProfile>) => {
+    setWorkers(prev => prev.map(w => {
+      if (w.id !== id) return w
+      const next = { ...w, ...patch }
+      if (patch.provider) {
+        const models = PROVIDERS[patch.provider]?.models || []
+        next.model = patch.provider === 'openaicompat' ? '' : (models[0] || '')
+      }
+      return next
+    }))
+  }
+
+  const addWorker = () => {
+    const provider = config.provider || 'zhipuai'
+    const models = PROVIDERS[provider]?.models || []
+    setWorkers(prev => [
+      ...prev,
+      {
+        id: crypto.randomUUID?.() || `${Date.now()}`,
+        label: `worker ${prev.length + 1}`,
+        provider,
+        model: provider === 'openaicompat' ? (config.model || '') : (models[0] || config.model || ''),
+      },
+    ])
+  }
+
+  const removeWorker = (id: string) => {
+    if (workers.length <= 1) return
+    setWorkers(prev => prev.filter(w => w.id !== id))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    const normalized = workers.map((w, i) => ({
+      ...w,
+      label: w.label.trim() || `worker ${i + 1}`,
+      model: w.model.trim(),
+    }))
+    await onSave({ ...config, workers: normalized })
+    setSaving(false)
+  }
+
+  return (
+    <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
+      <div className="flex items-center justify-between mb-2">
+        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+          WORKERS
+        </h2>
+        <button onClick={addWorker} className="neo-button flex items-center gap-1" style={{ padding: '6px 12px', fontSize: '12px' }}>
+          <Plus size={14} /> {t.common.add}
+        </button>
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+        Setiap worker adalah slot AI terpisah untuk menjalankan translasi. Satu series memakai satu worker.
+      </p>
+
+      <div className="space-y-3">
+        {workers.map((worker, index) => {
+          const providerModels = PROVIDERS[worker.provider]?.models || []
+          const modelIsPreset = providerModels.includes(worker.model)
+          const useCustomInput = worker.provider === 'openaicompat' || !modelIsPreset
+          return (
+            <div key={worker.id} className="p-3" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  value={worker.label}
+                  onChange={(e) => updateWorker(worker.id, { label: e.target.value })}
+                  placeholder={`worker ${index + 1}`}
+                  className="neo-input flex-1"
+                  style={{ padding: '6px 10px', fontSize: '13px' }}
+                />
+                <button
+                  onClick={() => removeWorker(worker.id)}
+                  disabled={workers.length <= 1}
+                  style={{ border: '2px solid var(--color-border)', background: '#FF3C3C', color: '#fff', padding: '7px', opacity: workers.length <= 1 ? 0.4 : 1, cursor: workers.length <= 1 ? 'not-allowed' : 'pointer' }}
+                  title="Remove worker"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={worker.provider}
+                  onChange={(e) => updateWorker(worker.id, { provider: e.target.value as WorkerProfile['provider'] })}
+                  className="neo-input"
+                  style={{ padding: '6px 10px', fontSize: '13px', backgroundColor: 'var(--color-surface)' }}
+                >
+                  {Object.entries(PROVIDERS).map(([key, provider]) => {
+                    const apiKeyField = provider.apiKeyName as keyof AppConfig
+                    const hasKey = !!(config[apiKeyField] as string)
+                    return (
+                      <option key={key} value={key} disabled={!hasKey && key !== 'openaicompat'}>
+                        {provider.label}{!hasKey && key !== 'openaicompat' ? ' (no key)' : ''}
+                      </option>
+                    )
+                  })}
+                </select>
+
+                {useCustomInput ? (
+                  <input
+                    value={worker.model}
+                    onChange={(e) => updateWorker(worker.id, { model: e.target.value })}
+                    placeholder="model id..."
+                    className="neo-input"
+                    style={{ padding: '6px 10px', fontSize: '13px', backgroundColor: 'var(--color-surface)' }}
+                  />
+                ) : (
+                  <select
+                    value={worker.model}
+                    onChange={(e) => updateWorker(worker.id, { model: e.target.value })}
+                    className="neo-input"
+                    style={{ padding: '6px 10px', fontSize: '13px', backgroundColor: 'var(--color-surface)' }}
+                  >
+                    {providerModels.map(model => (
+                      <option key={model} value={model}>{PROVIDERS[worker.provider]?.displayNames?.[model] || model}</option>
+                    ))}
+                    <option value="">Custom...</option>
+                  </select>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <button onClick={handleSave} disabled={saving || workers.some(w => !w.model.trim())} className="neo-button w-full mt-4" style={{ opacity: saving ? 0.5 : 1 }}>
+        {saving ? t.common.saving : 'SIMPAN WORKERS'}
+      </button>
     </div>
   )
 }
@@ -231,6 +378,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   })
   const [baseUrl, setBaseUrl] = useState(config.openaicompatBaseUrl || '')
   const [deepseekThinking, setDeepseekThinking] = useState(config.deepseekThinking ?? false)
+  const [deepseekReasoningEffort, setDeepseekReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.deepseekReasoningEffort ?? 'high')
   const [zhipuaiThinking, setZhipuaiThinking] = useState(config.zhipuaiThinking ?? true)
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [testing, setTesting] = useState(false)
@@ -244,6 +392,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     API_KEY_FIELDS.forEach(({ field }) => { ;(updated as any)[field] = keys[field] || '' })
     updated.openaicompatBaseUrl = baseUrl.trim()
     updated.deepseekThinking = deepseekThinking
+    updated.deepseekReasoningEffort = deepseekReasoningEffort
     updated.zhipuaiThinking = zhipuaiThinking
     return updated
   }
@@ -340,34 +489,74 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 else setDeepseekThinking(v => !v)
                 setTestResult(null)
               }
+              const EFFORT_OPTIONS: Array<{ value: 'low' | 'medium' | 'high'; label: string; color: string }> = [
+                { value: 'low',    label: 'LOW',    color: '#28E272' },
+                { value: 'medium', label: 'MED',    color: '#FFD600' },
+                { value: 'high',   label: 'HIGH',   color: '#FF3C3C' },
+              ]
               return (
-                <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
-                  <div>
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                      {t.settings.deepseekThinking}
-                    </span>
-                    <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                      {isZhipuai ? t.settings.zhipuaiThinkingDesc : t.settings.deepseekThinkingDesc}
-                    </p>
+                <>
+                  <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+                    <div>
+                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                        {t.settings.deepseekThinking}
+                      </span>
+                      <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                        {isZhipuai ? t.settings.zhipuaiThinkingDesc : t.settings.deepseekThinkingDesc}
+                      </p>
+                    </div>
+                    <button
+                      onClick={toggle}
+                      style={{
+                        flexShrink: 0,
+                        padding: '4px 12px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        border: '2px solid var(--color-border)',
+                        backgroundColor: thinkingOn ? '#00F7FF' : 'var(--color-surface)',
+                        color: thinkingOn ? '#111' : 'var(--color-text-muted)',
+                        cursor: 'pointer',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.4px',
+                      }}
+                    >
+                      {thinkingOn ? 'ON' : 'OFF'}
+                    </button>
                   </div>
-                  <button
-                    onClick={toggle}
-                    style={{
-                      flexShrink: 0,
-                      padding: '4px 12px',
-                      fontSize: '11px',
-                      fontWeight: 700,
-                      border: '2px solid var(--color-border)',
-                      backgroundColor: thinkingOn ? '#00F7FF' : 'var(--color-surface)',
-                      color: thinkingOn ? '#111' : 'var(--color-text-muted)',
-                      cursor: 'pointer',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.4px',
-                    }}
-                  >
-                    {thinkingOn ? 'ON' : 'OFF'}
-                  </button>
-                </div>
+                  {!isZhipuai && thinkingOn && (
+                    <div className="mt-1 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', borderTop: 'none', backgroundColor: 'var(--color-surface-2)' }}>
+                      <div>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                          {t.settings.deepseekReasoningEffort}
+                        </span>
+                        <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                          {t.settings.deepseekReasoningEffortDesc}
+                        </p>
+                      </div>
+                      <div className="flex gap-1" style={{ flexShrink: 0, marginLeft: '12px' }}>
+                        {EFFORT_OPTIONS.map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => { setDeepseekReasoningEffort(opt.value); setTestResult(null) }}
+                            style={{
+                              padding: '4px 10px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              border: '2px solid var(--color-border)',
+                              backgroundColor: deepseekReasoningEffort === opt.value ? opt.color : 'var(--color-surface)',
+                              color: deepseekReasoningEffort === opt.value ? '#111' : 'var(--color-text-muted)',
+                              cursor: 'pointer',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.4px',
+                            }}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )
             })()}
           </div>

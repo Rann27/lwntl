@@ -8,6 +8,7 @@ import type {
   Series,
   Chapter,
   GlossaryEntry,
+  WorkerStatus,
   SeriesDeleteInfo,
   ApiError,
 } from './types'
@@ -91,10 +92,11 @@ export async function updateSeries(
   title: string,
   language: string,
   targetLanguage?: string,
-  systemPrompt?: string
+  systemPrompt?: string,
+  workerId?: string
 ): Promise<Series> {
   const api = getApi()
-  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null)
+  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null, workerId ?? null)
   if (isApiError(result)) throw new Error(result.message)
   return result as Series
 }
@@ -265,10 +267,11 @@ export async function startTranslation(
   seriesId: string,
   chapterId: string,
   archivePrevious = false,
-): Promise<void> {
+): Promise<{ status: string; jobId: string; workerId: string }> {
   const api = getApi()
   const result = await api.start_translation(seriesId, chapterId, archivePrevious)
   if (isApiError(result)) throw new Error(result.message)
+  return result
 }
 
 export async function restoreTranslationVersion(
@@ -281,9 +284,9 @@ export async function restoreTranslationVersion(
   if (isApiError(result)) throw new Error(result.message)
 }
 
-export async function cancelTranslation(): Promise<boolean> {
+export async function cancelTranslation(seriesId?: string, workerId?: string): Promise<boolean> {
   const api = getApi()
-  const result = await api.cancel_translation()
+  const result = await api.cancel_translation(seriesId || null, workerId || null)
   if (isApiError(result)) throw new Error(result.message)
   return result as boolean
 }
@@ -292,9 +295,10 @@ export async function startBatchTranslation(
   seriesId: string,
   chapterIds: string[],
   force = false,
+  archivePrevious = false,
 ): Promise<{ status: string; total: number }> {
   const api = getApi()
-  const result = await api.start_batch_translation(seriesId, JSON.stringify(chapterIds), force)
+  const result = await api.start_batch_translation(seriesId, JSON.stringify(chapterIds), force, archivePrevious)
   if (isApiError(result)) throw new Error(result.message)
   return result as { status: string; total: number }
 }
@@ -358,4 +362,18 @@ export async function exportGlossaryFile(seriesId: string, fmt: 'json' | 'csv', 
 export async function ping(): Promise<{ status: string; message: string }> {
   const api = getApi()
   return await api.ping()
+}
+
+export async function getWorkerStatuses(): Promise<WorkerStatus[]> {
+  const api = getApi()
+  const result = await api.get_worker_statuses()
+  if (isApiError(result)) throw new Error(result.message)
+  return result as WorkerStatus[]
+}
+
+export async function getWorkerLogs(workerId = 'all'): Promise<{ workerId: string; lines: string[] }> {
+  const api = getApi()
+  const result = await api.get_worker_logs(workerId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { workerId: string; lines: string[] }
 }

@@ -109,6 +109,10 @@ export function ChapterWorkspacePage() {
       ])
       setChapter(ch)
       setSeriesGlossary(gloss)
+      // Free the cached streamingText from the store once fresh data is loaded from disk.
+      // streamingText only needs to exist during the brief window between translation
+      // completion and this loadChapter finishing.
+      useAppStore.getState().clearChapterStreamingText(`${seriesId}:${chapterId}`)
       try {
         const info = await getContextInfo(seriesId, chapterId)
         setContextInfo(info)
@@ -187,7 +191,7 @@ export function ChapterWorkspacePage() {
   // Cancel translation
   const handleCancelTranslation = async () => {
     try {
-      await cancelTranslation()
+      await cancelTranslation(seriesId)
       toast.info(t.chapter.translationCancelled)
     } catch {
       toast.error(t.chapter.cancelFailed)
@@ -278,15 +282,16 @@ export function ChapterWorkspacePage() {
   }, [])
 
   // Determine display text.
-  // streamingText is only used while actively translating (live stream).
-  // After done, rely on chapter.translatedContent (refreshed by loadChapter).
-  // Never fall back to streamingText for a completed chapter — it's global state
-  // and would leak the previous chapter's translation into pending chapters.
+  // During active translation: show live streamingText.
+  // After done, before loadChapter completes: streamingText still holds the full result
+  //   (safe — it's per-chapter keyed, not global). clearChapterStreamingText in loadChapter
+  //   frees it once fresh data is on disk.
+  // After loadChapter completes: chapter.translatedContent takes over, streamingText is ''.
   const translatedText = isTranslating
     ? streamingText
     : viewingVersion
       ? viewingVersion.translatedContent
-      : chapter?.translatedContent ?? ''
+      : chapter?.translatedContent || streamingText || ''
 
   if (loading) {
     return (

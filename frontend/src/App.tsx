@@ -15,6 +15,11 @@ import { useAppStore } from './store/appStore'
 import { waitForApi, getConfig, saveConfig } from './api'
 import { useToast } from './hooks/useToast'
 import { useI18n } from './i18n'
+import type { TranslationChunkEvent, TranslationDoneEvent, TranslationErrorEvent } from './types'
+
+function translationKey(data: { seriesId?: string; chapterId?: string }) {
+  return data.seriesId && data.chapterId ? `${data.seriesId}:${data.chapterId}` : ''
+}
 
 // Error Boundary - catches render crashes and shows error instead of blank page
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
@@ -53,6 +58,63 @@ function AppInner() {
 
   const { setLanguage, t } = useI18n()
 
+  useEffect(() => {
+    ;(window as any).onTranslationChunk = (data: TranslationChunkEvent) => {
+      const key = translationKey(data)
+      if (key) {
+        const store = useAppStore.getState()
+        store.appendChapterStreamingText(key, data.chunk || '')
+        store.setChapterTranslationState(key, {
+          isTranslating: true,
+          status: 'processing',
+          iteration: data.iteration,
+          progress: Math.min(90, data.iteration * 20),
+        })
+      }
+      window.dispatchEvent(new CustomEvent('lwntl:translation-chunk', { detail: data }))
+    }
+    ;(window as any).onTranslationStatus = (data: { status: string; seriesId?: string; chapterId?: string }) => {
+      const key = translationKey(data)
+      if (key) {
+        const nextState: any = {
+          status: data.status,
+          isTranslating: !['done', 'error', 'cancelled'].includes(data.status),
+        }
+        if (data.status === 'cancelled') nextState.progress = 0
+        useAppStore.getState().setChapterTranslationState(key, nextState)
+      }
+      window.dispatchEvent(new CustomEvent('lwntl:translation-status', { detail: data }))
+    }
+    ;(window as any).onTranslationDone = (data: TranslationDoneEvent) => {
+      const key = translationKey(data)
+      if (key) {
+        useAppStore.getState().setChapterTranslationState(key, {
+          isTranslating: false,
+          status: 'done',
+          streamingText: data.translation,
+          iteration: data.iterations,
+          progress: 100,
+          glossaryUpdates: data.glossaryUpdates || null,
+        })
+      }
+      window.dispatchEvent(new CustomEvent('lwntl:translation-done', { detail: data }))
+    }
+    ;(window as any).onTranslationError = (data: TranslationErrorEvent) => {
+      const key = translationKey(data)
+      if (key) {
+        useAppStore.getState().setChapterTranslationState(key, {
+          isTranslating: false,
+          status: 'error',
+        })
+      }
+      window.dispatchEvent(new CustomEvent('lwntl:translation-error', { detail: data }))
+    }
+    ;(window as any).onBatchStatus = (data: any) => {
+      useAppStore.getState().setBatch(data)
+      window.dispatchEvent(new CustomEvent('lwntl:batch-status', { detail: data }))
+    }
+  }, [])
+
   // Apply theme to document root whenever config.theme changes
   useEffect(() => {
     const theme = config?.theme || 'light'
@@ -78,7 +140,8 @@ function AppInner() {
 
         // Check if onboarding needed (no API keys configured)
         const hasAnyKey = cfg.zhipuaiApiKey || cfg.qwenApiKey || cfg.openaiApiKey ||
-          cfg.geminiApiKey || cfg.anthropicApiKey || cfg.xaiApiKey || cfg.moonshotApiKey
+          cfg.geminiApiKey || cfg.anthropicApiKey || cfg.xaiApiKey || cfg.moonshotApiKey ||
+          cfg.deepseekApiKey || cfg.openaicompatApiKey
         if (!hasAnyKey) {
           setShowOnboarding(true)
         }
@@ -102,6 +165,11 @@ function AppInner() {
       newConfig.qwenApiKey = apiKey
     }
     newConfig.provider = provider
+    newConfig.workers = (newConfig.workers?.length ? newConfig.workers : [{ id: 'default', label: 'worker 1', provider, model: provider === 'zhipuai' ? 'glm-5' : 'qwen3.5-plus' }]).map((worker, index) =>
+      index === 0
+        ? { ...worker, provider, model: provider === 'zhipuai' ? 'glm-5' : 'qwen3.5-plus' }
+        : worker
+    )
     try {
       await saveConfig(newConfig)
       setConfig(newConfig)

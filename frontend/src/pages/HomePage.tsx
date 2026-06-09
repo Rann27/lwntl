@@ -24,6 +24,7 @@ export function HomePage() {
   const [seriesList, setSeriesList] = useState<Series[]>([])
   const [chaptersMap, setChaptersMap] = useState<Record<string, Chapter[]>>({})
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
   // Modal states
   const [createOpen, setCreateOpen] = useState(false)
@@ -36,9 +37,15 @@ export function HomePage() {
 
   // Load data
   const loadData = useCallback(async () => {
+    setLoading(true)
+    setLoadError('')
     try {
       const series = await getAllSeries()
+      if (!Array.isArray(series)) {
+        throw new Error('Invalid series response')
+      }
       setSeriesList(series)
+      console.log('[LWNTL] Loaded series:', series.length)
 
       // Load chapters for each series
       const chMap: Record<string, Chapter[]> = {}
@@ -53,6 +60,8 @@ export function HomePage() {
       )
       setChaptersMap(chMap)
     } catch (err: any) {
+      console.error('[LWNTL] Failed to load series:', err)
+      setLoadError(err?.message || 'Failed to load series')
       toast.error(t.settings.saveFailed)
     } finally {
       setLoading(false)
@@ -161,6 +170,18 @@ export function HomePage() {
               <SkeletonCard />
               <SkeletonCard />
             </>
+          ) : loadError ? (
+            <div className="flex flex-col items-center justify-center py-20" style={{ gridColumn: '1 / -1' }}>
+              <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px', color: '#FF3C3C', marginBottom: '8px' }}>
+                GAGAL MEMUAT SERIES
+              </h2>
+              <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
+                {loadError}
+              </p>
+              <button onClick={loadData} className="neo-button">
+                RETRY
+              </button>
+            </div>
           ) : seriesList.length === 0 ? (
             <div
               className="flex flex-col items-center justify-center py-20"

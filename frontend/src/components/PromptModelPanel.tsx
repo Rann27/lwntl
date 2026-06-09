@@ -1,14 +1,14 @@
 /**
- * LWNTL Prompt and Model Panel
- * Center panel: provider/model dropdowns, system prompt, instruction prompt, sliders
+ * LWNTL Prompt and Worker Panel
+ * Center panel: worker selection, system prompt, instruction prompt, sliders
  */
 
-import { useState, useEffect } from 'react'
-import { Save, AlertCircle, RotateCcw, Info, ExternalLink } from 'lucide-react'
-import { PROVIDERS } from '../types'
+import { useEffect, useState } from 'react'
+import { AlertCircle, ExternalLink, Info, RotateCcw, Save } from 'lucide-react'
 import { getDefaultSystemPrompt } from '../api'
 import { useI18n } from '../i18n'
-import type { AppConfig, Series } from '../types'
+import { PROVIDERS } from '../types'
+import type { AppConfig, Series, WorkerStatus } from '../types'
 
 interface PromptModelPanelProps {
   config: AppConfig | null
@@ -17,7 +17,8 @@ interface PromptModelPanelProps {
   onInstructionsChange: (val: string) => void
   systemPrompt: string
   onSystemPromptChange: (val: string) => void
-  onSave: (config: AppConfig, instructions: string, systemPrompt: string) => void
+  onSave: (config: AppConfig, instructions: string, systemPrompt: string, workerId: string) => void
+  workerStatuses?: WorkerStatus[]
   loading?: boolean
 }
 
@@ -28,12 +29,17 @@ const TEMPLATE_VARS = [
 ]
 
 export function PromptModelPanel({
-  config, series, instructions, onInstructionsChange,
-  systemPrompt, onSystemPromptChange, onSave, loading,
+  config,
+  series,
+  instructions,
+  onInstructionsChange,
+  systemPrompt,
+  onSystemPromptChange,
+  onSave,
+  workerStatuses = [],
+  loading,
 }: PromptModelPanelProps) {
-  const [provider, setProvider] = useState(config?.provider || 'zhipuai')
-  const [model, setModel] = useState(config?.model || 'glm-5')
-  const [customModel, setCustomModel] = useState(config?.customModels?.[config?.provider || 'zhipuai'] || '')
+  const [workerId, setWorkerId] = useState(series?.workerId || config?.workers?.[0]?.id || '')
   const [temperature, setTemperature] = useState(config?.temperature ?? 0.3)
   const [maxTokens, setMaxTokens] = useState(config?.maxTokensPerIteration ?? 16000)
   const [glossaryPreFilter, setGlossaryPreFilter] = useState(config?.glossaryPreFilter ?? true)
@@ -43,83 +49,47 @@ export function PromptModelPanel({
   const { t } = useI18n()
 
   useEffect(() => {
-    if (config) {
-      setProvider(config.provider)
-      setModel(config.model)
-      setCustomModel(config.customModels?.[config.provider] || '')
-      setTemperature(config.temperature)
-      setMaxTokens(config.maxTokensPerIteration)
-      setGlossaryPreFilter(config.glossaryPreFilter ?? true)
-    }
-  }, [config])
+    if (!config) return
+    setWorkerId(series?.workerId || config.workers?.[0]?.id || '')
+    setTemperature(config.temperature)
+    setMaxTokens(config.maxTokensPerIteration)
+    setGlossaryPreFilter(config.glossaryPreFilter ?? true)
+  }, [config, series?.workerId])
 
   useEffect(() => {
     const targetLang = series?.targetLanguage || 'Indonesian'
     setLoadingDefault(true)
     getDefaultSystemPrompt(targetLang)
-      .then((p) => setDefaultPrompt(p))
+      .then(setDefaultPrompt)
       .catch(() => setDefaultPrompt(''))
       .finally(() => setLoadingDefault(false))
   }, [series?.targetLanguage])
 
   const displayPrompt = systemPrompt.trim() || defaultPrompt
   const isCustomPrompt = systemPrompt.trim().length > 0
-  const isCustomModel = model === 'custom'
-
-  const handleProviderChange = (newProvider: string) => {
-    setProvider(newProvider as AppConfig['provider'])
-    if (newProvider === 'openaicompat') {
-      setModel(config?.customModels?.['openaicompat'] || '')
-    } else {
-      const models = PROVIDERS[newProvider]?.models || []
-      setModel(models[0] || '')
-    }
-    setCustomModel(config?.customModels?.[newProvider] || '')
-    setDirty(true)
-  }
-
-  const handleModelChange = (newModel: string) => {
-    setModel(newModel)
-    setDirty(true)
-  }
-
-  const handleCustomModelChange = (val: string) => {
-    setCustomModel(val)
-    setDirty(true)
-  }
-
-  const isOpenAICompat = provider === 'openaicompat'
+  const workers = config?.workers || []
+  const selectedWorker = workers.find((w) => w.id === workerId)
+  const statusByWorker = new Map(workerStatuses.map((w) => [w.id, w]))
+  const selectedStatus = selectedWorker ? statusByWorker.get(selectedWorker.id) : null
 
   const handleSave = () => {
     if (!config) return
-    const newCustomModels = { ...(config.customModels || {}) }
-    if (isCustomModel && customModel.trim()) {
-      newCustomModels[provider] = customModel.trim()
-    }
-    if (isOpenAICompat && model.trim()) {
-      newCustomModels['openaicompat'] = model.trim()
-    }
-    const nc: AppConfig = {
-      ...config,
-      provider: provider as AppConfig['provider'],
-      model,
-      customModels: newCustomModels,
-      temperature,
-      maxTokensPerIteration: maxTokens,
-      glossaryPreFilter,
-    }
-    onSave(nc, instructions, systemPrompt)
+    onSave(
+      {
+        ...config,
+        temperature,
+        maxTokensPerIteration: maxTokens,
+        glossaryPreFilter,
+      },
+      instructions,
+      systemPrompt,
+      workerId,
+    )
     setDirty(false)
   }
 
-  const currentModels = PROVIDERS[provider]?.models || []
-  const displayNames = PROVIDERS[provider]?.displayNames || {}
-  const providerLabel = PROVIDERS[provider]?.label || provider
-  const docsUrl = PROVIDERS[provider]?.docsUrl
-
   return (
     <div className="flex flex-col h-full overflow-y-auto" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: '4px 4px 0px var(--color-border)' }}>
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '2.5px solid var(--color-border)' }}>
         <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
           {t.seriesSettings.promptModel}
@@ -133,112 +103,68 @@ export function PromptModelPanel({
       </div>
 
       <div className="flex-1 p-4 space-y-5" style={{ minHeight: 0, overflowY: 'auto' }}>
-        {/* Provider */}
         <div>
           <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-            {t.seriesSettings.provider}
+            {t.seriesSettings.worker}
           </label>
           <select
-            value={provider}
-            onChange={(e) => handleProviderChange(e.target.value)}
+            value={workerId}
+            onChange={(e) => { setWorkerId(e.target.value); setDirty(true) }}
             className="neo-input"
             style={{ cursor: 'pointer', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           >
-            {Object.entries(PROVIDERS).map(([key, p]) => {
-              const apiKeyField = p.apiKeyName as keyof typeof config
-              const hasKey = config ? !!(config[apiKeyField] as string) : false
+            {workers.map((worker) => {
+              const status = statusByWorker.get(worker.id)
+              const assignedElsewhere = !!status?.assignedSeriesIds?.some((id) => id !== series?.id)
+              const disabled = !!status?.active || assignedElsewhere
+              const providerLabel = PROVIDERS[worker.provider]?.label || worker.provider
+              const modelLabel = PROVIDERS[worker.provider]?.displayNames?.[worker.model] || worker.model
               return (
-                <option key={key} value={key} disabled={!hasKey}>
-                  {hasKey ? '✓ ' : '✗ '}{p.label}{!hasKey ? ' (no key)' : ''}
+                <option key={worker.id} value={worker.id} disabled={disabled && worker.id !== workerId}>
+                  {worker.label} - {modelLabel} ({providerLabel}){status?.active ? ' - busy' : assignedElsewhere ? ' - assigned' : ''}
                 </option>
               )
             })}
           </select>
-          {!config?.[PROVIDERS[provider]?.apiKeyName as keyof typeof config] && (
+          {selectedWorker && !config?.[PROVIDERS[selectedWorker.provider]?.apiKeyName as keyof AppConfig] && (
             <p style={{ fontSize: '11px', color: '#FF3C3C', marginTop: '4px', fontWeight: 600 }}>
-              ⚠ {t.seriesSettings.provider} API key — {t.topbar.settings}
+              API key worker ini belum diisi - {t.topbar.settings}
+            </p>
+          )}
+          {selectedStatus?.active && (
+            <p style={{ fontSize: '11px', color: '#FFEF33', marginTop: '4px', fontWeight: 600 }}>
+              Worker sedang bekerja. Pilihan ini terkunci sampai proses selesai.
             </p>
           )}
         </div>
 
-        {/* Model */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-              {t.seriesSettings.model}
-            </label>
-            {docsUrl && (
-              <a
-                href={docsUrl}
-                target="_blank"
-                rel="noreferrer"
-                style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--color-text-muted)', textDecoration: 'none', fontWeight: 600 }}
-              >
-                <ExternalLink size={10} /> {providerLabel}
+        {selectedWorker && (
+          <div className="flex items-center justify-between gap-3 px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+              {PROVIDERS[selectedWorker.provider]?.label || selectedWorker.provider}
+            </span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)' }}>
+              {PROVIDERS[selectedWorker.provider]?.displayNames?.[selectedWorker.model] || selectedWorker.model}
+            </span>
+            {PROVIDERS[selectedWorker.provider]?.docsUrl && (
+              <a href={PROVIDERS[selectedWorker.provider]?.docsUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--color-text-muted)' }}>
+                <ExternalLink size={13} />
               </a>
             )}
           </div>
-          {isOpenAICompat ? (
-            <div>
-              <input
-                type="text"
-                value={model}
-                onChange={(e) => { setModel(e.target.value); setDirty(true) }}
-                placeholder="e.g. llama3, mistral, qwen2.5..."
-                className="neo-input"
-                style={{ fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
-              />
-              <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '3px' }}>
-                Enter the model ID served by your endpoint. Set Base URL in Settings.
-              </p>
-            </div>
-          ) : (
-            <>
-              <select
-                value={model}
-                onChange={(e) => handleModelChange(e.target.value)}
-                className="neo-input"
-                style={{ cursor: 'pointer', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
-              >
-                {currentModels.map((m) => (
-                  <option key={m} value={m}>{displayNames[m] || m}</option>
-                ))}
-              </select>
-
-              {/* Custom model input */}
-              {isCustomModel && (
-                <div className="mt-2">
-                  <input
-                    type="text"
-                    value={customModel}
-                    onChange={(e) => handleCustomModelChange(e.target.value)}
-                    placeholder={`Nama model ${providerLabel}...`}
-                    className="neo-input"
-                    style={{ fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
-                  />
-                  <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '3px' }}>
-                    Nama model kustom akan disimpan per-provider.
-                  </p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+        )}
 
         <div style={{ height: '2px', backgroundColor: 'var(--color-separator)' }} />
 
-        {/* System Prompt */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
               {t.seriesSettings.systemPrompt}
             </label>
             <div className="flex items-center gap-2">
-              {isCustomPrompt ? (
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#FFEF33', background: '#111', padding: '2px 6px', textTransform: 'uppercase' }}>{t.seriesSettings.custom}</span>
-              ) : (
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#fff', background: '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>{t.seriesSettings.default}</span>
-              )}
+              <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomPrompt ? '#FFEF33' : '#fff', background: isCustomPrompt ? '#111' : '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>
+                {isCustomPrompt ? t.seriesSettings.custom : t.seriesSettings.default}
+              </span>
               <button
                 type="button"
                 onClick={() => { onSystemPromptChange(''); setDirty(true) }}
@@ -257,7 +183,6 @@ export function PromptModelPanel({
             className="neo-textarea"
             style={{ minHeight: '200px', fontSize: '12px', fontFamily: "'Inter', monospace", backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           />
-          {/* Template Variable Guide */}
           <div className="mt-2 p-2.5" style={{ backgroundColor: 'var(--color-surface-2)', border: '2px solid var(--color-separator)', fontSize: '11px' }}>
             <div className="flex items-center gap-1 mb-1.5" style={{ fontWeight: 700, color: 'var(--color-text-muted)' }}>
               <Info size={11} /> {t.seriesSettings.templateVars}
@@ -265,16 +190,7 @@ export function PromptModelPanel({
             <div className="space-y-0.5">
               {TEMPLATE_VARS.map((tv) => (
                 <div key={tv.variable} className="flex items-start gap-2">
-                  <code style={{
-                    fontFamily: "'Space Grotesk', monospace",
-                    fontWeight: 700,
-                    color: '#00F7FF',
-                    backgroundColor: '#111',
-                    padding: '1px 5px',
-                    fontSize: '10px',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}>
+                  <code style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 700, color: '#00F7FF', backgroundColor: '#111', padding: '1px 5px', fontSize: '10px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     {tv.variable}
                   </code>
                   <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>{tv.description}</span>
@@ -289,7 +205,6 @@ export function PromptModelPanel({
 
         <div style={{ height: '2px', backgroundColor: 'var(--color-separator)' }} />
 
-        {/* Instruction Prompt */}
         <div>
           <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
             {t.seriesSettings.instructionPrompt}
@@ -308,7 +223,6 @@ export function PromptModelPanel({
 
         <div style={{ height: '2px', backgroundColor: 'var(--color-separator)' }} />
 
-        {/* Max Tokens */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.maxTokens}</label>
@@ -320,7 +234,6 @@ export function PromptModelPanel({
           </div>
         </div>
 
-        {/* Temperature */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.temperature}</label>
@@ -332,7 +245,6 @@ export function PromptModelPanel({
           </div>
         </div>
 
-        {/* Glossary Pre-filter Toggle */}
         <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <div>
             <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
@@ -344,26 +256,13 @@ export function PromptModelPanel({
           </div>
           <button
             onClick={() => { setGlossaryPreFilter(v => !v); setDirty(true) }}
-            style={{
-              flexShrink: 0,
-              marginLeft: '12px',
-              padding: '4px 12px',
-              fontSize: '11px',
-              fontWeight: 700,
-              border: '2px solid var(--color-border)',
-              backgroundColor: glossaryPreFilter ? '#28E272' : 'var(--color-surface)',
-              color: glossaryPreFilter ? '#111' : 'var(--color-text-muted)',
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '0.4px',
-            }}
+            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: glossaryPreFilter ? '#28E272' : 'var(--color-surface)', color: glossaryPreFilter ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
           >
             {glossaryPreFilter ? 'ON' : 'OFF'}
           </button>
         </div>
       </div>
 
-      {/* Save button */}
       <div style={{ borderTop: '2.5px solid var(--color-border)', padding: '12px 16px' }}>
         <button onClick={handleSave} disabled={loading} className="neo-button flex items-center justify-center gap-2 w-full" style={{ opacity: loading ? 0.5 : 1 }}>
           <Save size={16} />

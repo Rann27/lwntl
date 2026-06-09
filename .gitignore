@@ -46,3 +46,7 @@ logs/
 # ── Spec / internal docs ──────────────────────────────────────────────
 LWNTL-SPEC.md
 DESIGN-SPEC.md
+
+# ── Personal prompt files ─────────────────────────────────────────────
+system prompt.txt
+instructions prompt.txt

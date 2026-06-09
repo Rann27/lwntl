@@ -20,6 +20,7 @@ export function useBatchTranslation(seriesId: string) {
   // Register batch status callback
   useEffect(() => {
     const handleBatchStatus = (data: BatchStatusEvent) => {
+      if (data.seriesId && data.seriesId !== seriesId) return
       setBatch(data)
 
       if (data.status === 'done') {
@@ -29,10 +30,11 @@ export function useBatchTranslation(seriesId: string) {
       }
     }
 
-    ;(window as any).onBatchStatus = handleBatchStatus
+    const onBatchStatus = (event: Event) => handleBatchStatus((event as CustomEvent<BatchStatusEvent>).detail)
+    window.addEventListener('lwntl:batch-status', onBatchStatus)
 
     return () => {
-      ;(window as any).onBatchStatus = undefined
+      window.removeEventListener('lwntl:batch-status', onBatchStatus)
     }
   }, [setBatch])
 
@@ -58,13 +60,13 @@ export function useBatchTranslation(seriesId: string) {
     }
   }, [seriesId, setBatch])
 
-  // Translate Selected: explicit IDs, force=true (translate regardless of status)
+  // Translate Selected: explicit IDs, force=true (translate regardless of status), archive previous
   const startSelectedBatch = useCallback(async (chapterIds: string[]) => {
     if (chapterIds.length === 0) return
 
     try {
       setBatch({ status: 'translating', current: 0, total: chapterIds.length, completed: 0 })
-      await startBatchTranslation(seriesId, chapterIds, true)
+      await startBatchTranslation(seriesId, chapterIds, true, true)
       addToastRef.current({ type: 'info', message: `Batch dimulai: ${chapterIds.length} bab dipilih.` })
     } catch (e: any) {
       addToastRef.current({ type: 'error', message: `Gagal memulai batch: ${e.message}` })
@@ -74,7 +76,7 @@ export function useBatchTranslation(seriesId: string) {
 
   const cancelBatch = useCallback(async () => {
     try {
-      await cancelTranslation()
+      await cancelTranslation(seriesId)
       setBatch(null)
     } catch (e: any) {
       addToastRef.current({ type: 'error', message: `Gagal membatalkan batch: ${e.message}` })

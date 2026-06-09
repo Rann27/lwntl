@@ -4,8 +4,10 @@
  */
 
 import { useNavigate } from 'react-router-dom'
-import { Settings, ArrowLeft } from 'lucide-react'
+import { Settings, ArrowLeft, ScrollText } from 'lucide-react'
 import { useI18n } from '../i18n'
+import { useState } from 'react'
+import { WorkerLogPanel } from './WorkerLogPanel'
 
 interface TopbarProps {
   showBack?: boolean
@@ -16,15 +18,11 @@ interface TopbarProps {
 export function Topbar({ showBack, title, subtitle }: TopbarProps) {
   const navigate = useNavigate()
   const { t } = useI18n()
+  const [logsOpen, setLogsOpen] = useState(false)
 
   return (
-    <div
-      className="w-full flex items-center justify-between px-5 py-3"
-      style={{
-        backgroundColor: '#111111',
-        borderBottom: '2.5px solid #111111',
-      }}
-    >
+    <>
+    <div className="w-full flex items-center justify-between px-5 py-3" style={{ backgroundColor: '#111111', borderBottom: '2.5px solid #111111' }}>
       {/* Left section */}
       <div className="flex items-center gap-4">
         {showBack && (
@@ -106,6 +104,14 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
       {/* Right section */}
       <div className="flex items-center gap-3">
         <button
+          onClick={() => setLogsOpen(true)}
+          className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
+          style={{ color: '#00F7FF' }}
+          title="Worker log"
+        >
+          <ScrollText size={20} />
+        </button>
+        <button
           onClick={() => navigate('/settings')}
           className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
           style={{ color: '#00F7FF' }}
@@ -115,5 +121,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
         </button>
       </div>
     </div>
+    <WorkerLogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
+    </>
   )
 }

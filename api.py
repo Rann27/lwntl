@@ -18,7 +18,7 @@ from core.storage.chapters import (
     restore_translation_version as restore_version_db,
 )
 from core.llm_client import LLMClient, test_client as test_llm_client
-from core.translator import Translator
+from core.worker_manager import WorkerManager
 from core.context_window import get_context_info, invalidate_context_cache, estimate_tokens
 
 
@@ -35,11 +35,12 @@ class API:
         
         # Initialize LLM client and translator (lazy, on first use)
         self._llm_client = None
-        self._translator = None
+        self._worker_manager = WorkerManager(window.evaluate_js if window else None)
     
     def set_window(self, window):
         """Set window reference after creation"""
         self._window = window
+        self._worker_manager.set_window_eval(window.evaluate_js if window else None)
     
     def _get_config(self):
         """Get current config"""
@@ -55,19 +56,6 @@ class API:
             self._llm_client = LLMClient(config)
         return self._llm_client
     
-    def _get_translator(self):
-        """Get or create translator"""
-        if self._translator is None:
-            client = self._get_llm_client()
-            window_eval = self._window.evaluate_js if self._window else None
-            self._translator = Translator(client, window_eval=window_eval)
-            config = self._get_config()
-            self._translator._glossary_pre_filter = config.get("glossaryPreFilter", True)
-        else:
-            if self._window:
-                self._translator.window_eval = self._window.evaluate_js
-        return self._translator
-
     # Test method
     def ping(self):
         """Test method to verify PyWebView API connection"""
@@ -89,7 +77,7 @@ class API:
             save_config(config)
             # Reinitialize LLM client with new config
             self._llm_client = None
-            self._translator = None
+            self._worker_manager.set_window_eval(self._window.evaluate_js if self._window else None)
             return True
         except Exception as e:
             return {"error": True, "message": str(e)}
@@ -107,8 +95,12 @@ class API:
     def get_all_series(self):
         """Get all series"""
         try:
-            return get_all_series()
+            series = get_all_series()
+            for item in series:
+                item.setdefault("workerId", "")
+            return series
         except Exception as e:
+            print(f"[API] get_all_series error: {e}")
             return {"error": True, "message": str(e)}
 
     def create_series(self, title: str, language: str, target_language: str = "Indonesian"):
@@ -118,11 +110,12 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
-    def update_series(self, series_id: str, title: str, language: str, 
-                      target_language: str = None, system_prompt: str = None):
+    def update_series(self, series_id: str, title: str, language: str,
+                      target_language: str = None, system_prompt: str = None,
+                      worker_id: str = None):
         """Update a series"""
         try:
-            return update_series_db(series_id, title, language, target_language, system_prompt)
+            return update_series_db(series_id, title, language, target_language, system_prompt, worker_id)
         except Exception as e:
             return {"error": True, "message": str(e)}
     
@@ -239,19 +232,18 @@ class API:
     def start_translation(self, series_id: str, chapter_id: str, archive_previous: bool = False):
         """Start translating a chapter. archive_previous=True saves current translation to history first."""
         try:
-            translator = self._get_translator()
-            if translator.is_running():
-                return {"error": True, "message": "Terjemahan sedang berjalan. Tunggu atau batalkan terlebih dahulu."}
-            translator.start_translation(series_id, chapter_id, archive_previous=bool(archive_previous))
-            return {"status": "started"}
+            return self._worker_manager.start_translation(
+                series_id,
+                chapter_id,
+                archive_previous=bool(archive_previous),
+            )
         except Exception as e:
             return {"error": True, "message": str(e)}
 
-    def cancel_translation(self):
+    def cancel_translation(self, series_id: str = None, worker_id: str = None):
         """Cancel ongoing translation (including batch)"""
         try:
-            translator = self._get_translator()
-            return translator.cancel()
+            return self._worker_manager.cancel(series_id=series_id, worker_id=worker_id)
         except Exception as e:
             return {"error": True, "message": str(e)}
     
@@ -272,11 +264,26 @@ class API:
         """
         try:
             ids = json.loads(chapter_ids) if isinstance(chapter_ids, str) else chapter_ids
-            translator = self._get_translator()
-            if translator.is_running():
-                return {"error": True, "message": "Terjemahan sedang berjalan. Tunggu atau batalkan terlebih dahulu."}
-            translator.start_batch_translation(series_id, ids, force=bool(force), archive_previous=bool(archive_previous))
-            return {"status": "started", "total": len(ids)}
+            return self._worker_manager.start_batch_translation(
+                series_id,
+                ids,
+                force=bool(force),
+                archive_previous=bool(archive_previous),
+            )
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def get_worker_statuses(self):
+        """Get worker profiles with runtime and assignment status."""
+        try:
+            return self._worker_manager.get_statuses()
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def get_worker_logs(self, worker_id: str = None):
+        """Get in-memory worker logs."""
+        try:
+            return self._worker_manager.get_logs(worker_id if worker_id and worker_id != "all" else None)
         except Exception as e:
             return {"error": True, "message": str(e)}
     

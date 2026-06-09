@@ -75,6 +75,8 @@ const en: TranslationStrings = {
     deepseekThinking: 'Thinking Mode',
     deepseekThinkingDesc: 'Extended reasoning for better quality (slower & more expensive)',
     zhipuaiThinkingDesc: 'GLM thinking is ON by default. Disable to get faster, cheaper output.',
+    deepseekReasoningEffort: 'Reasoning Effort',
+    deepseekReasoningEffortDesc: 'How deep the model thinks. High = best quality but slowest.',
   },
 
   seriesSettings: {
@@ -85,6 +87,7 @@ const en: TranslationStrings = {
     notSaved: 'Unsaved Changes',
     provider: 'Provider',
     model: 'Model',
+    worker: 'Worker',
     systemPrompt: 'System Prompt',
     custom: 'CUSTOM',
     default: 'DEFAULT',

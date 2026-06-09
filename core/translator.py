@@ -24,7 +24,15 @@ class Translator:
     Handles chapter translation with smart iteration and streaming
     """
     
-    def __init__(self, llm_client: LLMClient, window_eval: Optional[Callable] = None):
+    def __init__(
+        self,
+        llm_client: LLMClient,
+        window_eval: Optional[Callable] = None,
+        job_id: str = "",
+        worker_id: str = "",
+        worker_label: str = "",
+        log_callback: Optional[Callable[[str], None]] = None,
+    ):
         """
         Initialize translator
         
@@ -34,6 +42,12 @@ class Translator:
         """
         self.client = llm_client
         self.window_eval = window_eval
+        self.job_id = job_id
+        self.worker_id = worker_id
+        self.worker_label = worker_label
+        self._log_callback = log_callback
+        self._current_series_id = ""
+        self._current_chapter_id = ""
         self._cancelled = False
         self._translation_thread = None
         self._total_tokens = 0
@@ -107,8 +121,7 @@ class Translator:
         """
         for i, chapter_id in enumerate(chapter_ids):
             if not self._batch_active or self._cancelled:
-                if self.window_eval:
-                    self.window_eval(f"window.onBatchStatus({json.dumps({'status': 'cancelled', 'completed': self._batch_completed, 'total': self._batch_total})})")
+                self._emit_js("onBatchStatus", self._with_meta({'status': 'cancelled', 'seriesId': series_id, 'completed': self._batch_completed, 'total': self._batch_total}))
                 break
 
             chapter = get_chapter(series_id, chapter_id)
@@ -123,8 +136,7 @@ class Translator:
                 continue
 
             # Send batch progress
-            if self.window_eval:
-                self.window_eval(f"window.onBatchStatus({json.dumps({'status': 'translating', 'current': i + 1, 'total': self._batch_total, 'chapterId': chapter_id, 'chapterNumber': chapter.get('chapterNumber', '?'), 'chapterTitle': chapter.get('title', '')})})")
+            self._emit_js("onBatchStatus", self._with_meta({'status': 'translating', 'seriesId': series_id, 'current': i + 1, 'total': self._batch_total, 'chapterId': chapter_id, 'chapterNumber': chapter.get('chapterNumber', '?'), 'chapterTitle': chapter.get('title', '')}))
 
             # Translate this chapter
             self._translate(series_id, chapter_id, progress_callback, archive_previous=archive_previous)
@@ -140,8 +152,7 @@ class Translator:
 
         # Batch complete
         if self._batch_active and not self._cancelled:
-            if self.window_eval:
-                self.window_eval(f"window.onBatchStatus({json.dumps({'status': 'done', 'completed': self._batch_completed, 'total': self._batch_total})})")
+            self._emit_js("onBatchStatus", self._with_meta({'status': 'done', 'seriesId': series_id, 'completed': self._batch_completed, 'total': self._batch_total}))
 
         self._batch_active = False
 
@@ -219,6 +230,8 @@ class Translator:
             progress_callback: Optional callback for progress updates
         """
         try:
+            self._current_series_id = series_id
+            self._current_chapter_id = chapter_id
             # Reset counters (cancelled flag is set by caller before thread starts)
             self._total_tokens = 0
             self._iteration = 0
@@ -273,7 +286,7 @@ class Translator:
                     chapter,
                     series.get("targetLanguage", "Indonesian")
                 )
-                print(f"[Translator] Context window: {context['total_tokens']} tokens "
+                self._log(f"[Translator] Context window: {context['total_tokens']} tokens "
                       f"(system={context['tokens_breakdown']['system']}, "
                       f"rolling={context['tokens_breakdown']['rolling']}, "
                       f"memory={context['tokens_breakdown']['memory']}, "
@@ -329,13 +342,13 @@ class Translator:
                 # Thinking-mode models (GLM-5.1 coding, etc.) can consume the entire
                 # token budget on reasoning and produce 0 content chars.
                 if not chunk_text:
-                    print(f"[Translator] Empty stream output (iteration {self._iteration}), trying non-stream fallback...")
+                    self._log(f"[Translator] Empty stream output (iteration {self._iteration}), trying non-stream fallback...")
                     chunk_text = self._sync_completion(
                         messages,
                         max_tokens=min(self.client.max_tokens, 16000)
                     )
                     if chunk_text:
-                        print(f"[Translator] Fallback succeeded: {len(chunk_text)} chars")
+                        self._log(f"[Translator] Fallback succeeded: {len(chunk_text)} chars")
                         self._total_tokens += max(1, len(chunk_text) // 4)
                         self._send_chunk({
                             "chunk": chunk_text,
@@ -343,7 +356,7 @@ class Translator:
                             "fullText": full_translation + chunk_text
                         })
                     else:
-                        print("[Translator] Fallback also returned empty")
+                        self._log("[Translator] Fallback also returned empty")
                 
                 if not chunk_text:
                     # Empty response, break
@@ -377,12 +390,12 @@ class Translator:
             trans_len = len(full_translation.strip())
             if trans_len == 0:
                 err = "Translation returned empty output from provider"
-                print(f"[Translator] {err}")
+                self._log(f"[Translator] {err}")
                 update_chapter_status(series_id, chapter_id, "error")
                 self._send_error(err)
                 return
             if raw_len > 500 and trans_len < raw_len * 0.05:
-                print(f"[Translator] WARNING: Translation suspiciously short ({trans_len} chars vs {raw_len} chars raw). Possible thinking-mode output.")
+                self._log(f"[Translator] WARNING: Translation suspiciously short ({trans_len} chars vs {raw_len} chars raw). Possible thinking-mode output.")
                 # Still continue — might be valid short translation
             
             # Translation complete!
@@ -392,7 +405,7 @@ class Translator:
             
             # Generate chapter summary for rolling context (Layer 2)
             self._send_status("summarizing")
-            print(f"[Summary] Generating chapter summary...")
+            self._log("[Summary] Generating chapter summary...")
             try:
                 summary = generate_chapter_summary(
                     self.client,
@@ -402,9 +415,9 @@ class Translator:
                 )
                 if summary:
                     update_chapter_summary(series_id, chapter_id, summary)
-                    print(f"[Translator] Summary generated: {len(summary)} chars")
+                    self._log(f"[Translator] Summary generated: {len(summary)} chars")
             except Exception as e:
-                print(f"[Translator] Summary generation failed: {e}")
+                self._log(f"[Translator] Summary generation failed: {e}")
             
             # Glossary extraction — parse table from translation output first.
             # Models instructed to append a markdown glossary table incur zero
@@ -415,26 +428,26 @@ class Translator:
                 glossary_updates = parse_glossary_from_translation(full_translation)
 
                 if not glossary_updates.get("entries"):
-                    print("[Glossary] No table found in translation — falling back to LLM extraction...")
+                    self._log("[Glossary] No table found in translation - falling back to LLM extraction...")
                     glossary_updates = extract_glossary_terms(
                         self.client, raw_content, full_translation
                     )
                 else:
-                    print(f"[Glossary] {len(glossary_updates['entries'])} term(s) parsed from translation table (no extra API call)")
+                    self._log(f"[Glossary] {len(glossary_updates['entries'])} term(s) parsed from translation table (no extra API call)")
 
                 from .storage.chapters import update_glossary_updates
                 update_glossary_updates(series_id, chapter_id, glossary_updates)
             except Exception as e:
-                print(f"[Glossary] Extraction failed: {e}")
+                self._log(f"[Glossary] Extraction failed: {e}")
                 glossary_updates = {"extractedAt": None, "entries": []}
 
             term_count = len(glossary_updates.get("entries", []))
-            print(f"[Glossary] Extracted {term_count} term(s)")
+            self._log(f"[Glossary] Extracted {term_count} term(s)")
 
             # Final status update
             raw_len = len(raw_content) if raw_content else 0
             trans_len = len(full_translation)
-            print(f"[✓] Translation complete — {self._iteration} iteration(s) | ~{self._total_tokens} tokens | {raw_len} → {trans_len} chars")
+            self._log(f"[OK] Translation complete - {self._iteration} iteration(s) | ~{self._total_tokens} tokens | {raw_len} -> {trans_len} chars")
             self._send_status("done")
             self._send_result({
                 "status": "done",
@@ -445,12 +458,14 @@ class Translator:
             })
             
         except Exception as e:
-            # Error occurred
             error_msg = str(e)
-            print(f"Translation error: {error_msg}")
+            self._log(f"Translation error: {error_msg}")
+            # If cancel was requested at the same time as the exception, report cancelled
+            # so the chapter status doesn't get stuck as "error" after a user-initiated cancel.
+            if self._cancelled:
+                self._send_status("cancelled")
+                return
             self._send_error(error_msg)
-            
-            # Update chapter status to error
             try:
                 update_chapter_status(series_id, chapter_id, "error")
             except:
@@ -502,14 +517,14 @@ class Translator:
                     thinking_chars += len(rc)
                     if first_token_at is None:
                         first_token_at = time.time()
-                        print(f"[API ←] TTFT (thinking): {first_token_at - t0:.2f}s")
+                        self._log(f"[API ←] TTFT (thinking): {first_token_at - t0:.2f}s")
 
             chunk_text = self._extract_chunk_text(chunk)
 
             if chunk_text:
                 if first_token_at is None:
                     first_token_at = time.time()
-                    print(f"[API ←] TTFT: {first_token_at - t0:.2f}s")
+                    self._log(f"[API ←] TTFT: {first_token_at - t0:.2f}s")
 
                 full_text += chunk_text
                 self._total_tokens += 1
@@ -535,10 +550,10 @@ class Translator:
 
         elapsed = time.time() - t0
         if first_token_at is None:
-            print("[API ←] stream ended without output tokens")
+            self._log("[API ←] stream ended without output tokens")
         if thinking_chars > 0:
-            print(f"[API ←] thinking: {thinking_chars} chars | content: {len(full_text)} chars")
-        print(f"[API ←] stream done in {elapsed:.1f}s | ~{len(full_text)} chars output")
+            self._log(f"[API ←] thinking: {thinking_chars} chars | content: {len(full_text)} chars")
+        self._log(f"[API ←] stream done in {elapsed:.1f}s | ~{len(full_text)} chars output")
 
         return full_text
 
@@ -703,38 +718,53 @@ class Translator:
     
     def _send_chunk(self, data: Dict[str, Any]):
         """Send chunk to frontend via evaluate_js"""
-        if self.window_eval:
-            js_code = f"window.onTranslationChunk({json.dumps(data)})"
-            try:
-                self.window_eval(js_code)
-            except Exception as e:
-                print(f"Error sending chunk: {e}")
+        self._emit_js("onTranslationChunk", self._with_meta(data))
     
     def _send_status(self, status: str):
         """Send status update to frontend"""
-        if self.window_eval:
-            data = {"status": status}
-            js_code = f"window.onTranslationStatus({json.dumps(data)})"
-            try:
-                self.window_eval(js_code)
-            except Exception as e:
-                print(f"Error sending status: {e}")
+        self._emit_js("onTranslationStatus", self._with_meta({"status": status}))
     
     def _send_result(self, result: Dict[str, Any]):
         """Send final result to frontend"""
-        if self.window_eval:
-            js_code = f"window.onTranslationDone({json.dumps(result)})"
-            try:
-                self.window_eval(js_code)
-            except Exception as e:
-                print(f"Error sending result: {e}")
+        self._emit_js("onTranslationDone", self._with_meta(result))
     
     def _send_error(self, error: str):
         """Send error to frontend"""
-        if self.window_eval:
-            data = {"error": True, "message": error}
-            js_code = f"window.onTranslationError({json.dumps(data)})"
+        self._emit_js("onTranslationError", self._with_meta({"error": True, "message": error}))
+
+    def _emit_js(self, callback_name: str, data: Dict[str, Any]):
+        if not self.window_eval:
+            return
+        js_code = (
+            f"if (typeof window.{callback_name} === 'function') "
+            f"window.{callback_name}({json.dumps(data)});"
+        )
+        try:
+            self.window_eval(js_code)
+        except Exception as e:
+            self._log(f"Error sending {callback_name}: {e}")
+
+    def _log(self, message: str):
+        prefix = f"[{self.worker_label}] " if self.worker_label else ""
+        line = prefix + message
+        print(line)
+        if callable(self._log_callback):
             try:
-                self.window_eval(js_code)
-            except Exception as e:
-                print(f"Error sending error: {e}")
+                self._log_callback(line)
+            except Exception:
+                pass
+
+    def _with_meta(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Attach job metadata to frontend events for concurrent workers."""
+        enriched = dict(data)
+        if self.job_id:
+            enriched.setdefault("jobId", self.job_id)
+        if self.worker_id:
+            enriched.setdefault("workerId", self.worker_id)
+        if self.worker_label:
+            enriched.setdefault("workerLabel", self.worker_label)
+        if self._current_series_id:
+            enriched.setdefault("seriesId", self._current_series_id)
+        if self._current_chapter_id:
+            enriched.setdefault("chapterId", self._current_chapter_id)
+        return enriched

@@ -31,10 +31,11 @@ import {
   saveConfig,
   saveInstructions,
   updateSeries,
+  getWorkerStatuses,
 } from '../api'
 import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
-import type { Series, Chapter, GlossaryEntry, AppConfig } from '../types'
+import type { Series, Chapter, GlossaryEntry, AppConfig, WorkerStatus } from '../types'
 import { chapterNumFloat } from '../types'
 
 export function SeriesSettingsPage() {
@@ -54,6 +55,7 @@ export function SeriesSettingsPage() {
   const [glossary, setGlossary] = useState<GlossaryEntry[]>([])
   const [instructions, setInstructions] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
+  const [workerStatuses, setWorkerStatuses] = useState<WorkerStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [saveLoading, setSaveLoading] = useState(false)
 
@@ -73,10 +75,11 @@ export function SeriesSettingsPage() {
   const loadData = useCallback(async () => {
     if (!seriesId) return
     try {
-      const [allSeries, chaps, gloss] = await Promise.all([
+      const [allSeries, chaps, gloss, workers] = await Promise.all([
         getAllSeries(),
         getChapters(seriesId),
         getGlossary(seriesId),
+        getWorkerStatuses(),
       ])
       const s = allSeries.find((s) => s.id === seriesId) || null
       setSeries(s)
@@ -84,6 +87,7 @@ export function SeriesSettingsPage() {
       setGlossary(gloss)
       setInstructions(s?.instructions || '')
       setSystemPrompt(s?.systemPrompt || '')
+      setWorkerStatuses(workers)
     } catch {
       toast.error(t.settings.saveFailed)
     } finally {
@@ -96,7 +100,7 @@ export function SeriesSettingsPage() {
   }, [apiReady, loadData])
 
   // Save config + instructions + systemPrompt
-  const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string) => {
+  const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string) => {
     if (!seriesId || !series) return
     setSaveLoading(true)
     try {
@@ -106,9 +110,10 @@ export function SeriesSettingsPage() {
       await saveInstructions(seriesId, newInstructions)
       setInstructions(newInstructions)
 
-      await updateSeries(seriesId, series.title, series.sourceLanguage, series.targetLanguage, newSystemPrompt)
+      await updateSeries(seriesId, series.title, series.sourceLanguage, series.targetLanguage, newSystemPrompt, workerId)
       setSystemPrompt(newSystemPrompt)
-      setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, instructions: newInstructions } : prev)
+      setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, instructions: newInstructions, workerId } : prev)
+      setWorkerStatuses(await getWorkerStatuses())
 
       toast.success(t.seriesSettings.saveSuccess)
     } catch {
@@ -459,6 +464,7 @@ export function SeriesSettingsPage() {
             systemPrompt={systemPrompt}
             onSystemPromptChange={setSystemPrompt}
             onSave={handleSaveSettings}
+            workerStatuses={workerStatuses}
             loading={saveLoading}
           />
         </div>

@@ -66,6 +66,7 @@ PROVIDERS = {
         "displayNames": {
             "gemini-3.1-pro-preview": "Gemini 3.1 Pro (Preview)",
             "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite (Preview)",
+            "gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
             "gemini-3-flash-preview": "Gemini 3 Flash (Preview)",
             "gemini-2.5-pro": "Gemini 2.5 Pro",
             "gemini-2.5-flash": "Gemini 2.5 Flash",
@@ -215,6 +216,8 @@ class LLMClient:
 
         self.temperature = config.get("temperature", 0.3)
         self.max_tokens = config.get("maxTokensPerIteration", 16000)
+        self.worker_label = config.get("workerLabel", "")
+        self._log_callback = config.get("logCallback")
         self._client = None
         self._extra_body: Optional[Dict[str, Any]] = None  # provider-specific extra params (e.g. DeepSeek thinking)
         self._init_provider(config)
@@ -280,8 +283,9 @@ class LLMClient:
             self._init_openai_compat(config.get("moonshotApiKey", ""), PROVIDERS["moonshot"]["baseUrl"])
         elif p == "deepseek":
             thinking = config.get("deepseekThinking", False)
+            effort = config.get("deepseekReasoningEffort", "high")
             self._extra_body = (
-                {"thinking": {"type": "enabled", "reasoning_effort": "high"}}
+                {"thinking": {"type": "enabled", "reasoning_effort": effort}}
                 if thinking else None
             )
             self._init_openai_compat(config.get("deepseekApiKey", ""), PROVIDERS["deepseek"]["baseUrl"])
@@ -338,7 +342,7 @@ class LLMClient:
                 transport=transport,
             )
             if not http2_supported:
-                print("[OpenAICompat] HTTP/2 disabled (package 'h2' not installed), using HTTP/1.1")
+                self._log("[OpenAICompat] HTTP/2 disabled (package 'h2' not installed), using HTTP/1.1")
         else:
             # read=None: no per-chunk read timeout — slow models can pause
             # arbitrarily long mid-stream without the client killing the connection.
@@ -353,10 +357,20 @@ class LLMClient:
         self._client_type = "openai"
 
         if optimize_stream and default_headers:
-            print(
+            self._log(
                 "[OpenAICompat] Stream tuning enabled | default headers: "
                 + ", ".join(default_headers.keys())
             )
+
+    def _log(self, message: str):
+        prefix = f"[{self.worker_label}] " if self.worker_label else ""
+        line = prefix + message
+        print(line)
+        if callable(self._log_callback):
+            try:
+                self._log_callback(line)
+            except Exception:
+                pass
 
     def _init_anthropic(self, api_key: str):
         if not api_key:
@@ -379,9 +393,9 @@ class LLMClient:
         mode_label = "stream" if stream else "sync"
         model_display = get_model_display_name(self.provider, self.model) if self.model in PROVIDERS.get(self.provider, {}).get("displayNames", {}) else self.model
 
-        print(f"[API →] {self.provider} / {model_display} | {mode_label} | "
-              f"max_tokens={mt} | temp={temp} | "
-              f"msgs={len(messages)} | ~{input_tokens_est} tok input")
+        self._log(f"[API →] {self.provider} / {model_display} | {mode_label} | "
+                  f"max_tokens={mt} | temp={temp} | "
+                  f"msgs={len(messages)} | ~{input_tokens_est} tok input")
 
         t0 = time.time()
 
@@ -398,11 +412,11 @@ class LLMClient:
             elapsed = time.time() - t0
             try:
                 usage = result.usage
-                print(f"[API ←] done in {elapsed:.1f}s | "
-                      f"in={usage.prompt_tokens} out={usage.completion_tokens} "
-                      f"total={usage.total_tokens} tok")
+                self._log(f"[API ←] done in {elapsed:.1f}s | "
+                          f"in={usage.prompt_tokens} out={usage.completion_tokens} "
+                          f"total={usage.total_tokens} tok")
             except Exception:
-                print(f"[API ←] done in {elapsed:.1f}s")
+                self._log(f"[API ←] done in {elapsed:.1f}s")
 
         return result
 
