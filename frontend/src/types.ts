@@ -4,7 +4,7 @@
 
 // Config
 export interface AppConfig {
-  provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'openaicompat'
+  provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'mimo' | 'openaicompat'
   model: string
   workers: WorkerProfile[]
   customModels: Record<string, string> // provider -> custom model name
@@ -19,6 +19,9 @@ export interface AppConfig {
   deepseekApiKey: string
   deepseekThinking: boolean
   deepseekReasoningEffort: 'low' | 'medium' | 'high'
+  mimoApiKey: string
+  mimoThinking: boolean
+  mimoReasoningEffort: 'low' | 'medium' | 'high'
   openaicompatApiKey: string
   openaicompatBaseUrl: string
   openaicompatUserAgent: string
@@ -255,6 +258,17 @@ export const PROVIDERS: Record<string, {
     label: 'DeepSeek',
     docsUrl: 'https://api-docs.deepseek.com/',
     apiKeyName: 'deepseekApiKey',
+  },
+  mimo: {
+    models: ['mimo-v2.5-pro', 'mimo-v2.5'],
+    displayNames: {
+      'mimo-v2.5-pro': 'MiMo V2.5 Pro',
+      'mimo-v2.5': 'MiMo V2.5',
+    },
+    baseUrl: 'https://api.xiaomimimo.com/v1',
+    label: 'Xiaomi MiMo',
+    docsUrl: 'https://platform.xiaomimimo.com/docs/en-US/welcome',
+    apiKeyName: 'mimoApiKey',
   },
   openaicompat: {
     models: [] as string[],

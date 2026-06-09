@@ -129,6 +129,17 @@ PROVIDERS = {
         "docsUrl": "https://api-docs.deepseek.com/",
         "apiKeyName": "deepseekApiKey",
     },
+    "mimo": {
+        "models": ["mimo-v2.5-pro", "mimo-v2.5"],
+        "displayNames": {
+            "mimo-v2.5-pro": "MiMo V2.5 Pro",
+            "mimo-v2.5": "MiMo V2.5",
+        },
+        "baseUrl": "https://api.xiaomimimo.com/v1",
+        "label": "Xiaomi MiMo",
+        "docsUrl": "https://platform.xiaomimimo.com/docs/en-US/welcome",
+        "apiKeyName": "mimoApiKey",
+    },
     "openaicompat": {
         "models": [],
         "displayNames": {},
@@ -289,6 +300,19 @@ class LLMClient:
                 if thinking else None
             )
             self._init_openai_compat(config.get("deepseekApiKey", ""), PROVIDERS["deepseek"]["baseUrl"])
+        elif p == "mimo":
+            # MiMo thinking is ON by default; turn off by passing enable_thinking=False.
+            # When ON, reasoning_effort controls depth (low/medium/high).
+            thinking = config.get("mimoThinking", True)
+            effort = config.get("mimoReasoningEffort", "medium")
+            if thinking:
+                self._extra_body = {
+                    "chat_template_kwargs": {"enable_thinking": True},
+                    "reasoning_effort": effort,
+                }
+            else:
+                self._extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
+            self._init_openai_compat(config.get("mimoApiKey", ""), PROVIDERS["mimo"]["baseUrl"])
         elif p == "openaicompat":
             self._extra_body = None
             self._init_openai_compat(
@@ -481,7 +505,7 @@ class LLMClient:
             self.model = raw_model
         self.temperature = config.get("temperature", self.temperature)
         self.max_tokens = config.get("maxTokensPerIteration", self.max_tokens)
-        if self.provider != old_provider or self.provider in ("openaicompat", "deepseek", "zhipuai"):
+        if self.provider != old_provider or self.provider in ("openaicompat", "deepseek", "zhipuai", "mimo"):
             self._init_provider(config)
 
 

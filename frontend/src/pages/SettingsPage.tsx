@@ -28,6 +28,7 @@ const API_KEY_FIELDS: Array<{
   { provider: 'xai',          field: 'xaiApiKey',          label: 'xAI (Grok)' },
   { provider: 'moonshot',     field: 'moonshotApiKey',     label: 'Moonshot AI (Kimi)' },
   { provider: 'deepseek',     field: 'deepseekApiKey',     label: 'DeepSeek', hasThinkingToggle: true },
+  { provider: 'mimo',         field: 'mimoApiKey',         label: 'Xiaomi MiMo', hasThinkingToggle: true },
   { provider: 'openaicompat', field: 'openaicompatApiKey', label: 'OpenAI Compatible', hasBaseUrl: true },
 ]
 
@@ -380,6 +381,8 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   const [deepseekThinking, setDeepseekThinking] = useState(config.deepseekThinking ?? false)
   const [deepseekReasoningEffort, setDeepseekReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.deepseekReasoningEffort ?? 'high')
   const [zhipuaiThinking, setZhipuaiThinking] = useState(config.zhipuaiThinking ?? true)
+  const [mimoThinking, setMimoThinking] = useState(config.mimoThinking ?? true)
+  const [mimoReasoningEffort, setMimoReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.mimoReasoningEffort ?? 'medium')
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
@@ -394,6 +397,8 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     updated.deepseekThinking = deepseekThinking
     updated.deepseekReasoningEffort = deepseekReasoningEffort
     updated.zhipuaiThinking = zhipuaiThinking
+    updated.mimoThinking = mimoThinking
+    updated.mimoReasoningEffort = mimoReasoningEffort
     return updated
   }
 
@@ -483,16 +488,32 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
             )}
             {hasThinkingToggle && (() => {
               const isZhipuai = provider === 'zhipuai'
-              const thinkingOn = isZhipuai ? zhipuaiThinking : deepseekThinking
+              const isDeepseek = provider === 'deepseek'
+              const isMimo = provider === 'mimo'
+              const thinkingOn = isZhipuai ? zhipuaiThinking : isDeepseek ? deepseekThinking : mimoThinking
+              const hasEffort = (isDeepseek || isMimo) && thinkingOn
+              const currentEffort = isDeepseek ? deepseekReasoningEffort : mimoReasoningEffort
+              const thinkingDesc = isZhipuai
+                ? t.settings.zhipuaiThinkingDesc
+                : isDeepseek
+                  ? t.settings.deepseekThinkingDesc
+                  : t.settings.mimoThinkingDesc
+              const effortDesc = isDeepseek ? t.settings.deepseekReasoningEffortDesc : t.settings.mimoReasoningEffortDesc
               const toggle = () => {
                 if (isZhipuai) setZhipuaiThinking(v => !v)
-                else setDeepseekThinking(v => !v)
+                else if (isDeepseek) setDeepseekThinking(v => !v)
+                else if (isMimo) setMimoThinking(v => !v)
+                setTestResult(null)
+              }
+              const setEffort = (v: 'low' | 'medium' | 'high') => {
+                if (isDeepseek) setDeepseekReasoningEffort(v)
+                else if (isMimo) setMimoReasoningEffort(v)
                 setTestResult(null)
               }
               const EFFORT_OPTIONS: Array<{ value: 'low' | 'medium' | 'high'; label: string; color: string }> = [
-                { value: 'low',    label: 'LOW',    color: '#28E272' },
-                { value: 'medium', label: 'MED',    color: '#FFD600' },
-                { value: 'high',   label: 'HIGH',   color: '#FF3C3C' },
+                { value: 'low',    label: 'LOW',  color: '#28E272' },
+                { value: 'medium', label: 'MED',  color: '#FFD600' },
+                { value: 'high',   label: 'HIGH', color: '#FF3C3C' },
               ]
               return (
                 <>
@@ -502,7 +523,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                         {t.settings.deepseekThinking}
                       </span>
                       <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                        {isZhipuai ? t.settings.zhipuaiThinkingDesc : t.settings.deepseekThinkingDesc}
+                        {thinkingDesc}
                       </p>
                     </div>
                     <button
@@ -523,28 +544,28 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                       {thinkingOn ? 'ON' : 'OFF'}
                     </button>
                   </div>
-                  {!isZhipuai && thinkingOn && (
+                  {hasEffort && (
                     <div className="mt-1 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', borderTop: 'none', backgroundColor: 'var(--color-surface-2)' }}>
                       <div>
                         <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                           {t.settings.deepseekReasoningEffort}
                         </span>
                         <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                          {t.settings.deepseekReasoningEffortDesc}
+                          {effortDesc}
                         </p>
                       </div>
                       <div className="flex gap-1" style={{ flexShrink: 0, marginLeft: '12px' }}>
                         {EFFORT_OPTIONS.map(opt => (
                           <button
                             key={opt.value}
-                            onClick={() => { setDeepseekReasoningEffort(opt.value); setTestResult(null) }}
+                            onClick={() => setEffort(opt.value)}
                             style={{
                               padding: '4px 10px',
                               fontSize: '11px',
                               fontWeight: 700,
                               border: '2px solid var(--color-border)',
-                              backgroundColor: deepseekReasoningEffort === opt.value ? opt.color : 'var(--color-surface)',
-                              color: deepseekReasoningEffort === opt.value ? '#111' : 'var(--color-text-muted)',
+                              backgroundColor: currentEffort === opt.value ? opt.color : 'var(--color-surface)',
+                              color: currentEffort === opt.value ? '#111' : 'var(--color-text-muted)',
                               cursor: 'pointer',
                               textTransform: 'uppercase',
                               letterSpacing: '0.4px',

@@ -77,6 +77,8 @@ const en: TranslationStrings = {
     zhipuaiThinkingDesc: 'GLM thinking is ON by default. Disable to get faster, cheaper output.',
     deepseekReasoningEffort: 'Reasoning Effort',
     deepseekReasoningEffortDesc: 'How deep the model thinks. High = best quality but slowest.',
+    mimoThinkingDesc: 'MiMo thinking is ON by default. Disable to get faster, cheaper output.',
+    mimoReasoningEffortDesc: 'How deep the model thinks. High = best quality but slowest.',
   },
 
   seriesSettings: {

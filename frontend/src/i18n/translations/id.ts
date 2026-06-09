@@ -79,6 +79,8 @@ const id = {
     zhipuaiThinkingDesc: 'GLM thinking aktif secara default. Matikan untuk output lebih cepat dan hemat.',
     deepseekReasoningEffort: 'Reasoning Effort',
     deepseekReasoningEffortDesc: 'Seberapa dalam model berpikir. High = terbaik tapi paling lambat.',
+    mimoThinkingDesc: 'MiMo thinking aktif secara default. Matikan untuk output lebih cepat dan hemat.',
+    mimoReasoningEffortDesc: 'Seberapa dalam model berpikir. High = terbaik tapi paling lambat.',
   },
 
   // Series Settings page
