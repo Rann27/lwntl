@@ -1,6 +1,8 @@
 """
 Worker Manager
-Coordinates worker profiles, per-series assignment, and concurrent translation jobs.
+Coordinates worker profiles and concurrent translation jobs.
+Workers are not locked to a single series; any series uses any worker with an open slot.
+The series.workerId field is a preference hint, not a hard assignment.
 """
 
 import threading
@@ -16,15 +18,16 @@ from .translator import Translator
 
 
 class WorkerManager:
-    """Run translations concurrently while keeping one worker per active series."""
+    """Run translations concurrently. Workers may handle multiple jobs up to maxConcurrent."""
 
     def __init__(self, window_eval=None):
         self.window_eval = window_eval
         self._lock = threading.RLock()
         self._jobs: Dict[str, Dict[str, Any]] = {}
-        self._worker_jobs: Dict[str, str] = {}
+        self._worker_jobs: Dict[str, List[str]] = defaultdict(list)
         self._series_jobs: Dict[str, str] = {}
         self._logs = defaultdict(lambda: deque(maxlen=1000))
+        self._series_logs = defaultdict(lambda: deque(maxlen=2000))
 
     def set_window_eval(self, window_eval):
         self.window_eval = window_eval
@@ -38,18 +41,6 @@ class WorkerManager:
                 return worker
         return None
 
-    def _resolve_series_worker_id(self, series_id: str) -> str:
-        series = get_series(series_id)
-        workers = self._get_workers()
-        if not workers:
-            raise ValueError("Belum ada worker. Tambahkan worker di Settings.")
-
-        worker_id = (series or {}).get("workerId") or ""
-        if worker_id and self._get_worker(worker_id):
-            return worker_id
-
-        return workers[0]["id"]
-
     def _build_worker_config(self, worker: Dict[str, Any]) -> Dict[str, Any]:
         config = get_config()
         result = {**config}
@@ -59,7 +50,7 @@ class WorkerManager:
         result["logCallback"] = lambda line, wid=worker.get("id", "unknown"): self.log(wid, line, already_prefixed=True)
         return result
 
-    def log(self, worker_id: str, message: str, already_prefixed: bool = False):
+    def log(self, worker_id: str, message: str, already_prefixed: bool = False, series_id: str = ""):
         worker = self._get_worker(worker_id) or {}
         label = worker.get("label", worker_id or "worker")
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -68,6 +59,8 @@ class WorkerManager:
             print(line)
         with self._lock:
             self._logs[worker_id].append(f"{timestamp} {line}")
+            if series_id:
+                self._series_logs[series_id].append(f"{timestamp} {line}")
 
     def get_logs(self, worker_id: Optional[str] = None) -> Dict[str, Any]:
         with self._lock:
@@ -79,13 +72,14 @@ class WorkerManager:
         all_lines.sort()
         return {"workerId": "all", "lines": all_lines[-2000:]}
 
+    def get_series_logs(self, series_id: str) -> Dict[str, Any]:
+        with self._lock:
+            return {"seriesId": series_id, "lines": list(self._series_logs.get(series_id, []))}
+
     def get_statuses(self) -> List[Dict[str, Any]]:
         with self._lock:
-            active_by_worker = {
-                worker_id: self._jobs[job_id]
-                for worker_id, job_id in self._worker_jobs.items()
-                if job_id in self._jobs
-            }
+            worker_jobs_snapshot = {k: list(v) for k, v in self._worker_jobs.items()}
+            jobs_snapshot = dict(self._jobs)
 
         assigned: Dict[str, List[str]] = {}
         for series in get_all_series():
@@ -95,47 +89,72 @@ class WorkerManager:
 
         statuses = []
         for worker in self._get_workers():
-            provider = worker.get("provider", "")
-            model = worker.get("model", "")
-            active_job = active_by_worker.get(worker.get("id"))
+            wid = worker.get("id")
+            job_ids = worker_jobs_snapshot.get(wid, [])
+            active_jobs = [jobs_snapshot[jid] for jid in job_ids if jid in jobs_snapshot]
+            max_c = int(worker.get("maxConcurrent") or 1)
+            first_job = active_jobs[0] if active_jobs else None
             statuses.append({
-                "id": worker.get("id"),
+                "id": wid,
                 "label": worker.get("label", ""),
-                "provider": provider,
-                "model": model,
-                "modelDisplay": get_model_display_name(provider, model),
-                "active": bool(active_job),
-                "jobId": active_job.get("jobId") if active_job else None,
-                "seriesId": active_job.get("seriesId") if active_job else None,
-                "chapterId": active_job.get("chapterId") if active_job else None,
-                "assignedSeriesIds": assigned.get(worker.get("id"), []),
+                "provider": worker.get("provider", ""),
+                "model": worker.get("model", ""),
+                "modelDisplay": get_model_display_name(worker.get("provider", ""), worker.get("model", "")),
+                "active": bool(active_jobs),
+                "activeCount": len(active_jobs),
+                "maxConcurrent": max_c,
+                "jobId": first_job.get("jobId") if first_job else None,
+                "seriesId": first_job.get("seriesId") if first_job else None,
+                "chapterId": first_job.get("chapterId") if first_job else None,
+                "assignedSeriesIds": assigned.get(wid, []),
             })
         return statuses
 
     def _reserve(self, series_id: str, chapter_id: Optional[str], kind: str) -> Dict[str, Any]:
-        worker_id = self._resolve_series_worker_id(series_id)
-        worker = self._get_worker(worker_id)
-        if not worker:
-            raise ValueError("Worker tidak ditemukan.")
+        workers = self._get_workers()
+        if not workers:
+            raise ValueError("Belum ada worker. Tambahkan worker di Settings.")
 
         with self._lock:
-            if worker_id in self._worker_jobs:
-                raise ValueError("Worker sedang bekerja. Pilih worker idle atau tunggu proses selesai.")
             if series_id in self._series_jobs:
                 raise ValueError("Series ini sedang diproses. Satu series hanya bisa memakai satu worker aktif.")
 
+            series = get_series(series_id)
+            preferred_id = (series or {}).get("workerId") or ""
+
+            def has_slot(w: Dict[str, Any]) -> bool:
+                wid = w.get("id")
+                max_c = int(w.get("maxConcurrent") or 1)
+                return len(self._worker_jobs.get(wid, [])) < max_c
+
+            chosen_worker = None
+            if preferred_id:
+                for w in workers:
+                    if w.get("id") == preferred_id and has_slot(w):
+                        chosen_worker = w
+                        break
+            if not chosen_worker:
+                for w in workers:
+                    if has_slot(w):
+                        chosen_worker = w
+                        break
+
+            if not chosen_worker:
+                raise ValueError("Semua worker sedang penuh. Tunggu hingga ada slot tersedia.")
+
+            worker_id = chosen_worker.get("id")
             job_id = str(uuid.uuid4())
             job = {
                 "jobId": job_id,
                 "kind": kind,
                 "workerId": worker_id,
-                "workerLabel": worker.get("label", ""),
+                "workerLabel": chosen_worker.get("label", ""),
                 "seriesId": series_id,
                 "chapterId": chapter_id,
                 "translator": None,
             }
             self._jobs[job_id] = job
-            self._worker_jobs[worker_id] = job_id
+            self._worker_jobs[worker_id].append(job_id)
             self._series_jobs[series_id] = job_id
             return job
 
@@ -144,7 +163,14 @@ class WorkerManager:
             job = self._jobs.pop(job_id, None)
             if not job:
                 return
-            self._worker_jobs.pop(job.get("workerId"), None)
+            worker_id = job.get("workerId")
+            if worker_id in self._worker_jobs:
+                try:
+                    self._worker_jobs[worker_id].remove(job_id)
+                except ValueError:
+                    pass
+                if not self._worker_jobs[worker_id]:
+                    del self._worker_jobs[worker_id]
             self._series_jobs.pop(job.get("seriesId"), None)
 
     def start_translation(
@@ -162,17 +188,17 @@ class WorkerManager:
             job_id=job["jobId"],
             worker_id=job["workerId"],
             worker_label=job["workerLabel"],
-            log_callback=lambda line, wid=job["workerId"]: self.log(wid, line, already_prefixed=True),
+            log_callback=lambda line, wid=job["workerId"], sid=series_id: self.log(wid, line, already_prefixed=True, series_id=sid),
         )
         translator._glossary_pre_filter = get_config().get("glossaryPreFilter", True)
         job["translator"] = translator
-        self.log(job["workerId"], f"Starting single translation: series={series_id} chapter={chapter_id}")
+        self.log(job["workerId"], f"Starting single translation: series={series_id} chapter={chapter_id}", series_id=series_id)
 
         def run():
             try:
                 translator._translate(series_id, chapter_id, archive_previous=archive_previous)
             finally:
-                self.log(job["workerId"], f"Finished single translation: series={series_id} chapter={chapter_id}")
+                self.log(job["workerId"], f"Finished single translation: series={series_id} chapter={chapter_id}", series_id=series_id)
                 self._release(job["jobId"])
 
         threading.Thread(target=run, daemon=True).start()
@@ -194,11 +220,11 @@ class WorkerManager:
             job_id=job["jobId"],
             worker_id=job["workerId"],
             worker_label=job["workerLabel"],
-            log_callback=lambda line, wid=job["workerId"]: self.log(wid, line, already_prefixed=True),
+            log_callback=lambda line, wid=job["workerId"], sid=series_id: self.log(wid, line, already_prefixed=True, series_id=sid),
         )
         translator._glossary_pre_filter = get_config().get("glossaryPreFilter", True)
         job["translator"] = translator
-        self.log(job["workerId"], f"Starting batch translation: series={series_id} total={len(chapter_ids)}")
+        self.log(job["workerId"], f"Starting batch translation: series={series_id} total={len(chapter_ids)}", series_id=series_id)
 
         def run():
             try:
@@ -213,7 +239,7 @@ class WorkerManager:
                     archive_previous=archive_previous,
                 )
             finally:
-                self.log(job["workerId"], f"Finished batch translation: series={series_id}")
+                self.log(job["workerId"], f"Finished batch translation: series={series_id}", series_id=series_id)
                 self._release(job["jobId"])
 
         threading.Thread(target=run, daemon=True).start()

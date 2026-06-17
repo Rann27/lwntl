@@ -39,6 +39,7 @@ DEFAULT_CONFIG = {
             "label": "worker 1",
             "provider": "zhipuai",
             "model": "glm-5",
+            "maxConcurrent": 1,
         }
     ],
     "customModels": {},
@@ -98,6 +99,7 @@ def _normalize_workers(config: Dict[str, Any]) -> Dict[str, Any]:
             "label": str(worker.get("label") or f"worker {i}").strip() or f"worker {i}",
             "provider": str(worker.get("provider") or config.get("provider", DEFAULT_CONFIG["provider"])),
             "model": str(worker.get("model") or config.get("model", DEFAULT_CONFIG["model"])),
+            "maxConcurrent": max(1, int(worker.get("maxConcurrent") or 1)),
         })
 
     if not normalized:

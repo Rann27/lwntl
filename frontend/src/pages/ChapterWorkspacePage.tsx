@@ -77,6 +77,7 @@ export function ChapterWorkspacePage() {
 
   const [isSavingRaw, setIsSavingRaw] = useState(false)
   const [isRawDirty, setIsRawDirty] = useState(false)
+  const [rawViewMode, setRawViewMode] = useState<'plain' | 'doc'>('plain')
   const rawRef = useRef<HTMLTextAreaElement>(null)
 
   // Re-translate confirmation + version history
@@ -99,6 +100,11 @@ export function ChapterWorkspacePage() {
     resetTranslation,
   } = useTranslation(seriesId!, chapterId!)
 
+  // Ref so loadChapter (a stable callback) can read the live isTranslating value
+  // without being recreated every time isTranslating changes.
+  const isTranslatingRef = useRef(isTranslating)
+  useEffect(() => { isTranslatingRef.current = isTranslating }, [isTranslating])
+
   // Load chapter data + context info + series glossary
   const loadChapter = useCallback(async () => {
     if (!seriesId || !chapterId) return
@@ -109,10 +115,12 @@ export function ChapterWorkspacePage() {
       ])
       setChapter(ch)
       setSeriesGlossary(gloss)
-      // Free the cached streamingText from the store once fresh data is loaded from disk.
-      // streamingText only needs to exist during the brief window between translation
-      // completion and this loadChapter finishing.
-      useAppStore.getState().clearChapterStreamingText(`${seriesId}:${chapterId}`)
+      // Only free the cached streamingText once fresh data is on disk.
+      // If translation is still in progress (e.g. user navigated here mid-stream),
+      // keep the buffer alive so the full streamed text remains visible.
+      if (!isTranslatingRef.current) {
+        useAppStore.getState().clearChapterStreamingText(`${seriesId}:${chapterId}`)
+      }
       try {
         const info = await getContextInfo(seriesId, chapterId)
         setContextInfo(info)
@@ -434,21 +442,42 @@ export function ChapterWorkspacePage() {
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
               {t.chapter.rawContent}
             </span>
-            <button
-              onClick={handleSaveRaw}
-              disabled={!isRawDirty || isSavingRaw || isTranslating}
-              className="flex items-center gap-1"
-              style={{
-                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
-                padding: '3px 8px', border: '1.5px solid var(--color-border)',
-                backgroundColor: '#28E272', color: '#111',
-                cursor: (!isRawDirty || isSavingRaw || isTranslating) ? 'not-allowed' : 'pointer',
-                opacity: (!isRawDirty || isSavingRaw || isTranslating) ? 0.35 : 1,
-                transition: 'opacity 150ms',
-              }}
-            >
-              <Save size={10} /> {isSavingRaw ? t.common.saving : t.common.save}
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Plain / Doc toggle */}
+              <div className="flex" style={{ border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+                {(['plain', 'doc'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setRawViewMode(mode)}
+                    style={{
+                      fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                      padding: '2px 8px', border: 'none',
+                      borderRight: mode === 'plain' ? '1px solid var(--color-border)' : 'none',
+                      backgroundColor: rawViewMode === mode ? '#00F7FF' : 'transparent',
+                      color: rawViewMode === mode ? '#111' : 'var(--color-text-muted)',
+                      cursor: 'pointer', transition: 'background 0.1s',
+                    }}
+                  >
+                    {mode === 'plain' ? 'Plain' : 'Doc'}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={handleSaveRaw}
+                disabled={!isRawDirty || isSavingRaw || isTranslating || rawViewMode === 'doc'}
+                className="flex items-center gap-1"
+                style={{
+                  fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                  padding: '3px 8px', border: '1.5px solid var(--color-border)',
+                  backgroundColor: '#28E272', color: '#111',
+                  cursor: (!isRawDirty || isSavingRaw || isTranslating) ? 'not-allowed' : 'pointer',
+                  opacity: (!isRawDirty || isSavingRaw || isTranslating) ? 0.35 : 1,
+                  transition: 'opacity 150ms',
+                }}
+              >
+                <Save size={10} /> {isSavingRaw ? t.common.saving : t.common.save}
+              </button>
+            </div>
           </div>
 
           {/* Warning note — fixed height, only when translation exists */}
@@ -462,15 +491,16 @@ export function ChapterWorkspacePage() {
             </div>
           )}
 
-          {/* Textarea — fills remaining space via flex: 1 */}
+          {/* Textarea — always in DOM so rawRef stays valid; hidden in Doc mode */}
           <textarea
             key={chapter.id}
             ref={rawRef}
             defaultValue={chapter.rawContent || ''}
             onInput={handleRawInput}
-            disabled={isTranslating}
+            disabled={isTranslating || rawViewMode === 'doc'}
             style={{
-              flex: '1 1 0',
+              flex: rawViewMode === 'plain' ? '1 1 0' : '0 0 0',
+              display: rawViewMode === 'plain' ? undefined : 'none',
               minHeight: 0,
               padding: '16px',
               fontFamily: "'Courier New', Courier, monospace",
@@ -485,6 +515,12 @@ export function ChapterWorkspacePage() {
               overflowY: 'auto',
             }}
           />
+          {/* Doc view — markdown renderer for formatted source content */}
+          {rawViewMode === 'doc' && (
+            <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
+              <MarkdownRenderer content={rawRef.current?.value ?? chapter.rawContent ?? ''} />
+            </div>
+          )}
         </div>
 
         {/* Resizable Divider */}

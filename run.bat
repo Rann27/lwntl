@@ -68,6 +68,8 @@ echo.
 echo [4/4] Starting LWNTL...
 echo.
 cd /d "%ROOT%"
+set PYTHONIOENCODING=utf-8
+set PYTHONUTF8=1
 "%ROOT%\venv\Scripts\python.exe" "%ROOT%\main.py"
 if errorlevel 1 (
     echo.

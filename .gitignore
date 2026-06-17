@@ -11,6 +11,7 @@ env/
 dist/
 build/
 *.spec
+!lwntl.spec
 
 # ── App data / user config (API keys & personal data live here) ───────
 # The runtime data directory is OS-specific (%APPDATA%/lwntl etc.)
@@ -48,5 +49,14 @@ LWNTL-SPEC.md
 DESIGN-SPEC.md
 
 # ── Personal prompt files ─────────────────────────────────────────────
-system prompt.txt
-instructions prompt.txt
+system prompt*.txt
+instructions prompt*.txt
+
+# ── Diagnostic / test scripts (diag_*.py) ─────────────────────────────
+diag_*.py
+
+# ── Test / sample documents ───────────────────────────────────────────
+*.pdf
+
+# ── Word temp files ───────────────────────────────────────────────────
+~$*

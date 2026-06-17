@@ -41,15 +41,28 @@ export interface WorkerProfile {
   label: string
   provider: AppConfig['provider']
   model: string
+  maxConcurrent?: number
 }
 
 export interface WorkerStatus extends WorkerProfile {
   modelDisplay: string
   active: boolean
+  activeCount?: number
+  maxConcurrent: number
   jobId?: string | null
   seriesId?: string | null
   chapterId?: string | null
   assignedSeriesIds: string[]
+}
+
+// Series Group (hierarchical organization, max 3 levels)
+export interface SeriesGroup {
+  id: string
+  name: string
+  parentId: string | null
+  color: string
+  createdAt: string
+  updatedAt: string
 }
 
 // Series
@@ -58,6 +71,7 @@ export interface Series {
   title: string
   sourceLanguage: string
   targetLanguage: string
+  groupId: string | null
   workerId: string
   systemPrompt: string
   instructions: string

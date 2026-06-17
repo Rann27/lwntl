@@ -44,10 +44,33 @@ const id = {
   home: {
     title: 'KOLEKSI SERIES',
     addSeries: '+ TAMBAH SERIES',
+    addGroup: '+ BUAT GRUP',
     emptyTitle: 'Belum Ada Series',
     emptyDesc: 'Klik "+ TAMBAH SERIES" untuk memulai proyek terjemahan pertamamu!',
     chapters: 'bab',
     language: 'Bahasa',
+    ungrouped: 'Belum Dikelompokkan',
+    allSeries: 'Semua',
+  },
+
+  // Group
+  group: {
+    series: 'series',
+    subgroups: 'sub-grup',
+    translated: 'diterjemahkan',
+    rename: 'Ganti Nama',
+    changeColor: 'Ganti Warna',
+    addSubGroup: 'Tambah Sub-Grup',
+    delete: 'Hapus Grup',
+    moveToGroup: 'Pindah ke Grup',
+    moveModalTitle: 'Pindah ke Grup',
+    ungrouped: 'Tanpa Grup (Root)',
+    maxDepth: 'Sudah di level terdalam (maks. 3)',
+    newGroupName: 'Nama grup baru',
+    editGroupName: 'Nama grup',
+    colorLabel: 'Warna',
+    deleteConfirm: 'Hapus Grup',
+    deleteDesc: 'Sub-grup dan series di dalamnya akan dipindahkan ke grup induk.',
   },
 
   // Settings page
@@ -239,6 +262,9 @@ const id = {
     noSelection: 'Pilih minimal 1 bab terlebih dahulu.',
     autoApplied: 'Auto-apply glossary: {count} term baru ditambahkan.',
     retryFailed: 'RETRY GAGAL',
+    batchExport: 'EKSPOR SEMUA',
+    batchExportTitle: 'Ekspor Semua Bab',
+    batchExportNoTemplate: '(tanpa template)',
   },
 
   // Context Info

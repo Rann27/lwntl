@@ -3,15 +3,38 @@ LWNTL - LN/WN Translator
 PyWebView entry point
 """
 
+import sys
+import io
 import webview
 from pathlib import Path
 from api import API
+
+# Force UTF-8 on stdout/stderr — PyInstaller windowed exe uses cp1252 by default
+# which crashes on Japanese/Unicode chars (→, ♪, etc.) in translation logs.
+for _s in ('stdout', 'stderr'):
+    _stream = getattr(sys, _s, None)
+    if _stream is None:
+        continue
+    if hasattr(_stream, 'reconfigure'):
+        try:
+            _stream.reconfigure(encoding='utf-8', errors='replace')
+        except Exception:
+            pass
+    elif hasattr(_stream, 'buffer'):
+        setattr(sys, _s, io.TextIOWrapper(_stream.buffer, encoding='utf-8', errors='replace'))
 
 # Configuration
 DEBUG = False  # Set to True to use Vite dev server instead of built dist
 WINDOW_TITLE = "LWNTL - LN/WN Translator"
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 800
+
+
+def get_base_dir() -> Path:
+    """Return correct base directory for both normal and PyInstaller-frozen runs."""
+    if getattr(sys, 'frozen', False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).parent.resolve()
 
 
 def get_html_file():
@@ -23,16 +46,14 @@ def get_html_file():
     if DEBUG:
         return "http://localhost:5174/"
     else:
-        # Get the absolute path to frontend/dist/index.html
-        current_dir = Path(__file__).parent.resolve()
-        html_file = current_dir / "frontend" / "dist" / "index.html"
-        
+        html_file = get_base_dir() / "frontend" / "dist" / "index.html"
+
         if not html_file.exists():
             raise FileNotFoundError(
                 f"Built frontend not found at {html_file}.\n"
                 "Run 'npm run build' in the frontend directory first."
             )
-        
+
         return html_file.as_uri()
 
 

@@ -6,6 +6,7 @@
 import type {
   AppConfig,
   Series,
+  SeriesGroup,
   Chapter,
   GlossaryEntry,
   WorkerStatus,
@@ -70,6 +71,42 @@ export async function testConfig(): Promise<{ success: boolean; message: string 
   const api = getApi()
   const result = await api.test_config()
   return result
+}
+
+// ===== Groups =====
+export async function getGroups(): Promise<SeriesGroup[]> {
+  const api = getApi()
+  const result = await api.get_groups()
+  if (isApiError(result)) throw new Error(result.message)
+  return result as SeriesGroup[]
+}
+
+export async function createGroup(name: string, parentId?: string | null, color?: string): Promise<SeriesGroup> {
+  const api = getApi()
+  const result = await api.create_group(name, parentId || null, color || '')
+  if (isApiError(result)) throw new Error(result.message)
+  return result as SeriesGroup
+}
+
+export async function updateGroup(id: string, name?: string, color?: string): Promise<SeriesGroup> {
+  const api = getApi()
+  const result = await api.update_group(id, name ?? null, color ?? null)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as SeriesGroup
+}
+
+export async function deleteGroup(id: string): Promise<boolean> {
+  const api = getApi()
+  const result = await api.delete_group(id)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as boolean
+}
+
+export async function moveSeriestoGroup(seriesId: string, groupId: string | null): Promise<Series> {
+  const api = getApi()
+  const result = await api.move_series_to_group(seriesId, groupId || null)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as Series
 }
 
 // ===== Series =====
@@ -352,6 +389,13 @@ export async function exportSeries(seriesId: string): Promise<any> {
   return result
 }
 
+export async function exportSeriesMerged(seriesId: string): Promise<{ message: string; path: string; usedTemplate: boolean; cancelled?: boolean }> {
+  const api = getApi()
+  const result = await api.export_series_merged(seriesId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result
+}
+
 export async function exportGlossaryFile(seriesId: string, fmt: 'json' | 'csv', data: string): Promise<any> {
   const api = getApi()
   const result = await api.export_glossary_file(seriesId, fmt, data)
@@ -371,9 +415,29 @@ export async function getWorkerStatuses(): Promise<WorkerStatus[]> {
   return result as WorkerStatus[]
 }
 
+export async function getSeriesLogs(seriesId: string): Promise<{ seriesId: string; lines: string[] }> {
+  const api = getApi()
+  const result = await api.get_series_logs(seriesId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { seriesId: string; lines: string[] }
+}
+
 export async function getWorkerLogs(workerId = 'all'): Promise<{ workerId: string; lines: string[] }> {
   const api = getApi()
   const result = await api.get_worker_logs(workerId)
   if (isApiError(result)) throw new Error(result.message)
   return result as { workerId: string; lines: string[] }
+}
+
+export interface ParsedDocument {
+  title: string
+  content: string
+  charCount: number
+}
+
+export async function parseDocument(filename: string, dataBase64: string, mode: string = 'standard'): Promise<ParsedDocument> {
+  const api = getApi()
+  const result = await api.parse_document(filename, dataBase64, mode)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as ParsedDocument
 }

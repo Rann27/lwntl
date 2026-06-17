@@ -8,7 +8,12 @@ from core.storage.config import get_config, save_config, init_config, update_con
 from core.storage.series import (
     get_all_series, create_series, update_series as update_series_db,
     get_series, get_series_delete_info, delete_series,
-    save_instructions, add_glossary_entry, update_glossary_entry, delete_glossary_entry
+    save_instructions, add_glossary_entry, update_glossary_entry, delete_glossary_entry,
+    move_series_to_group as move_series_to_group_db,
+)
+from core.storage.groups import (
+    get_all_groups, create_group as create_group_db,
+    update_group as update_group_db, delete_group as delete_group_db,
 )
 from core.storage.chapters import (
     get_chapters, create_chapter, update_chapter as update_chapter_db,
@@ -90,6 +95,45 @@ class API:
             return result
         except Exception as e:
             return {"success": False, "message": "Test failed", "error": str(e)}
+
+    # Groups CRUD
+    def get_groups(self):
+        try:
+            return get_all_groups()
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def create_group(self, name: str, parent_id: str = None, color: str = ''):
+        try:
+            return create_group_db(name, parent_id or None, color)
+        except (ValueError, FileNotFoundError) as e:
+            return {"error": True, "message": str(e)}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def update_group(self, group_id: str, name: str = None, color: str = None):
+        try:
+            return update_group_db(group_id, name, color)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def delete_group(self, group_id: str):
+        """Delete group; child groups and series are re-parented to the deleted group's parent."""
+        try:
+            parent_id = delete_group_db(group_id)
+            # Re-parent series that were in this group
+            for s in get_all_series():
+                if s.get('groupId') == group_id:
+                    move_series_to_group_db(s['id'], parent_id)
+            return True
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def move_series_to_group(self, series_id: str, group_id: str = None):
+        try:
+            return move_series_to_group_db(series_id, group_id or None)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
 
     # Series CRUD
     def get_all_series(self):
@@ -280,6 +324,13 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
+    def get_series_logs(self, series_id: str):
+        """Get in-memory logs for a specific series."""
+        try:
+            return self._worker_manager.get_series_logs(series_id)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
     def get_worker_logs(self, worker_id: str = None):
         """Get in-memory worker logs."""
         try:
@@ -305,6 +356,26 @@ class API:
     def estimate_tokens(self, text: str):
         """Estimate token count for text"""
         return {"tokens": estimate_tokens(text)}
+
+    def parse_document(self, filename: str, data_base64: str, mode: str = 'standard'):
+        """Parse a .docx or .pdf file and return markdown content.
+        mode: 'standard' (default) or 'flow' (paragraph reconstruction for line-break PDFs).
+        """
+        try:
+            import base64
+            from core.document_parser import parse_docx, parse_pdf, parse_pdf_flow
+            data = base64.b64decode(data_base64)
+            ext = filename.lower().rsplit('.', 1)[-1]
+            if ext == 'docx':
+                return parse_docx(data, filename)
+            elif ext == 'pdf':
+                if mode == 'flow':
+                    return parse_pdf_flow(data, filename)
+                return parse_pdf(data, filename)
+            else:
+                return {"error": True, "message": f"Format tidak didukung: {ext}"}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
 
     def export_glossary_file(self, series_id: str, fmt: str, data: str):
         """Export glossary as JSON or CSV via native save dialog."""
@@ -439,4 +510,52 @@ class API:
 
         except Exception as e:
             print(f"[Export] Error: {e}")
+            return {"error": True, "message": str(e)}
+
+    def export_series_merged(self, series_id: str):
+        """Export all done chapters in a series into a single merged .docx (with template if available)."""
+        try:
+            import webview
+            from core.exporter import export_series_to_docx
+            from core.storage.chapters import get_chapters as _get_chapters, chapter_num_float
+
+            series   = get_series(series_id)
+            chapters = _get_chapters(series_id)
+
+            if not series:
+                return {"error": True, "message": "Series tidak ditemukan"}
+
+            done = [c for c in chapters if c.get("status") == "done" and c.get("translatedContent", "").strip()]
+            if not done:
+                return {"error": True, "message": "Tidak ada bab yang sudah diterjemahkan"}
+
+            done.sort(key=lambda c: chapter_num_float(c.get("chapterNumber", 0)))
+
+            safe_title = (series.get("title", "series") or "series").replace("\\", "-").replace("/", "-")[:50]
+            default_name = f"{safe_title} - Complete.docx"
+
+            result = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                directory="",
+                save_filename=default_name,
+                file_types=("Word Document (*.docx)",),
+            )
+            if not result:
+                return {"error": False, "cancelled": True, "message": "Dibatalkan"}
+
+            save_path = result if isinstance(result, str) else result[0]
+            if not save_path.lower().endswith('.docx'):
+                save_path += '.docx'
+
+            docx_bytes, used_template = export_series_to_docx(series, done)
+            with open(save_path, "wb") as f:
+                f.write(docx_bytes)
+
+            tpl_note = " (dengan template)" if used_template else ""
+            print(f"[Export] Merged {len(done)} chapters → {save_path}{tpl_note}")
+            return {"error": False, "message": f"{len(done)} bab diekspor{tpl_note}!", "path": save_path, "usedTemplate": used_template}
+
+        except Exception as e:
+            print(f"[Export] Merged error: {e}")
+            import traceback; traceback.print_exc()
             return {"error": True, "message": str(e)}

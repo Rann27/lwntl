@@ -130,6 +130,7 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
         label: `worker ${prev.length + 1}`,
         provider,
         model: provider === 'openaicompat' ? (config.model || '') : (models[0] || config.model || ''),
+        maxConcurrent: 1,
       },
     ])
   }
@@ -145,6 +146,7 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
       ...w,
       label: w.label.trim() || `worker ${i + 1}`,
       model: w.model.trim(),
+      maxConcurrent: Math.max(1, w.maxConcurrent ?? 1),
     }))
     await onSave({ ...config, workers: normalized })
     setSaving(false)
@@ -161,7 +163,7 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
         </button>
       </div>
       <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-        Setiap worker adalah slot AI terpisah untuk menjalankan translasi. Satu series memakai satu worker.
+        Setiap worker adalah slot AI terpisah. Worker tidak terkunci ke satu series — setiap request menggunakan worker dengan slot tersedia (prioritas ke worker pilihan series). Naikkan <strong>Max Concurrent</strong> untuk menjalankan beberapa translasi sekaligus dalam satu worker.
       </p>
 
       <div className="space-y-3">
@@ -228,6 +230,24 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
                     <option value="">Custom...</option>
                   </select>
                 )}
+              </div>
+
+              <div className="flex items-center gap-2 mt-2">
+                <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                  Max Concurrent
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={worker.maxConcurrent ?? 1}
+                  onChange={(e) => updateWorker(worker.id, { maxConcurrent: Math.max(1, Math.min(10, parseInt(e.target.value) || 1)) })}
+                  className="neo-input"
+                  style={{ width: '70px', padding: '4px 8px', fontSize: '13px', backgroundColor: 'var(--color-surface)', textAlign: 'center' }}
+                />
+                <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)' }}>
+                  jobs sekaligus (1–10)
+                </span>
               </div>
             </div>
           )

@@ -12,7 +12,7 @@ interface DeleteConfirmModalProps {
   onClose: () => void
   onConfirm: () => void
   title: string
-  entityType: 'series' | 'chapter' | 'glossary'
+  entityType: 'series' | 'chapter' | 'glossary' | 'group'
   entityName: string
   details?: string[]
   loading?: boolean
@@ -52,7 +52,7 @@ export function DeleteConfirmModal({
 
   if (!open) return null
 
-  const typeLabel = entityType === 'series' ? 'SERIES' : entityType === 'chapter' ? 'BAB' : 'ENTRI'
+  const typeLabel = entityType === 'series' ? 'SERIES' : entityType === 'chapter' ? 'BAB' : entityType === 'group' ? 'GRUP' : 'ENTRI'
 
   return (
     <div

@@ -1,11 +1,11 @@
 /**
  * LWNTL Series Card Component
- * Card with accent bar, title, language, progress, and context menu
+ * Card with accent bar, title, language, progress, context menu, and drag support.
  */
 
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreVertical, Edit, Settings, Trash2 } from 'lucide-react'
+import { MoreVertical, Edit, Settings, Trash2, FolderInput } from 'lucide-react'
 import { useI18n } from '../i18n'
 import type { Series, Chapter } from '../types'
 
@@ -14,9 +14,18 @@ interface SeriesCardProps {
   chapters: Chapter[]
   onEdit: (series: Series) => void
   onDelete: (series: Series) => void
+  onMoveToGroup?: (series: Series) => void
+  hasGroups?: boolean
+  // Drag
+  onDragStart?: (seriesId: string) => void
+  onDragEnd?: () => void
+  isDragging?: boolean
 }
 
-export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardProps) {
+export function SeriesCard({
+  series, chapters, onEdit, onDelete, onMoveToGroup, hasGroups,
+  onDragStart, onDragEnd, isDragging,
+}: SeriesCardProps) {
   const navigate = useNavigate()
   const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
@@ -26,7 +35,6 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
   const doneChapters = chapters.filter(c => c.status === 'done').length
   const progress = totalChapters > 0 ? Math.round((doneChapters / totalChapters) * 100) : 0
 
-  // Close menu on outside click
   useEffect(() => {
     if (!menuOpen) return
     const handler = (e: MouseEvent) => {
@@ -40,12 +48,22 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
 
   return (
     <div
-      className="neo-card cursor-pointer transition-all duration-150"
+      draggable
+      className="neo-card cursor-grab transition-all duration-150"
       style={{
         boxShadow: menuOpen ? '2px 2px 0px var(--color-border)' : undefined,
+        opacity: isDragging ? 0.4 : 1,
+        transform: isDragging ? 'scale(0.97)' : undefined,
+        userSelect: 'none',
       }}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('series-id', series.id)
+        e.dataTransfer.effectAllowed = 'move'
+        onDragStart?.(series.id)
+      }}
+      onDragEnd={() => onDragEnd?.()}
       onMouseEnter={(e) => {
-        if (!menuOpen) {
+        if (!menuOpen && !isDragging) {
           e.currentTarget.style.boxShadow = '6px 6px 0px var(--color-border)'
         }
       }}
@@ -80,10 +98,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
           {/* Menu button */}
           <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setMenuOpen(!menuOpen)
-              }}
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
               className="flex items-center justify-center w-8 h-8 transition-colors"
               style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
@@ -92,7 +107,6 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
               <MoreVertical size={18} style={{ color: 'var(--color-text-muted)' }} />
             </button>
 
-            {/* Dropdown menu */}
             {menuOpen && (
               <div
                 className="absolute right-0 top-full mt-1 z-50"
@@ -101,51 +115,49 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
                   border: '2.5px solid var(--color-border)',
                   boxShadow: 'var(--neo-shadow)',
                   minWidth: '180px',
-                  zIndex: 50,
                 }}
               >
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuOpen(false)
-                    onEdit(series)
-                  }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(series) }}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
                   style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <Edit size={14} />
-                  {t.seriesCard.edit}
+                  <Edit size={14} /> {t.seriesCard.edit}
                 </button>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuOpen(false)
-                    navigate(`/series/${series.id}/settings`)
-                  }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); navigate(`/series/${series.id}/settings`) }}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
                   style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <Settings size={14} />
-                  {t.seriesCard.settings}
+                  <Settings size={14} /> {t.seriesCard.settings}
                 </button>
+                {hasGroups && onMoveToGroup && (
+                  <>
+                    <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveToGroup(series) }}
+                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
+                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <FolderInput size={14} /> {t.group.moveToGroup}
+                    </button>
+                  </>
+                )}
                 <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setMenuOpen(false)
-                    onDelete(series)
-                  }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold transition-colors"
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(series) }}
+                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
                   style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: '#FF3C3C' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,60,60,0.08)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  <Trash2 size={14} />
-                  {t.seriesCard.delete}
+                  <Trash2 size={14} /> {t.seriesCard.delete}
                 </button>
               </div>
             )}
@@ -159,10 +171,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete }: SeriesCardPro
 
         {/* Progress bar */}
         <div className="neo-progress" style={{ height: '20px', marginBottom: '6px' }}>
-          <div
-            className="neo-progress-fill"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="neo-progress-fill" style={{ width: `${progress}%` }} />
         </div>
 
         {/* Progress text */}

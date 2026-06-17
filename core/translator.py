@@ -365,10 +365,17 @@ class Translator:
                 # Append to full translation
                 full_translation += chunk_text
                 
-                # Check if translation is complete
-                if "[SELESAI]" in chunk_text or self._is_translation_complete(chunk_text):
-                    # Remove [SELESAI] marker
-                    full_translation = full_translation.replace("[SELESAI]", "")
+                # Check if translation is complete.
+                # Note: stop markers are already stripped mid-stream by _stream_completion,
+                # so chunk_text won't contain them. These checks are a safety fallback.
+                _stop_markers = ("[DONE]", "[SELESAI]", "[END]")
+                if any(m in chunk_text for m in _stop_markers) or self._is_translation_complete(chunk_text):
+                    # Strip any marker that slipped through (e.g. from sync fallback path)
+                    for m in _stop_markers:
+                        if m in full_translation:
+                            idx = full_translation.index(m)
+                            full_translation = full_translation[:idx].rstrip()
+                            break
                     break
                 
                 # Estimate remaining content (simple heuristic)
@@ -382,6 +389,12 @@ class Translator:
                 # Translation was cancelled
                 self._send_status("cancelled")
                 return
+
+            # Final safety: strip any completion marker that survived (e.g. sync fallback path)
+            for _m in ("[DONE]", "[SELESAI]", "[END]"):
+                if _m in full_translation:
+                    full_translation = full_translation[:full_translation.index(_m)].rstrip()
+                    break
 
             # Do not continue with summary/extraction if main translation is empty
             # or suspiciously short compared to raw content (thinking-mode models
@@ -504,6 +517,11 @@ class Translator:
         t0 = time.time()
         first_token_at = None
         thinking_chars = 0
+        # Completion markers — when any appear in the output, stop streaming immediately.
+        # Without this, models that output [DONE] continue generating duplicate content
+        # because the LLM has no built-in "stop here" concept beyond stop sequences
+        # (which we cannot reliably use across all providers).
+        STOP_MARKERS = ("[DONE]", "[SELESAI]", "[END]")
 
         for chunk in stream:
             if self._cancelled:
@@ -526,19 +544,40 @@ class Translator:
                     first_token_at = time.time()
                     self._log(f"[API ←] TTFT: {first_token_at - t0:.2f}s")
 
-                full_text += chunk_text
-                self._total_tokens += 1
-                _buf += chunk_text
+                # Check for completion markers in the combined text BEFORE appending.
+                # This handles markers that span two chunks (e.g. "[DO" + "NE]").
+                candidate = full_text + chunk_text
+                should_stop = False
+                for marker in STOP_MARKERS:
+                    if marker in candidate:
+                        idx = candidate.index(marker)
+                        safe_text = candidate[:idx].rstrip()
+                        new_safe = safe_text[len(full_text):]  # part from this chunk only
+                        full_text = safe_text
+                        if new_safe:
+                            _buf += new_safe
+                        should_stop = True
+                        self._log(f"[Translator] Stop marker '{marker}' detected — truncating stream")
+                        break
+
+                if not should_stop:
+                    full_text += chunk_text
+                    self._total_tokens += 1
+                    _buf += chunk_text
 
                 now = time.time()
-                if len(_buf) >= BATCH_CHARS or (now - _last_flush) >= BATCH_SECS:
-                    self._send_chunk({
-                        "chunk": _buf,
-                        "iteration": self._iteration,
-                        "fullText": full_text,
-                    })
-                    _buf = ""
-                    _last_flush = now
+                if len(_buf) >= BATCH_CHARS or (now - _last_flush) >= BATCH_SECS or should_stop:
+                    if _buf:
+                        self._send_chunk({
+                            "chunk": _buf,
+                            "iteration": self._iteration,
+                            "fullText": full_text,
+                        })
+                        _buf = ""
+                        _last_flush = now
+
+                if should_stop:
+                    break
 
         # Flush remaining buffer
         if _buf:
@@ -678,40 +717,57 @@ class Translator:
     def _is_translation_complete(self, text: str) -> bool:
         """
         Check if translation appears complete
-        
+
         Args:
             text: Translated text
-            
+
         Returns:
             bool: True if translation appears complete
         """
-        # Simple heuristic: ends with punctuation
         stripped = text.strip()
         if not stripped:
             return False
-        
+
         # Check for common ending punctuation
         endings = ('.', '!', '?', '。', '！', '？')
-        return stripped[-1] in endings
-    
+        if stripped[-1] in endings:
+            return True
+
+        # The system prompt instructs the model to append a glossary table after
+        # the translation and end with [DONE]. If [DONE] was stripped mid-stream but
+        # the glossary table IS present, the translation is complete.
+        # Pattern: table header line always contains "| Source Term" and "| Translated Term"
+        if "| Source Term" in text and "| Translated Term" in text:
+            return True
+
+        return False
+
     def _estimate_remaining(self, raw: str, translated: str) -> str:
         """
         Estimate remaining content to translate
-        
+
         Args:
             raw: Original raw content
             translated: Current translation
-            
+
         Returns:
             str: Estimated remaining content
         """
-        # Simple length-based estimation
-        # This is approximate - in production would use more sophisticated matching
-        ratio = len(translated) / max(len(raw), 1)
-        
+        # The translated output may include a glossary table appended after the
+        # translation body (separated by "---"). Strip the table before computing
+        # the length ratio, otherwise the table overhead makes the ratio look smaller
+        # than it really is and incorrectly triggers an extra iteration.
+        trans_body = translated
+        for sep in ("\n---\n", "\n\n---\n\n"):
+            if sep in translated:
+                trans_body = translated[:translated.index(sep)]
+                break
+
+        ratio = len(trans_body) / max(len(raw), 1)
+
         if ratio >= 0.95:
             return ""  # Nearly complete
-        
+
         # Estimate remaining portion
         remaining_chars = len(raw) - int(len(raw) * ratio * 0.8)
         return raw[-remaining_chars:] if remaining_chars > 0 else ""

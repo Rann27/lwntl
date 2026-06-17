@@ -43,10 +43,32 @@ const en: TranslationStrings = {
   home: {
     title: 'SERIES COLLECTION',
     addSeries: '+ ADD SERIES',
+    addGroup: '+ NEW GROUP',
     emptyTitle: 'No Series Yet',
     emptyDesc: 'Click "+ ADD SERIES" to start your first translation project!',
     chapters: 'chapters',
     language: 'Language',
+    ungrouped: 'Ungrouped',
+    allSeries: 'All',
+  },
+
+  group: {
+    series: 'series',
+    subgroups: 'sub-groups',
+    translated: 'translated',
+    rename: 'Rename',
+    changeColor: 'Change Color',
+    addSubGroup: 'Add Sub-Group',
+    delete: 'Delete Group',
+    moveToGroup: 'Move to Group',
+    moveModalTitle: 'Move to Group',
+    ungrouped: 'No Group (Root)',
+    maxDepth: 'Already at deepest level (max. 3)',
+    newGroupName: 'New group name',
+    editGroupName: 'Group name',
+    colorLabel: 'Color',
+    deleteConfirm: 'Delete Group',
+    deleteDesc: 'Sub-groups and series inside will be moved to the parent group.',
   },
 
   settings: {
@@ -231,6 +253,9 @@ const en: TranslationStrings = {
     noSelection: 'Select at least 1 chapter first.',
     autoApplied: 'Glossary auto-applied: {count} new term(s) added.',
     retryFailed: 'RETRY FAILED',
+    batchExport: 'EXPORT ALL',
+    batchExportTitle: 'Export All Chapters',
+    batchExportNoTemplate: '(no template)',
   },
 
   context: {

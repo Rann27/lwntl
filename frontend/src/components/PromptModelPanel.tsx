@@ -115,13 +115,14 @@ export function PromptModelPanel({
           >
             {workers.map((worker) => {
               const status = statusByWorker.get(worker.id)
-              const assignedElsewhere = !!status?.assignedSeriesIds?.some((id) => id !== series?.id)
-              const disabled = !!status?.active || assignedElsewhere
+              const activeCount = status?.activeCount ?? 0
+              const maxConcurrent = status?.maxConcurrent ?? 1
+              const busyLabel = activeCount > 0 ? ` - busy (${activeCount}/${maxConcurrent})` : ''
               const providerLabel = PROVIDERS[worker.provider]?.label || worker.provider
               const modelLabel = PROVIDERS[worker.provider]?.displayNames?.[worker.model] || worker.model
               return (
-                <option key={worker.id} value={worker.id} disabled={disabled && worker.id !== workerId}>
-                  {worker.label} - {modelLabel} ({providerLabel}){status?.active ? ' - busy' : assignedElsewhere ? ' - assigned' : ''}
+                <option key={worker.id} value={worker.id}>
+                  {worker.label} - {modelLabel} ({providerLabel}){busyLabel}
                 </option>
               )
             })}
@@ -133,7 +134,7 @@ export function PromptModelPanel({
           )}
           {selectedStatus?.active && (
             <p style={{ fontSize: '11px', color: '#FFEF33', marginTop: '4px', fontWeight: 600 }}>
-              Worker sedang bekerja. Pilihan ini terkunci sampai proses selesai.
+              Worker sedang aktif ({selectedStatus.activeCount ?? 1}/{selectedStatus.maxConcurrent ?? 1} slot). Slot tersisa untuk series ini jika ada.
             </p>
           )}
         </div>

@@ -12,6 +12,13 @@ from typing import Dict, List, Any, Optional
 from .config import get_app_data_dir
 
 
+def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
+    """Backfill fields added in later versions."""
+    series.setdefault("groupId", None)
+    series.setdefault("workerId", "")
+    return series
+
+
 def get_series_dir() -> Path:
     """Get the series directory path"""
     return get_app_data_dir() / 'series'
@@ -50,7 +57,7 @@ def get_all_series() -> List[Dict[str, Any]]:
             try:
                 with open(series_json, 'r', encoding='utf-8') as f:
                     series = json.load(f)
-                    series_list.append(series)
+                    series_list.append(_normalize_series(series))
             except (json.JSONDecodeError, OSError) as e:
                 print(f"Error reading series {series_path.name}: {e}")
                 continue
@@ -81,6 +88,7 @@ def create_series(title: str, language: str, target_language: str = "Indonesian"
         "title": title,
         "sourceLanguage": language,
         "targetLanguage": target_language,
+        "groupId": None,
         "workerId": "",
         "systemPrompt": "",
         "instructions": "",
@@ -126,8 +134,7 @@ def get_series(series_id: str) -> Optional[Dict[str, Any]]:
     
     with open(series_path, 'r', encoding='utf-8') as f:
         series = json.load(f)
-    series.setdefault("workerId", "")
-    return series
+    return _normalize_series(series)
 
 
 def update_series(series_id: str, title: str, language: str, 
@@ -358,10 +365,23 @@ def delete_glossary_entry(series_id: str, entry_id: str) -> bool:
     # Remove the entry
     series["glossary"] = [e for e in series["glossary"] if e["id"] != entry_id]
     series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
-    
+
     # Write updated series.json
     series_path = get_series_path(series_id)
     with open(series_path, 'w', encoding='utf-8') as f:
         json.dump(series, f, indent=2, ensure_ascii=False)
-    
+
     return True
+
+
+def move_series_to_group(series_id: str, group_id: Optional[str]) -> Dict[str, Any]:
+    """Move a series into a group (or to root when group_id is None)."""
+    series = get_series(series_id)
+    if series is None:
+        raise FileNotFoundError(f"Series {series_id} not found")
+    series["groupId"] = group_id
+    series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
+    series_path = get_series_path(series_id)
+    with open(series_path, 'w', encoding='utf-8') as f:
+        json.dump(series, f, indent=2, ensure_ascii=False)
+    return series

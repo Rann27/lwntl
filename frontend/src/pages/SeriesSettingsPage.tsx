@@ -3,7 +3,7 @@
  * 3-panel layout: Chapter list | Prompt/Model | Glossary
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { Topbar } from '../components/Topbar'
 import { ChapterList } from '../components/ChapterList'
@@ -16,7 +16,7 @@ import BatchTranslationPanel from '../components/BatchTranslationPanel'
 import MemoryPanel from '../components/MemoryPanel'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X, RefreshCw } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown } from 'lucide-react'
 import {
   getAllSeries,
   getChapters,
@@ -32,6 +32,9 @@ import {
   saveInstructions,
   updateSeries,
   getWorkerStatuses,
+  getSeriesLogs,
+  exportChapter,
+  exportSeriesMerged,
 } from '../api'
 import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
@@ -45,6 +48,9 @@ export function SeriesSettingsPage() {
   const { config, setConfig, apiReady } = useAppStore()
   const { isBatchActive, startBatch, startSelectedBatch, cancelBatch } = useBatchTranslation(seriesId!)
   const [showMemory, setShowMemory] = useState(false)
+  const [showLogs, setShowLogs] = useState(false)
+  const [seriesLogLines, setSeriesLogLines] = useState<string[]>([])
+  const logEndRef = useRef<HTMLDivElement>(null)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false)
@@ -98,6 +104,54 @@ export function SeriesSettingsPage() {
   useEffect(() => {
     if (apiReady) loadData()
   }, [apiReady, loadData])
+
+  // Event-driven chapter list sync — no polling needed.
+  // lwntl:translation-done / error fire per-chapter (single and batch).
+  // lwntl:batch-status fires when the whole batch finishes or is cancelled.
+  useEffect(() => {
+    if (!seriesId || !apiReady) return
+    const refresh = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.seriesId === seriesId) {
+        getChapters(seriesId).then(setChapters).catch(() => {})
+      }
+    }
+    const onBatchSettled = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      if (detail?.seriesId === seriesId && (detail.status === 'done' || detail.status === 'cancelled')) {
+        getChapters(seriesId).then(setChapters).catch(() => {})
+      }
+    }
+    window.addEventListener('lwntl:translation-done', refresh)
+    window.addEventListener('lwntl:translation-error', refresh)
+    window.addEventListener('lwntl:batch-status', onBatchSettled)
+    return () => {
+      window.removeEventListener('lwntl:translation-done', refresh)
+      window.removeEventListener('lwntl:translation-error', refresh)
+      window.removeEventListener('lwntl:batch-status', onBatchSettled)
+    }
+  }, [seriesId, apiReady])
+
+  // Poll series logs when panel is open
+  useEffect(() => {
+    if (!showLogs || !seriesId || !apiReady) return
+    const poll = async () => {
+      try {
+        const result = await getSeriesLogs(seriesId)
+        setSeriesLogLines(result.lines)
+      } catch { /* ignore */ }
+    }
+    poll()
+    const interval = setInterval(poll, 2000)
+    return () => clearInterval(interval)
+  }, [showLogs, seriesId, apiReady])
+
+  // Auto-scroll log panel to bottom when new lines arrive
+  useEffect(() => {
+    if (showLogs && logEndRef.current) {
+      logEndRef.current.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [seriesLogLines, showLogs])
 
   // Save config + instructions + systemPrompt
   const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string) => {
@@ -172,6 +226,31 @@ export function SeriesSettingsPage() {
       toast.error(t.settings.saveFailed)
     } finally {
       setEditChapterLoading(false)
+    }
+  }
+
+  const handleExportChapter = async (chapter: Chapter) => {
+    try {
+      await exportChapter(seriesId!, chapter.id)
+      toast.success('Chapter exported')
+    } catch (e: any) {
+      toast.error(e.message || 'Export failed')
+    }
+  }
+
+  const [batchExporting, setBatchExporting] = useState(false)
+  const handleBatchExport = async () => {
+    setBatchExporting(true)
+    try {
+      const result = await exportSeriesMerged(seriesId!)
+      if (!result.cancelled) {
+        const note = result.usedTemplate ? ' ✓' : ` (${t.batch.batchExportNoTemplate})`
+        toast.success(`${result.message}${note}`)
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Export failed')
+    } finally {
+      setBatchExporting(false)
     }
   }
 
@@ -385,6 +464,17 @@ export function SeriesSettingsPage() {
                 <CheckSquare size={13} />
                 {t.batch.selectChapter}
               </button>
+              <button
+                onClick={handleBatchExport}
+                disabled={batchExporting || chapters.filter(c => c.status === 'done').length === 0}
+                title={t.batch.batchExportTitle}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FFEF33] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                style={{ color: '#111' }}
+              >
+                <FileDown size={13} />
+                {batchExporting ? '...' : t.batch.batchExport}
+                <span className="font-normal">({chapters.filter(c => c.status === 'done').length})</span>
+              </button>
             </div>
           ) : (
             /* Select mode: Translate Selected + Delete Selected + Cancel */
@@ -433,6 +523,7 @@ export function SeriesSettingsPage() {
             onAddChapter={() => setCreateChapterOpen(true)}
             onEditChapter={setEditChapter}
             onDeleteChapter={handleDeleteChapterClick}
+            onExportChapter={handleExportChapter}
             selectMode={selectMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
@@ -450,6 +541,35 @@ export function SeriesSettingsPage() {
           {showMemory && (
             <div className="border-2.5 border-[#111] bg-white max-h-48 overflow-y-auto">
               <MemoryPanel memories={series.memory || []} />
+            </div>
+          )}
+
+          {/* Series Logs toggle */}
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#B8E0FF] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+          >
+            <ScrollText size={14} />
+            LOGS {seriesLogLines.length > 0 && <span className="font-normal">({seriesLogLines.length})</span>}
+          </button>
+
+          {showLogs && (
+            <div
+              className="border-2.5 border-[#111] max-h-48 overflow-y-auto"
+              style={{ backgroundColor: '#111', padding: '8px' }}
+            >
+              {seriesLogLines.length === 0 ? (
+                <p style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', margin: 0 }}>
+                  No logs yet.
+                </p>
+              ) : (
+                seriesLogLines.map((line, i) => (
+                  <p key={i} style={{ fontSize: '10px', color: '#aaa', fontFamily: 'monospace', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                    {line}
+                  </p>
+                ))
+              )}
+              <div ref={logEndRef} />
             </div>
           )}
         </div>

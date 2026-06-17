@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MoreVertical, Edit, Trash2, Search, X } from 'lucide-react'
+import { Plus, MoreVertical, Edit, Trash2, Search, X, Download } from 'lucide-react'
 import { useI18n } from '../i18n'
 import type { Chapter, ChapterStatus } from '../types'
 
@@ -15,6 +15,7 @@ interface ChapterListProps {
   onAddChapter: () => void
   onEditChapter: (chapter: Chapter) => void
   onDeleteChapter: (chapter: Chapter) => void
+  onExportChapter?: (chapter: Chapter) => void
   // Select mode
   selectMode?: boolean
   selectedIds?: Set<string>
@@ -28,7 +29,7 @@ const statusColors: Record<ChapterStatus, string> = {
   error:      '#FF3C3C',
 }
 
-export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, onDeleteChapter, selectMode = false, selectedIds, onToggleSelect }: ChapterListProps) {
+export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, onDeleteChapter, onExportChapter, selectMode = false, selectedIds, onToggleSelect }: ChapterListProps) {
   const navigate = useNavigate()
   const { t } = useI18n()
   const [search, setSearch] = useState('')
@@ -204,6 +205,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
             chapter={chapter}
             onEdit={onEditChapter}
             onDelete={onDeleteChapter}
+            onExport={onExportChapter}
             onClick={selectMode
               ? () => onToggleSelect?.(chapter.id)
               : () => navigate(`/series/${seriesId}/chapter/${chapter.id}`)
@@ -242,6 +244,7 @@ function ChapterItem({
   chapter,
   onEdit,
   onDelete,
+  onExport,
   onClick,
   selectMode = false,
   selected = false,
@@ -249,6 +252,7 @@ function ChapterItem({
   chapter: Chapter
   onEdit: (c: Chapter) => void
   onDelete: (c: Chapter) => void
+  onExport?: (c: Chapter) => void
   onClick: () => void
   selectMode?: boolean
   selected?: boolean
@@ -349,6 +353,17 @@ function ChapterItem({
               >
                 <Edit size={12} /> {t.common.edit}
               </button>
+              {onExport && chapter.status === 'done' && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onExport(chapter) }}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
+                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <Download size={12} /> Export .docx
+                </button>
+              )}
               <div style={{ height: '2px', backgroundColor: 'var(--color-border)' }} />
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(chapter) }}
