@@ -44,9 +44,9 @@ interface AppState {
   appendChapterStreamingText: (key: string, chunk: string) => void
   clearChapterStreamingText: (key: string) => void
 
-  // Batch translation
-  batch: BatchStatusEvent | null
-  setBatch: (status: BatchStatusEvent | null) => void
+  // Batch translation (per-series)
+  batches: Record<string, BatchStatusEvent>
+  setBatchForSeries: (seriesId: string, event: BatchStatusEvent | null) => void
 
   // Context info
   contextInfo: ContextInfo | null
@@ -170,9 +170,17 @@ export const useAppStore = create<AppState>((set) => ({
       }
     }),
 
-  // Batch translation
-  batch: null,
-  setBatch: (status) => set({ batch: status }),
+  // Batch translation (per-series)
+  batches: {},
+  setBatchForSeries: (seriesId, event) =>
+    set((state) => {
+      if (event === null) {
+        const next = { ...state.batches }
+        delete next[seriesId]
+        return { batches: next }
+      }
+      return { batches: { ...state.batches, [seriesId]: event } }
+    }),
 
   // Context info
   contextInfo: null,

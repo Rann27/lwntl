@@ -98,7 +98,7 @@ def parse_docx(data: bytes, filename: str) -> Dict[str, Any]:
 
 # ─── PDF ──────────────────────────────────────────────────────────────────────
 
-def parse_pdf(data: bytes, filename: str) -> Dict[str, Any]:
+def parse_pdf(data: bytes, filename: str, top_margin: float = 0, bottom_margin: float = 0) -> Dict[str, Any]:
     try:
         import fitz  # PyMuPDF
     except ImportError:
@@ -111,7 +111,7 @@ def parse_pdf(data: bytes, filename: str) -> Dict[str, Any]:
         return {"title": _filename_to_title(filename), "content": "", "charCount": 0}
 
     hf_texts = _detect_hf(doc)
-    body_size = _detect_body_size(doc)
+    body_size, bold_is_default = _detect_body_style(doc)
     heading_min = body_size * 1.18
 
     PAGE_NUM_RE = re.compile(r'^\s*[\-–—]?\s*\d{1,5}\s*[\-–—]?\s*$')
@@ -124,6 +124,9 @@ def parse_pdf(data: bytes, filename: str) -> Dict[str, Any]:
         page = doc[page_num]
         ph = page.rect.height
         pw = page.rect.width
+
+        top_cut = top_margin if top_margin > 0 else ph * 0.08
+        bottom_cut = ph - bottom_margin if bottom_margin > 0 else ph * 0.92
 
         raw_blocks = list(page.get_text("dict", flags=0)["blocks"])
 
@@ -141,6 +144,10 @@ def parse_pdf(data: bytes, filename: str) -> Dict[str, Any]:
         for block in sorted(raw_blocks, key=lambda b: b["bbox"][1]):
             btype = block["type"]
             by0, by1 = block["bbox"][1], block["bbox"][3]
+
+            # Hard-cut: skip blocks entirely within top/bottom margin zone
+            if by1 <= top_cut or by0 >= bottom_cut:
+                continue
 
             if btype == 1:  # Image block
                 img_counter += 1
@@ -192,9 +199,10 @@ def parse_pdf(data: bytes, filename: str) -> Dict[str, Any]:
                             if gap > sz * 0.25:
                                 line_str += " "
 
-                        if bold and italic:
+                        eff_bold = bold and not bold_is_default
+                        if eff_bold and italic:
                             line_str += f"***{t}***"
-                        elif bold:
+                        elif eff_bold:
                             line_str += f"**{t}**"
                         elif italic:
                             line_str += f"*{t}*"
@@ -337,17 +345,10 @@ def _reconstruct_paragraphs(blocks: list) -> list:
     for blk in blocks:
         stripped = blk.strip()
 
-        # ── Standalone trailing punctuation (e.g. ！ or ？ on its own line) ──
-        # These have no alphabetic/digit content and are very short.
-        # Always attach to preceding content without a space.
-        if stripped and len(stripped) <= 5 and not any(c.isalpha() or c.isdigit() for c in stripped):
-            if buf:
-                buf = buf.rstrip() + stripped
-            elif out and not out[-1].startswith('Image Placeholder'):
-                out[-1] = out[-1].rstrip() + stripped
-            continue
-
         # ── Pass-through: headings, image placeholders, ornament-only lines ──
+        # Must be checked BEFORE the short-non-alphanumeric check below,
+        # otherwise ◇◇◇ / *** (3 chars, no alpha) would be mistaken for
+        # trailing punctuation and glued to the preceding paragraph.
         if (blk.startswith('#')
                 or blk.startswith('Image Placeholder')
                 or _ORNAMENT_ONLY_RE.match(stripped)):
@@ -365,6 +366,16 @@ def _reconstruct_paragraphs(blocks: list) -> list:
                 out[-1] = out[-1] + " " + stripped.lstrip('#').strip()
             else:
                 out.append(blk)
+            continue
+
+        # ── Standalone trailing punctuation (e.g. ！ or ？ on its own line) ──
+        # These have no alphabetic/digit content and are very short.
+        # Always attach to preceding content without a space.
+        if stripped and len(stripped) <= 5 and not any(c.isalpha() or c.isdigit() for c in stripped):
+            if buf:
+                buf = buf.rstrip() + stripped
+            elif out and not out[-1].startswith('Image Placeholder'):
+                out[-1] = out[-1].rstrip() + stripped
             continue
 
         if not buf:
@@ -402,13 +413,13 @@ def _reconstruct_paragraphs(blocks: list) -> list:
     return out
 
 
-def parse_pdf_flow(data: bytes, filename: str) -> Dict[str, Any]:
+def parse_pdf_flow(data: bytes, filename: str, top_margin: float = 0, bottom_margin: float = 0) -> Dict[str, Any]:
     """
     PDF parser with paragraph reconstruction for PDFs with forced line breaks
     (each visual line is a separate PDF block).  Runs parse_pdf then merges
     fragment blocks into proper paragraphs using end-punctuation heuristics.
     """
-    result = parse_pdf(data, filename)
+    result = parse_pdf(data, filename, top_margin=top_margin, bottom_margin=bottom_margin)
     if result.get("error"):
         return result
 
@@ -443,9 +454,14 @@ def _detect_hf(doc) -> Set[str]:
     return {t for t, c in candidates.items() if c >= threshold}
 
 
-def _detect_body_size(doc) -> float:
-    """Find dominant (body) font size by character count across sampled pages."""
+def _detect_body_style(doc) -> tuple:
+    """Returns (body_size, bold_is_default).
+    bold_is_default=True when >50% of body-text characters have the bold flag set —
+    meaning bold is the PDF's default body font, not actual emphasis markup.
+    """
     size_chars: Dict[float, int] = {}
+    bold_chars = 0
+    total_chars = 0
     for i in range(min(doc.page_count, 8)):
         page = doc[i]
         ph = page.rect.height
@@ -462,4 +478,111 @@ def _detect_body_size(doc) -> float:
                     chars = len(span.get("text", ""))
                     if sz > 0 and chars > 0:
                         size_chars[sz] = size_chars.get(sz, 0) + chars
-    return max(size_chars, key=size_chars.get) if size_chars else 11.0
+                        total_chars += chars
+                        if bool(span.get("flags", 0) & 16):
+                            bold_chars += chars
+    body_size = max(size_chars, key=size_chars.get) if size_chars else 11.0
+    bold_is_default = total_chars > 0 and (bold_chars / total_chars) > 0.5
+    return body_size, bold_is_default
+
+
+def _detect_body_size(doc) -> float:
+    body_size, _ = _detect_body_style(doc)
+    return body_size
+
+
+def render_pdf_page(data: bytes, page_index: int, scale: float = 1.5) -> bytes:
+    """Render a PDF page to PNG bytes. Scale 1.5 ≈ 108 DPI."""
+    import fitz
+    doc = fitz.open(stream=data, filetype="pdf")
+    page_index = min(max(page_index, 0), doc.page_count - 1)
+    page = doc[page_index]
+    mat = fitz.Matrix(scale, scale)
+    pix = page.get_pixmap(matrix=mat, colorspace=fitz.csRGB)
+    return pix.tobytes("png")
+
+
+def detect_pdf_cut_zones(data: bytes) -> Dict[str, Any]:
+    """
+    Detect header/footer zones using Y-position clustering.
+
+    Blocks at similar vertical positions across many pages = header/footer,
+    regardless of text content. This catches page numbers (unique text per page
+    but consistent Y position) that pure text-matching cannot detect.
+
+    Search zone: top/bottom 15% of page height.
+    Cluster tolerance: 2% of page height (blocks within this Y range = same cluster).
+    Threshold: block cluster must appear on ≥30% of sampled pages.
+    """
+    import fitz
+    doc = fitz.open(stream=data, filetype="pdf")
+    if doc.page_count == 0:
+        return {"topMargin": 0.0, "bottomMargin": 0.0, "pageHeight": 842.0, "pageCount": 0}
+
+    ph = doc[0].rect.height
+    top_zone    = ph * 0.08   # conservative: headers are in the top 8%
+    bottom_zone = ph * 0.15   # generous: footers/watermarks can be higher
+    tolerance = ph * 0.02     # 2% cluster window
+
+    sample = min(doc.page_count, 12)
+    threshold = max(2, sample * 0.3)
+
+    # Collect blocks in margin zones: (page_idx, y0, y1)
+    top_blocks: list = []
+    bottom_blocks: list = []
+
+    for i in range(sample):
+        page = doc[i]
+        for b in page.get_text("blocks"):
+            x0, y0, x1, y1, text = b[:5]
+            if not (text or '').strip():
+                continue
+            if y1 <= top_zone:
+                top_blocks.append((i, y0, y1))
+            elif y0 >= ph - bottom_zone:
+                bottom_blocks.append((i, y0, y1))
+
+    def cluster_top(blocks: list) -> float:
+        """Cluster by y1 position; return max y1 of clusters that span enough pages."""
+        clusters: list = []  # [{'y1': float, 'max_y1': float, 'pages': set}]
+        for page_idx, y0, y1 in blocks:
+            merged = False
+            for c in clusters:
+                if abs(y1 - c['y1']) <= tolerance:
+                    c['pages'].add(page_idx)
+                    c['max_y1'] = max(c['max_y1'], y1)
+                    merged = True
+                    break
+            if not merged:
+                clusters.append({'y1': y1, 'max_y1': y1, 'pages': {page_idx}})
+        extent = 0.0
+        for c in clusters:
+            if len(c['pages']) >= threshold:
+                extent = max(extent, c['max_y1'] + 4)
+        return extent
+
+    def cluster_bottom(blocks: list) -> float:
+        """Cluster by y0 position; return max distance-from-bottom of clusters that span enough pages."""
+        clusters: list = []  # [{'y0': float, 'min_y0': float, 'pages': set}]
+        for page_idx, y0, y1 in blocks:
+            merged = False
+            for c in clusters:
+                if abs(y0 - c['y0']) <= tolerance:
+                    c['pages'].add(page_idx)
+                    c['min_y0'] = min(c['min_y0'], y0)
+                    merged = True
+                    break
+            if not merged:
+                clusters.append({'y0': y0, 'min_y0': y0, 'pages': {page_idx}})
+        extent = 0.0
+        for c in clusters:
+            if len(c['pages']) >= threshold:
+                extent = max(extent, (ph - c['min_y0']) + 4)
+        return extent
+
+    return {
+        "topMargin": round(cluster_top(top_blocks), 1),
+        "bottomMargin": round(cluster_bottom(bottom_blocks), 1),
+        "pageHeight": round(ph, 1),
+        "pageCount": doc.page_count,
+    }

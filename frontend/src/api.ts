@@ -435,9 +435,23 @@ export interface ParsedDocument {
   charCount: number
 }
 
-export async function parseDocument(filename: string, dataBase64: string, mode: string = 'standard'): Promise<ParsedDocument> {
+export async function parseDocument(filename: string, dataBase64: string, mode: string = 'standard', topMargin: number = 0, bottomMargin: number = 0): Promise<ParsedDocument> {
   const api = getApi()
-  const result = await api.parse_document(filename, dataBase64, mode)
+  const result = await api.parse_document(filename, dataBase64, mode, topMargin, bottomMargin)
   if (isApiError(result)) throw new Error(result.message)
   return result as ParsedDocument
+}
+
+export async function renderPdfPages(dataBase64: string, pageIndices: number[] = [0, 1, 2]): Promise<{ images: string[] }> {
+  const api = getApi()
+  const result = await api.render_pdf_pages(dataBase64, pageIndices)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { images: string[] }
+}
+
+export async function detectPdfMargins(dataBase64: string): Promise<{ topMargin: number; bottomMargin: number; pageHeight: number; pageCount: number }> {
+  const api = getApi()
+  const result = await api.detect_pdf_margins(dataBase64)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { topMargin: number; bottomMargin: number; pageHeight: number; pageCount: number }
 }

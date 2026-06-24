@@ -101,6 +101,12 @@ const en: TranslationStrings = {
     deepseekReasoningEffortDesc: 'How deep the model thinks. High = best quality but slowest.',
     mimoThinkingDesc: 'MiMo thinking is ON by default. Disable to get faster, cheaper output.',
     mimoReasoningEffortDesc: 'How deep the model thinks. High = best quality but slowest.',
+    pdfImport: 'PDF IMPORT',
+    pdfMarginTop: 'Top Margin Cut (pt)',
+    pdfMarginTopDesc: 'Ignore content within this many points from the top edge (headers). 0 = auto.',
+    pdfMarginBottom: 'Bottom Margin Cut (pt)',
+    pdfMarginBottomDesc: 'Ignore content within this many points from the bottom edge (footers). 0 = auto.',
+    pdfMarginHint: 'Measure page height in your PDF viewer. Typical A4 page = 842 pt.',
   },
 
   seriesSettings: {

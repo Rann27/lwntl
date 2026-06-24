@@ -136,7 +136,7 @@ class Translator:
                 continue
 
             # Send batch progress
-            self._emit_js("onBatchStatus", self._with_meta({'status': 'translating', 'seriesId': series_id, 'current': i + 1, 'total': self._batch_total, 'chapterId': chapter_id, 'chapterNumber': chapter.get('chapterNumber', '?'), 'chapterTitle': chapter.get('title', '')}))
+            self._emit_js("onBatchStatus", self._with_meta({'status': 'translating', 'seriesId': series_id, 'current': i + 1, 'completed': self._batch_completed, 'total': self._batch_total, 'chapterId': chapter_id, 'chapterNumber': chapter.get('chapterNumber', '?'), 'chapterTitle': chapter.get('title', '')}))
 
             # Translate this chapter
             self._translate(series_id, chapter_id, progress_callback, archive_previous=archive_previous)

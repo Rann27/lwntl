@@ -10,6 +10,13 @@ interface MarkdownRendererProps {
   content: string
 }
 
+function normalizeDelimiters(text: string): string {
+  // Fix space after opening ** or before closing ** (bold)
+  return text
+    .replace(/\*\* ([^*\n]+?)\*\*/g, '**$1**')  // ** text** → **text**
+    .replace(/\*\*([^*\n]+?) \*\*/g, '**$1**')  // **text ** → **text**
+}
+
 export function MarkdownRenderer({ content }: MarkdownRendererProps) {
   if (!content) {
     return (
@@ -34,7 +41,7 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           ),
         }}
       >
-        {content}
+        {normalizeDelimiters(content)}
       </ReactMarkdown>
     </div>
   )

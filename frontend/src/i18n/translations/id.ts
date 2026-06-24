@@ -104,6 +104,12 @@ const id = {
     deepseekReasoningEffortDesc: 'Seberapa dalam model berpikir. High = terbaik tapi paling lambat.',
     mimoThinkingDesc: 'MiMo thinking aktif secara default. Matikan untuk output lebih cepat dan hemat.',
     mimoReasoningEffortDesc: 'Seberapa dalam model berpikir. High = terbaik tapi paling lambat.',
+    pdfImport: 'IMPOR PDF',
+    pdfMarginTop: 'Potong Margin Atas (pt)',
+    pdfMarginTopDesc: 'Abaikan konten dalam jarak sekian pt dari tepi atas (header). 0 = otomatis.',
+    pdfMarginBottom: 'Potong Margin Bawah (pt)',
+    pdfMarginBottomDesc: 'Abaikan konten dalam jarak sekian pt dari tepi bawah (footer). 0 = otomatis.',
+    pdfMarginHint: 'Ukur tinggi halaman di PDF viewer. Halaman A4 tipikal = 842 pt.',
   },
 
   // Series Settings page

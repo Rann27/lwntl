@@ -1,12 +1,13 @@
 /**
- * BatchTranslationPanel - Transparent batch translation navigator
- * Shows progress of all chapters being translated in a batch
+ * BatchTranslationPanel - Floating progress bar for THIS series' active batch.
+ * Scoped to seriesId — will not appear when viewing a different series.
  */
 
 import { useAppStore } from '../store/appStore'
 import type { Chapter } from '../types'
 
 interface Props {
+  seriesId: string
   chapters: Chapter[]
   onCancel: () => void
 }
@@ -20,8 +21,9 @@ const statusDot = (status: string) => {
   }
 }
 
-export default function BatchTranslationPanel({ chapters, onCancel }: Props) {
-  const batch = useAppStore((s) => s.batch)
+export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: Props) {
+  const batches = useAppStore((s) => s.batches)
+  const batch = batches[seriesId] ?? null
 
   if (!batch || batch.status !== 'translating') return null
 
@@ -77,14 +79,14 @@ export default function BatchTranslationPanel({ chapters, onCancel }: Props) {
                     isCurrent ? 'bg-[#1a1a1a]' : ''
                   }`}
                 >
-                  <div className={`w-2 h-2 ${statusDot(ch.status)} flex-shrink-0`} />
-                  <span className={`font-mono w-12 flex-shrink-0 ${isCurrent ? 'text-[#00F7FF]' : 'text-[#666]'}`}>
+                  <div className={`w-2 h-2 ${statusDot(ch.status)} shrink-0`} />
+                  <span className={`font-mono w-12 shrink-0 ${isCurrent ? 'text-[#00F7FF]' : 'text-[#666]'}`}>
                     Bab {ch.chapterNumber}
                   </span>
                   <span className={`truncate ${isCurrent ? 'text-white' : 'text-[#999]'}`}>
                     {ch.title || 'Tanpa Judul'}
                   </span>
-                  <span className="ml-auto text-[#444] flex-shrink-0">
+                  <span className="ml-auto text-[#444] shrink-0">
                     {ch.status === 'done' ? '✓' : ch.status === 'processing' ? '⟳' : ch.status === 'error' ? '✗' : '○'}
                   </span>
                 </div>

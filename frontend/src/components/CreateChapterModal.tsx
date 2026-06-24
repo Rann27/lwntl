@@ -4,10 +4,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { DragEvent } from 'react'
-import { Plus, X, Upload, GripVertical, Trash2, Eye, Loader2, AlertCircle, ChevronUp, ChevronDown, Search } from 'lucide-react'
+import { Plus, X, Upload, GripVertical, Trash2, Eye, Loader2, AlertCircle, ChevronUp, ChevronDown, Search, ScanSearch } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { parseDocument } from '../api'
 import { MarkdownRenderer } from './MarkdownRenderer'
+import { PdfPrePreviewModal } from './PdfPrePreviewModal'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,8 +26,9 @@ interface DocEntry {
   number: string
   title: string
   content: string
-  parsing: boolean
+  status: 'queued' | 'parsing' | 'done' | 'error'
   error: string | null
+  file?: File
 }
 
 interface CreateChapterModalProps {
@@ -60,6 +62,16 @@ export function CreateChapterModal({
 }: CreateChapterModalProps) {
   const { t: tx } = useI18n()
   const [tab, setTab] = useState<'single' | 'bulk' | 'pdf1' | 'pdf2' | 'docx'>('single')
+
+  // Per-tab PDF margin state — set via PrePreview (pt, 0 = auto 8%)
+  const [pdf1MarginTop, setPdf1MarginTop] = useState(0)
+  const [pdf1MarginBottom, setPdf1MarginBottom] = useState(0)
+  const [pdf2MarginTop, setPdf2MarginTop] = useState(0)
+  const [pdf2MarginBottom, setPdf2MarginBottom] = useState(0)
+
+  // PrePreview modal state
+  const [prePreviewOpen, setPrePreviewOpen] = useState(false)
+  const [prePreviewFile, setPrePreviewFile] = useState<File | null>(null)
 
   // Single tab
   const [number, setNumber] = useState<string>(nextChapterNumber)
@@ -288,36 +300,66 @@ export function CreateChapterModal({
     const supported = files.filter(f => f.name.toLowerCase().endsWith(ext))
     if (!supported.length) return
 
-    // Add placeholder entries immediately so the user sees progress
+    const isPdf = tab === 'pdf1' || tab === 'pdf2'
     const placeholders: DocEntry[] = supported.map((f, i) => ({
       id: `doc-${Date.now()}-${i}-${Math.random()}`,
       filename: f.name,
       number: String(parseFloat(nextChapterNumber || '1') + docEntries.length + i),
       title: f.name.replace(/\.(docx|pdf)$/i, ''),
       content: '',
-      parsing: true,
+      status: isPdf ? 'queued' as const : 'parsing' as const,
       error: null,
+      file: isPdf ? f : undefined,
     }))
 
     setDocEntries(prev => [...prev, ...placeholders])
 
-    // Parse sequentially
+    // DOCX: parse immediately. PDF: stay queued until PrePreview/Parse All
+    if (tab === 'docx') {
+      for (let i = 0; i < supported.length; i++) {
+        const file = supported[i]
+        const placeholder = placeholders[i]
+        try {
+          const b64 = await fileToBase64(file)
+          const result = await parseDocument(file.name, b64, 'standard')
+          setDocEntries(prev => prev.map(e =>
+            e.id === placeholder.id
+              ? { ...e, status: 'done' as const, title: result.title, content: result.content }
+              : e
+          ))
+        } catch (err: any) {
+          setDocEntries(prev => prev.map(e =>
+            e.id === placeholder.id
+              ? { ...e, status: 'error' as const, error: err.message || 'Parse failed' }
+              : e
+          ))
+        }
+      }
+    }
+  }
+
+  const parseAllPdfEntries = async (topMargin: number, bottomMargin: number) => {
     const mode = docParseMode
-    for (let i = 0; i < supported.length; i++) {
-      const file = supported[i]
-      const placeholder = placeholders[i]
+    const queued = docEntries.filter(e => e.status === 'queued' && e.file)
+    if (!queued.length) return
+
+    setDocEntries(prev => prev.map(e =>
+      e.status === 'queued' ? { ...e, status: 'parsing' as const } : e
+    ))
+
+    for (const entry of queued) {
       try {
-        const b64 = await fileToBase64(file)
-        const result = await parseDocument(file.name, b64, mode)
+        const b64 = await fileToBase64(entry.file!)
+        const result = await parseDocument(entry.filename, b64, mode, topMargin, bottomMargin)
         setDocEntries(prev => prev.map(e =>
-          e.id === placeholder.id
-            ? { ...e, parsing: false, title: result.title, content: result.content }
+          e.id === entry.id
+            ? { ...e, status: 'done' as const, title: result.title, content: result.content, file: undefined }
             : e
         ))
       } catch (err: any) {
         setDocEntries(prev => prev.map(e =>
-          e.id === placeholder.id
-            ? { ...e, parsing: false, error: err.message || 'Parse failed' }
+          e.id === entry.id
+            ? { ...e, status: 'error' as const, error: err.message || 'Parse failed', file: undefined }
             : e
         ))
       }
@@ -325,7 +367,7 @@ export function CreateChapterModal({
   }
 
   const handleDocBulkSubmit = async () => {
-    const ready = docEntries.filter(e => !e.parsing && !e.error && e.content)
+    const ready = docEntries.filter(e => e.status === 'done' && e.content)
     if (!ready.length) return
     setDocBulkLoading(true)
     try {
@@ -339,8 +381,9 @@ export function CreateChapterModal({
   const updateDocEntry = (id: string, field: 'number' | 'title', value: string) =>
     setDocEntries(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e))
 
-  const docReadyCount = docEntries.filter(e => !e.parsing && !e.error && e.content).length
-  const docParsingCount = docEntries.filter(e => e.parsing).length
+  const docReadyCount = docEntries.filter(e => e.status === 'done' && e.content).length
+  const docParsingCount = docEntries.filter(e => e.status === 'parsing').length
+  const docQueuedCount = docEntries.filter(e => e.status === 'queued').length
 
   // ── Shared table styles ───────────────────────────────────────────────────
 
@@ -661,40 +704,45 @@ export function CreateChapterModal({
                         <th style={{ width: '82px', ...thStyle }}>No.</th>
                         <th style={{ ...thStyle }}>Judul</th>
                         <th style={{ width: '90px', ...thStyle, textAlign: 'right' }}>Karakter</th>
-                        <th style={{ width: '36px', ...thStyle, textAlign: 'center' }}>Preview</th>
+                        <th style={{ width: '46px', ...thStyle, textAlign: 'center' }}>Preview</th>
                         <th style={{ width: '28px' }} />
                       </tr>
                     </thead>
                     <tbody>
-                      {docEntries.map((entry, idx) => (
+                      {docEntries.map((entry, idx) => {
+                        const busy = entry.status === 'parsing'
+                        const isQueued = entry.status === 'queued'
+                        const isDone = entry.status === 'done'
+                        const isError = entry.status === 'error'
+                        return (
                         <tr key={entry.id}
-                          {...(!entry.parsing ? makeRowHandlers(idx, docDragIndexRef, setDocEntries) : {})}
-                          style={{ borderBottom: '1.5px solid #eee', background: entry.error ? '#fff5f5' : '#fff' }}>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: entry.parsing ? 'default' : 'grab', color: '#ccc' }}>
-                            {entry.parsing ? <Loader2 size={13} className="animate-spin" style={{ color: '#aaa' }} /> : <GripVertical size={14} />}
+                          {...(!busy && !isQueued ? makeRowHandlers(idx, docDragIndexRef, setDocEntries) : {})}
+                          style={{ borderBottom: '1.5px solid #eee', background: isError ? '#fff5f5' : isQueued ? '#f8f8ff' : '#fff' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: busy || isQueued ? 'default' : 'grab', color: '#ccc' }}>
+                            {busy ? <Loader2 size={13} className="animate-spin" style={{ color: '#aaa' }} /> : <GripVertical size={14} />}
                           </td>
                           <td style={{ padding: '5px 8px' }}>
-                            <input type="text" value={entry.number} disabled={entry.parsing}
+                            <input type="text" value={entry.number} disabled={busy}
                               onChange={e => updateDocEntry(entry.id, 'number', e.target.value)}
-                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: entry.parsing ? '#eee' : '#F8F3EA', outline: 'none' }} />
+                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: busy ? '#eee' : '#F8F3EA', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
-                            {entry.error ? (
+                            {isError ? (
                               <div className="flex items-center gap-1" style={{ color: '#FF3C3C', fontSize: '12px' }}>
                                 <AlertCircle size={13} />
-                                <span title={entry.error}>{entry.filename} — {entry.error.slice(0, 60)}</span>
+                                <span title={entry.error ?? ''}>{entry.filename} — {(entry.error ?? '').slice(0, 60)}</span>
                               </div>
                             ) : (
-                              <input type="text" value={entry.title} disabled={entry.parsing}
+                              <input type="text" value={isQueued ? entry.filename : entry.title} disabled={busy || isQueued}
                                 onChange={e => updateDocEntry(entry.id, 'title', e.target.value)}
-                                style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: entry.parsing ? '#eee' : '#F8F3EA', outline: 'none' }} />
+                                style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: busy || isQueued ? '#eee' : '#F8F3EA', outline: 'none', color: isQueued ? '#999' : undefined }} />
                             )}
                           </td>
                           <td style={{ padding: '5px 8px', textAlign: 'right', color: '#999', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
-                            {entry.parsing ? '…' : entry.content.length.toLocaleString()}
+                            {busy ? '…' : isQueued ? '—' : entry.content.length.toLocaleString()}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
-                            {!entry.parsing && !entry.error && entry.content && (
+                            {isDone && entry.content ? (
                               <button
                                 onClick={() => setPreviewEntry(entry)}
                                 title="Preview hasil parsing"
@@ -702,7 +750,7 @@ export function CreateChapterModal({
                               >
                                 <Eye size={14} />
                               </button>
-                            )}
+                            ) : null}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             <button onClick={() => removeDocEntry(entry.id)}
@@ -711,7 +759,8 @@ export function CreateChapterModal({
                             </button>
                           </td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 )}
@@ -721,11 +770,40 @@ export function CreateChapterModal({
               <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
                 <span style={{ fontSize: '13px', color: '#666', fontWeight: 600 }}>
                   {docEntries.length > 0
-                    ? `${docReadyCount} siap${docParsingCount > 0 ? `, ${docParsingCount} parsing...` : ''}`
+                    ? [
+                        docQueuedCount > 0 && `${docQueuedCount} queued`,
+                        docParsingCount > 0 && `${docParsingCount} parsing...`,
+                        docReadyCount > 0 && `${docReadyCount} siap`,
+                      ].filter(Boolean).join(', ')
                     : tx.common.noData}
                 </span>
                 <div className="flex gap-3">
                   <button onClick={onClose} disabled={docBulkLoading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>{tx.common.cancel}</button>
+                  {docQueuedCount > 0 && (tab === 'pdf1' || tab === 'pdf2') && (() => {
+                    const sampleFile = docEntries.find(e => e.status === 'queued' && e.file)?.file ?? null
+                    const topM = tab === 'pdf1' ? pdf1MarginTop : pdf2MarginTop
+                    const botM = tab === 'pdf1' ? pdf1MarginBottom : pdf2MarginBottom
+                    return (
+                      <>
+                        <button
+                          onClick={() => { setPrePreviewFile(sampleFile); setPrePreviewOpen(true) }}
+                          disabled={docParsingCount > 0}
+                          className="neo-button flex items-center gap-1"
+                          style={{ fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
+                        >
+                          <ScanSearch size={13} /> PRE-PREVIEW
+                        </button>
+                        <button
+                          onClick={() => parseAllPdfEntries(topM, botM)}
+                          disabled={docParsingCount > 0}
+                          className="neo-button"
+                          style={{ backgroundColor: '#00F7FF', fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
+                        >
+                          PARSE ALL {docQueuedCount}
+                        </button>
+                      </>
+                    )
+                  })()}
                   <button
                     onClick={handleDocBulkSubmit}
                     disabled={!docReadyCount || docBulkLoading || docParsingCount > 0}
@@ -740,6 +818,19 @@ export function CreateChapterModal({
           )}
         </div>
       </div>
+
+      <PdfPrePreviewModal
+        open={prePreviewOpen}
+        onClose={() => setPrePreviewOpen(false)}
+        file={prePreviewFile}
+        queuedCount={docQueuedCount}
+        onParseAll={(top, bottom) => {
+          if (tab === 'pdf1') { setPdf1MarginTop(top); setPdf1MarginBottom(bottom) }
+          else { setPdf2MarginTop(top); setPdf2MarginBottom(bottom) }
+          setPrePreviewOpen(false)
+          parseAllPdfEntries(top, bottom)
+        }}
+      />
     </div>
   )
 }

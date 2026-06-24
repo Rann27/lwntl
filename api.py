@@ -357,9 +357,10 @@ class API:
         """Estimate token count for text"""
         return {"tokens": estimate_tokens(text)}
 
-    def parse_document(self, filename: str, data_base64: str, mode: str = 'standard'):
+    def parse_document(self, filename: str, data_base64: str, mode: str = 'standard', top_margin: float = 0, bottom_margin: float = 0):
         """Parse a .docx or .pdf file and return markdown content.
         mode: 'standard' (default) or 'flow' (paragraph reconstruction for line-break PDFs).
+        top_margin/bottom_margin: hard-cut zones in pt (0 = auto 8%).
         """
         try:
             import base64
@@ -370,10 +371,38 @@ class API:
                 return parse_docx(data, filename)
             elif ext == 'pdf':
                 if mode == 'flow':
-                    return parse_pdf_flow(data, filename)
-                return parse_pdf(data, filename)
+                    return parse_pdf_flow(data, filename, top_margin=top_margin, bottom_margin=bottom_margin)
+                return parse_pdf(data, filename, top_margin=top_margin, bottom_margin=bottom_margin)
             else:
                 return {"error": True, "message": f"Format tidak didukung: {ext}"}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def render_pdf_pages(self, data_base64: str, page_indices: list = None) -> dict:
+        """Render PDF pages as base64-encoded PNG images."""
+        try:
+            import base64 as b64mod
+            from core.document_parser import render_pdf_page
+            data = b64mod.b64decode(data_base64)
+            indices = page_indices if page_indices is not None else [0, 1, 2]
+            images = []
+            for idx in indices:
+                try:
+                    png = render_pdf_page(data, idx)
+                    images.append(b64mod.b64encode(png).decode())
+                except Exception:
+                    break
+            return {"images": images}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def detect_pdf_margins(self, data_base64: str) -> dict:
+        """Detect header/footer cut zones in a PDF."""
+        try:
+            import base64 as b64mod
+            from core.document_parser import detect_pdf_cut_zones
+            data = b64mod.b64decode(data_base64)
+            return detect_pdf_cut_zones(data)
         except Exception as e:
             return {"error": True, "message": str(e)}
 

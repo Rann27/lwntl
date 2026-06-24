@@ -655,7 +655,7 @@ export function SeriesSettingsPage() {
       />
 
       {/* Batch Translation Overlay */}
-      <BatchTranslationPanel chapters={chapters} onCancel={cancelBatch} />
+      <BatchTranslationPanel seriesId={seriesId!} chapters={chapters} onCancel={cancelBatch} />
     </div>
   )
 }

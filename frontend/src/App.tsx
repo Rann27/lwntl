@@ -110,7 +110,14 @@ function AppInner() {
       window.dispatchEvent(new CustomEvent('lwntl:translation-error', { detail: data }))
     }
     ;(window as any).onBatchStatus = (data: any) => {
-      useAppStore.getState().setBatch(data)
+      if (data.seriesId) {
+        useAppStore.getState().setBatchForSeries(data.seriesId, data)
+        if (data.status === 'done' || data.status === 'cancelled') {
+          setTimeout(() => {
+            useAppStore.getState().setBatchForSeries(data.seriesId, null)
+          }, 3000)
+        }
+      }
       window.dispatchEvent(new CustomEvent('lwntl:batch-status', { detail: data }))
     }
   }, [])

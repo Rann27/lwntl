@@ -1,6 +1,6 @@
 /**
  * LWNTL Batch Translation Hook
- * Manages batch translation state and events
+ * Manages batch translation state and events — scoped per seriesId
  */
 
 import { useEffect, useCallback, useRef } from 'react'
@@ -9,34 +9,38 @@ import { startBatchTranslation, cancelTranslation } from '../api'
 import type { BatchStatusEvent, Chapter } from '../types'
 
 export function useBatchTranslation(seriesId: string) {
-  const batch = useAppStore((s) => s.batch)
-  const setBatch = useAppStore((s) => s.setBatch)
+  const batches = useAppStore((s) => s.batches)
+  const setBatchForSeries = useAppStore((s) => s.setBatchForSeries)
   const addToast = useAppStore((s) => s.addToast)
 
-  // Use ref for toast to avoid dependency issues
   const addToastRef = useRef(addToast)
   addToastRef.current = addToast
 
-  // Register batch status callback
+  const batch = batches[seriesId] ?? null
+
+  // Listen for batch events — only show toasts for this series.
+  // Store updates are handled by App.tsx onBatchStatus.
   useEffect(() => {
-    const handleBatchStatus = (data: BatchStatusEvent) => {
+    const onBatchStatus = (event: Event) => {
+      const data = (event as CustomEvent<BatchStatusEvent>).detail
       if (data.seriesId && data.seriesId !== seriesId) return
-      setBatch(data)
 
       if (data.status === 'done') {
-        addToastRef.current({ type: 'success', message: `Batch selesai! ${data.completed}/${data.total} bab diterjemahkan.` })
+        addToastRef.current({
+          type: 'success',
+          message: `Batch selesai! ${data.completed}/${data.total} bab diterjemahkan.`,
+        })
       } else if (data.status === 'cancelled') {
-        addToastRef.current({ type: 'info', message: `Batch dibatalkan. ${data.completed}/${data.total} selesai.` })
+        addToastRef.current({
+          type: 'info',
+          message: `Batch dibatalkan. ${data.completed}/${data.total} selesai.`,
+        })
       }
     }
 
-    const onBatchStatus = (event: Event) => handleBatchStatus((event as CustomEvent<BatchStatusEvent>).detail)
     window.addEventListener('lwntl:batch-status', onBatchStatus)
-
-    return () => {
-      window.removeEventListener('lwntl:batch-status', onBatchStatus)
-    }
-  }, [setBatch])
+    return () => window.removeEventListener('lwntl:batch-status', onBatchStatus)
+  }, [seriesId])
 
   // Translate All: only pending chapters, no force
   const startBatch = useCallback(async (chapters: Chapter[]) => {
@@ -51,37 +55,37 @@ export function useBatchTranslation(seriesId: string) {
     }
 
     try {
-      setBatch({ status: 'translating', current: 0, total: pendingChapters.length, completed: 0 })
+      setBatchForSeries(seriesId, { seriesId, status: 'translating', current: 0, total: pendingChapters.length, completed: 0 })
       await startBatchTranslation(seriesId, pendingChapters, false)
       addToastRef.current({ type: 'info', message: `Batch dimulai: ${pendingChapters.length} bab.` })
     } catch (e: any) {
       addToastRef.current({ type: 'error', message: `Gagal memulai batch: ${e.message}` })
-      setBatch(null)
+      setBatchForSeries(seriesId, null)
     }
-  }, [seriesId, setBatch])
+  }, [seriesId, setBatchForSeries])
 
-  // Translate Selected: explicit IDs, force=true (translate regardless of status), archive previous
+  // Translate Selected: explicit IDs, force=true, archive previous
   const startSelectedBatch = useCallback(async (chapterIds: string[]) => {
     if (chapterIds.length === 0) return
 
     try {
-      setBatch({ status: 'translating', current: 0, total: chapterIds.length, completed: 0 })
+      setBatchForSeries(seriesId, { seriesId, status: 'translating', current: 0, total: chapterIds.length, completed: 0 })
       await startBatchTranslation(seriesId, chapterIds, true, true)
       addToastRef.current({ type: 'info', message: `Batch dimulai: ${chapterIds.length} bab dipilih.` })
     } catch (e: any) {
       addToastRef.current({ type: 'error', message: `Gagal memulai batch: ${e.message}` })
-      setBatch(null)
+      setBatchForSeries(seriesId, null)
     }
-  }, [seriesId, setBatch])
+  }, [seriesId, setBatchForSeries])
 
   const cancelBatch = useCallback(async () => {
     try {
       await cancelTranslation(seriesId)
-      setBatch(null)
+      setBatchForSeries(seriesId, null)
     } catch (e: any) {
       addToastRef.current({ type: 'error', message: `Gagal membatalkan batch: ${e.message}` })
     }
-  }, [setBatch])
+  }, [seriesId, setBatchForSeries])
 
   const isBatchActive = batch?.status === 'translating'
 

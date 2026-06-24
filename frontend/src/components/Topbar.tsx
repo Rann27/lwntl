@@ -4,10 +4,12 @@
  */
 
 import { useNavigate } from 'react-router-dom'
-import { Settings, ArrowLeft, ScrollText } from 'lucide-react'
+import { Settings, ArrowLeft, ScrollText, Activity } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { useState } from 'react'
 import { WorkerLogPanel } from './WorkerLogPanel'
+import { BatchersListPanel } from './BatchersListPanel'
+import { useAppStore } from '../store/appStore'
 
 interface TopbarProps {
   showBack?: boolean
@@ -19,6 +21,10 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
   const navigate = useNavigate()
   const { t } = useI18n()
   const [logsOpen, setLogsOpen] = useState(false)
+  const [batchersOpen, setBatchersOpen] = useState(false)
+
+  const batches = useAppStore((s) => s.batches)
+  const activeBatchCount = Object.values(batches).filter((b) => b.status === 'translating').length
 
   return (
     <>
@@ -103,6 +109,33 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
 
       {/* Right section */}
       <div className="flex items-center gap-3">
+        {/* Batchers List — active batch monitor */}
+        <button
+          onClick={() => setBatchersOpen(true)}
+          className="relative flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
+          style={{ color: activeBatchCount > 0 ? '#00F7FF' : '#444' }}
+          title="Batch aktif"
+        >
+          <Activity size={20} />
+          {activeBatchCount > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 flex items-center justify-center"
+              style={{
+                width: '14px',
+                height: '14px',
+                backgroundColor: '#00F7FF',
+                color: '#111',
+                fontSize: '8px',
+                fontWeight: 900,
+                fontFamily: 'monospace',
+              }}
+            >
+              {activeBatchCount}
+            </span>
+          )}
+        </button>
+
+        {/* Worker logs */}
         <button
           onClick={() => setLogsOpen(true)}
           className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
@@ -111,6 +144,8 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
         >
           <ScrollText size={20} />
         </button>
+
+        {/* Settings */}
         <button
           onClick={() => navigate('/settings')}
           className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
@@ -121,7 +156,9 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
         </button>
       </div>
     </div>
+
     <WorkerLogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
+    <BatchersListPanel open={batchersOpen} onClose={() => setBatchersOpen(false)} />
     </>
   )
 }

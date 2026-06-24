@@ -91,6 +91,7 @@ export function SettingsPage() {
               <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>{t.common.loading}</p>
             )}
           </div>
+
         </div>
       </main>
     </div>
@@ -704,3 +705,4 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
     </div>
   )
 }
+
