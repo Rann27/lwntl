@@ -4,7 +4,11 @@ This file contains all the methods exposed to frontend
 """
 
 import json
-from core.storage.config import get_config, save_config, init_config, update_config
+from core.storage.config import (
+    get_config, save_config, init_config, update_config,
+    get_all_profiles, get_active_profile_name,
+    create_profile, delete_profile, rename_profile, switch_profile,
+)
 from core.storage.series import (
     get_all_series, create_series, update_series as update_series_db,
     get_series, get_series_delete_info, delete_series,
@@ -65,6 +69,38 @@ class API:
     def ping(self):
         """Test method to verify PyWebView API connection"""
         return {"status": "pong", "message": "PyWebView API is working!"}
+
+    # Profiles
+    def get_profiles(self):
+        try:
+            return {"active": get_active_profile_name(), "profiles": get_all_profiles()}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def create_profile(self, name: str):
+        try:
+            return create_profile(name)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def delete_profile(self, name: str):
+        try:
+            return delete_profile(name)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def rename_profile(self, old_name: str, new_name: str):
+        try:
+            return rename_profile(old_name, new_name)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def switch_profile(self, name: str):
+        try:
+            switch_profile(name)
+            return {"active": name, "profiles": get_all_profiles()}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
 
     # Config
     def get_config(self):

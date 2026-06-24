@@ -12,7 +12,7 @@ import { SeriesSettingsPage } from './pages/SeriesSettingsPage'
 import { ChapterWorkspacePage } from './pages/ChapterWorkspacePage'
 import { SettingsPage } from './pages/SettingsPage'
 import { useAppStore } from './store/appStore'
-import { waitForApi, getConfig, saveConfig } from './api'
+import { waitForApi, getConfig, saveConfig, getProfiles } from './api'
 import { useToast } from './hooks/useToast'
 import { useI18n } from './i18n'
 import type { TranslationChunkEvent, TranslationDoneEvent, TranslationErrorEvent } from './types'
@@ -51,7 +51,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 }
 
 function AppInner() {
-  const { config, setConfig, setApiReady } = useAppStore()
+  const { config, setConfig, setApiReady, setProfiles } = useAppStore()
   const toast = useToast()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [initializing, setInitializing] = useState(true)
@@ -142,8 +142,9 @@ function AppInner() {
         await waitForApi()
         setApiReady(true)
 
-        const cfg = await getConfig()
+        const [cfg, profilesData] = await Promise.all([getConfig(), getProfiles()])
         setConfig(cfg)
+        setProfiles(profilesData)
 
         // Check if onboarding needed (no API keys configured)
         const hasAnyKey = cfg.zhipuaiApiKey || cfg.qwenApiKey || cfg.openaiApiKey ||

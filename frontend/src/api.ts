@@ -11,6 +11,7 @@ import type {
   GlossaryEntry,
   WorkerStatus,
   SeriesDeleteInfo,
+  ProfilesState,
   ApiError,
 } from './types'
 
@@ -454,4 +455,40 @@ export async function detectPdfMargins(dataBase64: string): Promise<{ topMargin:
   const result = await api.detect_pdf_margins(dataBase64)
   if (isApiError(result)) throw new Error(result.message)
   return result as { topMargin: number; bottomMargin: number; pageHeight: number; pageCount: number }
+}
+
+// ===== Profiles =====
+export async function getProfiles(): Promise<ProfilesState> {
+  const api = getApi()
+  const result = await api.get_profiles()
+  if (isApiError(result)) throw new Error(result.message)
+  return result as ProfilesState
+}
+
+export async function createProfile(name: string): Promise<{ name: string }> {
+  const api = getApi()
+  const result = await api.create_profile(name)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { name: string }
+}
+
+export async function deleteProfile(name: string): Promise<boolean> {
+  const api = getApi()
+  const result = await api.delete_profile(name)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as boolean
+}
+
+export async function renameProfile(oldName: string, newName: string): Promise<{ name: string }> {
+  const api = getApi()
+  const result = await api.rename_profile(oldName, newName)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { name: string }
+}
+
+export async function switchProfile(name: string): Promise<ProfilesState> {
+  const api = getApi()
+  const result = await api.switch_profile(name)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as ProfilesState
 }

@@ -8,13 +8,13 @@ import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from .config import get_app_data_dir
+from .config import get_profile_data_dir
 
 MAX_DEPTH = 2  # 0-indexed depth: level 0, 1, 2 → 3 visible levels total
 
 
 def get_groups_path() -> Path:
-    return get_app_data_dir() / 'groups.json'
+    return get_profile_data_dir() / 'groups.json'
 
 
 def _load() -> List[Dict[str, Any]]:

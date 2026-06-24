@@ -9,7 +9,7 @@ import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from .config import get_app_data_dir
+from .config import get_profile_data_dir
 
 
 def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
@@ -20,8 +20,7 @@ def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def get_series_dir() -> Path:
-    """Get the series directory path"""
-    return get_app_data_dir() / 'series'
+    return get_profile_data_dir() / 'series'
 
 
 def get_series_path(series_id: str) -> Path:

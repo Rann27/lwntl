@@ -3,7 +3,7 @@
  */
 
 import { create } from 'zustand'
-import type { AppConfig, ChapterStatus, GlossaryUpdates, BatchStatusEvent, ContextInfo } from '../types'
+import type { AppConfig, ChapterStatus, GlossaryUpdates, BatchStatusEvent, ContextInfo, ProfilesState } from '../types'
 
 // ===== Toast =====
 export interface Toast {
@@ -55,6 +55,10 @@ interface AppState {
   // Chapter status cache (seriesId -> chapterId -> status)
   chapterStatusCache: Record<string, Record<string, ChapterStatus>>
   setChapterStatus: (seriesId: string, chapterId: string, status: ChapterStatus) => void
+
+  // Profiles
+  profiles: ProfilesState
+  setProfiles: (p: ProfilesState) => void
 
   // API ready
   apiReady: boolean
@@ -199,6 +203,10 @@ export const useAppStore = create<AppState>((set) => ({
         },
       },
     })),
+
+  // Profiles
+  profiles: { active: '', profiles: [] },
+  setProfiles: (p) => set({ profiles: p }),
 
   // API ready
   apiReady: false,

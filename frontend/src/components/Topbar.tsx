@@ -4,11 +4,12 @@
  */
 
 import { useNavigate } from 'react-router-dom'
-import { Settings, ArrowLeft, ScrollText, Activity } from 'lucide-react'
+import { Settings, ArrowLeft, ScrollText, Activity, Layers } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { useState } from 'react'
 import { WorkerLogPanel } from './WorkerLogPanel'
 import { BatchersListPanel } from './BatchersListPanel'
+import { ProfileSwitcherPanel } from './ProfileSwitcherPanel'
 import { useAppStore } from '../store/appStore'
 
 interface TopbarProps {
@@ -22,8 +23,10 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
   const { t } = useI18n()
   const [logsOpen, setLogsOpen] = useState(false)
   const [batchersOpen, setBatchersOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   const batches = useAppStore((s) => s.batches)
+  const profiles = useAppStore((s) => s.profiles)
   const activeBatchCount = Object.values(batches).filter((b) => b.status === 'translating').length
 
   return (
@@ -109,6 +112,21 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
 
       {/* Right section */}
       <div className="flex items-center gap-3">
+        {/* Profile switcher */}
+        {profiles.active && (
+          <button
+            onClick={() => setProfileOpen((v) => !v)}
+            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            style={{ color: profileOpen ? '#00F7FF' : '#888', maxWidth: '140px' }}
+            title="Ganti profil"
+          >
+            <Layers size={14} />
+            <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.3px' }}>
+              {profiles.active}
+            </span>
+          </button>
+        )}
+
         {/* Batchers List — active batch monitor */}
         <button
           onClick={() => setBatchersOpen(true)}
@@ -159,6 +177,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
 
     <WorkerLogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
     <BatchersListPanel open={batchersOpen} onClose={() => setBatchersOpen(false)} />
+    <ProfileSwitcherPanel open={profileOpen} onClose={() => setProfileOpen(false)} />
     </>
   )
 }

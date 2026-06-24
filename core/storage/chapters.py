@@ -9,12 +9,11 @@ import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from .config import get_app_data_dir
+from .config import get_profile_data_dir
 
 
 def get_series_dir() -> Path:
-    """Get the series directory path"""
-    return get_app_data_dir() / 'series'
+    return get_profile_data_dir() / 'series'
 
 
 def get_chapters_dir(series_id: str) -> Path:

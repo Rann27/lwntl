@@ -376,6 +376,12 @@ export interface ChapterDeleteInfo {
   // minimal info
 }
 
+// Profiles
+export interface ProfilesState {
+  active: string
+  profiles: string[]
+}
+
 // API Response
 export interface ApiError {
   error: boolean
