@@ -19,6 +19,60 @@ from docx.oxml import OxmlElement
 
 TEMPLATE_FILENAME = 'TemplateNew.docx'
 
+# Unicode ranges not reliably covered by Times New Roman (or any single Latin font).
+# These need an explicit fallback so Word doesn't corrupt them.
+_UNICODE_FALLBACK_RANGES = (
+    (0x2030, 0x206F),  # General Punctuation extras: ※ ‼ ⁇ etc. (em/en dash & quotes are below 0x2030, safe)
+    (0x2190, 0x23FF),  # Arrows + Supplemental Arrows + Misc Technical
+    (0x2400, 0x27BF),  # Box Drawing / Geometric Shapes / Misc Symbols / Dingbats
+    (0x2E80, 0x2EFF),  # CJK Radicals Supplement
+    (0x3000, 0x303F),  # CJK Symbols and Punctuation
+    (0x3040, 0x30FF),  # Hiragana / Katakana
+    (0x4E00, 0x9FFF),  # CJK Unified Ideographs
+    (0xAC00, 0xD7AF),  # Hangul Syllables
+    (0xFF00, 0xFFEF),  # Halfwidth / Fullwidth Forms
+)
+# A single Unicode-capable font available on Windows 8+ and all Office installs.
+_FALLBACK_FONT = 'Segoe UI Symbol'
+
+
+def _char_needs_fallback(ch: str) -> bool:
+    cp = ord(ch)
+    return any(lo <= cp <= hi for lo, hi in _UNICODE_FALLBACK_RANGES)
+
+
+def _split_for_font(text: str):
+    """Yield (segment, needs_fallback_font) pairs."""
+    if not text:
+        return
+    cur = [text[0]]
+    cur_fallback = _char_needs_fallback(text[0])
+    for ch in text[1:]:
+        fb = _char_needs_fallback(ch)
+        if fb == cur_fallback:
+            cur.append(ch)
+        else:
+            yield ''.join(cur), cur_fallback
+            cur = [ch]
+            cur_fallback = fb
+    yield ''.join(cur), cur_fallback
+
+
+def _add_run(paragraph, text: str, bold: bool = False, italic: bool = False,
+             base_font: Optional[str] = 'Times New Roman'):
+    """Add text as one or more runs, switching to fallback font for Unicode symbols.
+    Pass base_font=None to inherit font from the paragraph style (e.g. when using a template)."""
+    for segment, needs_fallback in _split_for_font(text):
+        run = paragraph.add_run(segment)
+        if bold:
+            run.bold = True
+        if italic:
+            run.italic = True
+        if needs_fallback:
+            run.font.name = _FALLBACK_FONT
+        elif base_font is not None:
+            run.font.name = base_font
+
 
 def _find_template() -> Optional[Path]:
     """Locate TemplateNew.docx from several candidate directories."""
@@ -74,12 +128,13 @@ def _configure_normal_style(doc: Document):
     pf.line_spacing = Pt(20)
 
 
-def _add_inline_content(paragraph, text: str):
+def _add_inline_content(paragraph, text: str, base_font: Optional[str] = 'Times New Roman'):
     """
     Parse inline markdown and add runs to paragraph.
     Handles: ***bold-italic***, **bold**, *italic*, plain text.
+    Each run is split by character type so Unicode symbols get a proper fallback font.
+    Pass base_font=None to inherit font from paragraph style (template use).
     """
-    # Pattern: match bold-italic, bold, italic spans (non-greedy)
     pattern = r'(\*{3}.+?\*{3}|\*{2}.+?\*{2}|\*.+?\*)'
     parts = re.split(pattern, text, flags=re.DOTALL)
 
@@ -87,17 +142,13 @@ def _add_inline_content(paragraph, text: str):
         if not part:
             continue
         if part.startswith('***') and part.endswith('***') and len(part) > 6:
-            run = paragraph.add_run(part[3:-3])
-            run.bold   = True
-            run.italic = True
+            _add_run(paragraph, part[3:-3], bold=True, italic=True, base_font=base_font)
         elif part.startswith('**') and part.endswith('**') and len(part) > 4:
-            run = paragraph.add_run(part[2:-2])
-            run.bold = True
+            _add_run(paragraph, part[2:-2], bold=True, base_font=base_font)
         elif part.startswith('*') and part.endswith('*') and len(part) > 2:
-            run = paragraph.add_run(part[1:-1])
-            run.italic = True
+            _add_run(paragraph, part[1:-1], italic=True, base_font=base_font)
         else:
-            paragraph.add_run(part)
+            _add_run(paragraph, part, base_font=base_font)
 
 
 def _is_scene_break(text: str) -> bool:
@@ -157,17 +208,21 @@ def _add_chapter_to_doc(
 
     # Series subtitle (italic, grey)
     if series_title and show_series_subtitle:
-        sub = doc.add_paragraph(series_title)
+        sub = doc.add_paragraph()
         sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
         sub.paragraph_format.space_after = Pt(18)
+        subtitle_font = None if use_template_styles else 'Times New Roman'
+        _add_run(sub, series_title, italic=True, base_font=subtitle_font)
         if not use_template_styles:
             for run in sub.runs:
-                run.font.name = 'Times New Roman'
                 run.font.size = Pt(11)
                 run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
-                run.italic = True
 
     doc.add_paragraph()  # blank spacer after header
+
+    # When using template, inherit body font from template's Normal style.
+    # When not using template, explicitly set Times New Roman.
+    body_base_font = None if use_template_styles else 'Times New Roman'
 
     # Body content — split on blank lines
     blocks = re.split(r'\n{2,}', content.strip())
@@ -193,7 +248,7 @@ def _add_chapter_to_doc(
         lines = block.split('\n')
         if len(lines) == 1:
             p = doc.add_paragraph()
-            _add_inline_content(p, block)
+            _add_inline_content(p, block, base_font=body_base_font)
         else:
             p = doc.add_paragraph()
             for i, line in enumerate(lines):
@@ -202,7 +257,7 @@ def _add_chapter_to_doc(
                     continue
                 if i > 0:
                     p.add_run('\n')
-                _add_inline_content(p, line)
+                _add_inline_content(p, line, base_font=body_base_font)
 
 
 def export_chapter_to_docx(series: Dict[str, Any], chapter: Dict[str, Any]) -> bytes:

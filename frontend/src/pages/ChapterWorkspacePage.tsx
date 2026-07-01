@@ -28,40 +28,10 @@ import {
 import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
 import type { Chapter, ContextInfo, GlossaryEntry, TranslationVersion } from '../types'
-
-/** Remove the trailing glossary table from translated content (same logic as Python extractor). */
-function stripGlossaryTable(content: string): string {
-  if (!content) return content
-  const lines = content.split('\n')
-
-  // Strategy 1: last '---' followed by a pipe table
-  for (let i = lines.length - 1; i >= 0; i--) {
-    if (/^-{3,}\s*$/.test(lines[i].trim())) {
-      const after = lines.slice(i + 1)
-      if (after.some(l => /^\|.+\|$/.test(l.trim()))) {
-        return lines.slice(0, i).join('\n').trimEnd()
-      }
-    }
-  }
-
-  // Strategy 2: last pipe table block + optional blank lines / bold heading above
-  let end = lines.length - 1
-  while (end >= 0 && !lines[end].trim()) end--
-
-  if (end >= 0 && /^\|.+\|$/.test(lines[end].trim())) {
-    let start = end
-    while (start > 0 && /^\|.+\|$/.test(lines[start - 1].trim())) start--
-
-    let stripFrom = start
-    for (let i = start - 1; i >= Math.max(-1, start - 5); i--) {
-      const s = lines[i].trim()
-      if (!s || /^\*\*[^*]+\*\*[:\s]*$/.test(s)) { stripFrom = i } else break
-    }
-    return lines.slice(0, stripFrom).join('\n').trimEnd()
-  }
-
-  return content
-}
+import { detectCJK } from '../utils/cjkDetector'
+import type { CJKIncident } from '../utils/cjkDetector'
+import CJKBubble from '../components/CJKBubble'
+import { stripGlossaryTable } from '../utils/stripGlossaryTable'
 
 export function ChapterWorkspacePage() {
   const { id: seriesId, chapterId } = useParams<{ id: string; chapterId: string }>()
@@ -84,6 +54,8 @@ export function ChapterWorkspacePage() {
   const [confirmRetranslate, setConfirmRetranslate] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [viewingVersion, setViewingVersion] = useState<TranslationVersion | null>(null)
+
+  const [cjkIncidents, setCjkIncidents] = useState<CJKIncident[]>([])
 
   const containerRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
@@ -149,6 +121,16 @@ export function ChapterWorkspacePage() {
   }, [apiReady, loadChapter])
 
   useEffect(() => { setIsRawDirty(false) }, [chapter?.id])
+
+  // Run CJK detection whenever translated content changes (load + re-translate)
+  // Strip glossary table first so source-term CJK in the appended table is excluded
+  useEffect(() => {
+    if (chapter?.status === 'done' && chapter.translatedContent) {
+      setCjkIncidents(detectCJK(stripGlossaryTable(chapter.translatedContent)))
+    } else {
+      setCjkIncidents([])
+    }
+  }, [chapter?.translatedContent, chapter?.status])
 
   // Reload chapter when translation finishes (isTranslating: true → false)
   useEffect(() => {
@@ -680,6 +662,9 @@ export function ChapterWorkspacePage() {
         translation={{ isTranslating, status, streamingText, iteration, progress, glossaryUpdates }}
         chapterStatus={chapter.status}
       />
+
+      {/* CJK Detector bubble */}
+      <CJKBubble incidents={cjkIncidents} />
     </div>
   )
 }

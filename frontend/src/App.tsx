@@ -142,9 +142,15 @@ function AppInner() {
         await waitForApi()
         setApiReady(true)
 
-        const [cfg, profilesData] = await Promise.all([getConfig(), getProfiles()])
+        const cfg = await getConfig()
         setConfig(cfg)
-        setProfiles(profilesData)
+
+        try {
+          const profilesData = await getProfiles()
+          setProfiles(profilesData)
+        } catch {
+          // profiles API optional — non-fatal
+        }
 
         // Check if onboarding needed (no API keys configured)
         const hasAnyKey = cfg.zhipuaiApiKey || cfg.qwenApiKey || cfg.openaiApiKey ||

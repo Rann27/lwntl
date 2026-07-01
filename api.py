@@ -9,6 +9,7 @@ from core.storage.config import (
     get_all_profiles, get_active_profile_name,
     create_profile, delete_profile, rename_profile, switch_profile,
 )
+from core.storage.templates import get_profile_templates, save_profile_templates
 from core.storage.series import (
     get_all_series, create_series, update_series as update_series_db,
     get_series, get_series_delete_info, delete_series,
@@ -199,11 +200,24 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
     
-    def get_default_system_prompt(self, target_language: str):
-        """Get default system prompt for a target language"""
+    def get_default_system_prompt(self, target_language: str = None):
+        """Get the active profile's system prompt template."""
         try:
-            from core.prompt_builder import get_default_system_prompt
-            return {"prompt": get_default_system_prompt(target_language)}
+            return {"prompt": get_profile_templates().get("systemPromptTemplate", "")}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def get_profile_templates(self):
+        """Get the active profile's prompt templates."""
+        try:
+            return get_profile_templates()
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def save_profile_templates(self, system_prompt_template: str, instructions_template: str):
+        """Save prompt templates for the active profile."""
+        try:
+            return save_profile_templates(system_prompt_template, instructions_template)
         except Exception as e:
             return {"error": True, "message": str(e)}
 

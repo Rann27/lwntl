@@ -166,7 +166,7 @@ def build_context_window(
     # === Layer 2: Rolling Context (summaries of previous chapters) ===
     rolling_context, rolling_tokens = _build_rolling_context(
         chapters,
-        current_chapter.get("chapterNumber", 1)
+        current_chapter.get("createdAt", "")
     )
     
     # === Layer 3: Memory Context (compacted long-term memory) ===
@@ -440,7 +440,7 @@ def _auto_compact(
     for count in range(len(previous_with_summary), 0, -1):
         context, tokens = _build_rolling_context(
             chapters,
-            current_chapter.get("chapterNumber", 1),
+            current_chapter.get("createdAt", ""),
             count
         )
         if tokens <= available_for_rolling:

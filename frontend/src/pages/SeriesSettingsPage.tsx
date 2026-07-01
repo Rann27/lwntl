@@ -40,6 +40,10 @@ import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
 import type { Series, Chapter, GlossaryEntry, AppConfig, WorkerStatus } from '../types'
 import { chapterNumFloat } from '../types'
+import { detectCJK } from '../utils/cjkDetector'
+import type { CJKIncident } from '../utils/cjkDetector'
+import CJKBubble from '../components/CJKBubble'
+import { stripGlossaryTable } from '../utils/stripGlossaryTable'
 
 export function SeriesSettingsPage() {
   const { id: seriesId } = useParams<{ id: string }>()
@@ -64,6 +68,7 @@ export function SeriesSettingsPage() {
   const [workerStatuses, setWorkerStatuses] = useState<WorkerStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [saveLoading, setSaveLoading] = useState(false)
+  const [cjkIncidents, setCjkIncidents] = useState<CJKIncident[]>([])
 
   // Modal states
   const [createChapterOpen, setCreateChapterOpen] = useState(false)
@@ -152,6 +157,19 @@ export function SeriesSettingsPage() {
       logEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
   }, [seriesLogLines, showLogs])
+
+  // Aggregate CJK incidents across all done chapters whenever chapter list changes
+  // Strip glossary table first so source-term CJK in the appended table is excluded
+  useEffect(() => {
+    const all: CJKIncident[] = []
+    for (const ch of chapters) {
+      if (ch.status === 'done' && ch.translatedContent) {
+        const label = `Bab ${ch.chapterNumber}${ch.title ? ` — ${ch.title}` : ''}`
+        all.push(...detectCJK(stripGlossaryTable(ch.translatedContent), label))
+      }
+    }
+    setCjkIncidents(all)
+  }, [chapters])
 
   // Save config + instructions + systemPrompt
   const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string) => {
@@ -656,6 +674,9 @@ export function SeriesSettingsPage() {
 
       {/* Batch Translation Overlay */}
       <BatchTranslationPanel seriesId={seriesId!} chapters={chapters} onCancel={cancelBatch} />
+
+      {/* CJK Detector bubble */}
+      <CJKBubble incidents={cjkIncidents} />
     </div>
   )
 }

@@ -17,6 +17,7 @@ from .storage.chapters import (
 from .prompt_builder import build_system_prompt, build_user_prompt
 from .extractor import extract_glossary_terms, parse_glossary_from_translation
 from .context_window import build_context_window, generate_chapter_summary
+from .placeholder import wrap_placeholders, unwrap_placeholders, reinsert_missing_placeholders
 
 
 class Translator:
@@ -282,7 +283,7 @@ class Translator:
                 )
                 # Use the raw content from context (in case of future pre-processing)
                 user_prompt = build_user_prompt(
-                    context.get("current_content", raw_content),
+                    wrap_placeholders(context.get("current_content", raw_content)),
                     chapter,
                     series.get("targetLanguage", "Indonesian")
                 )
@@ -295,7 +296,7 @@ class Translator:
             else:
                 # Fallback: build prompts without context window
                 system_prompt = build_system_prompt(series, raw_content=raw_content, pre_filter=self._glossary_pre_filter)
-                user_prompt = build_user_prompt(raw_content, chapter, series.get("targetLanguage", "Indonesian"))
+                user_prompt = build_user_prompt(wrap_placeholders(raw_content), chapter, series.get("targetLanguage", "Indonesian"))
             
             # Smart iteration - translate in chunks if needed
             full_translation = ""
@@ -319,17 +320,15 @@ class Translator:
                 
                 target_lang = series.get("targetLanguage", "Indonesian")
                 if is_continuation:
-                    # For continuation, just send remaining content
-                    messages = [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": f"Continue translating to {target_lang}. Start immediately:\n\n{remaining_content}"}
-                    ]
+                    messages = []
+                    if system_prompt.strip():
+                        messages.append({"role": "system", "content": system_prompt})
+                    messages.append({"role": "user", "content": f"Continue translating to {target_lang}. Start immediately:\n\n{wrap_placeholders(remaining_content)}"})
                 else:
-                    # First iteration
-                    messages = [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ]
+                    messages = []
+                    if system_prompt.strip():
+                        messages.append({"role": "system", "content": system_prompt})
+                    messages.append({"role": "user", "content": user_prompt})
                 
                 # Stream translation
                 chunk_text = self._stream_completion(
@@ -395,6 +394,13 @@ class Translator:
                 if _m in full_translation:
                     full_translation = full_translation[:full_translation.index(_m)].rstrip()
                     break
+
+            # Option A clean-up: strip LWNTL_PRESERVE tags the AI may have kept verbatim.
+            # Option B guard: reinsert any placeholder the AI dropped entirely.
+            full_translation = unwrap_placeholders(full_translation)
+            full_translation, n_reinserted = reinsert_missing_placeholders(full_translation, raw_content)
+            if n_reinserted > 0:
+                self._log(f"[Placeholder] Reinserted {n_reinserted} missing placeholder(s) at approximate positions")
 
             # Do not continue with summary/extraction if main translation is empty
             # or suspiciously short compared to raw content (thinking-mode models

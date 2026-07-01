@@ -492,3 +492,23 @@ export async function switchProfile(name: string): Promise<ProfilesState> {
   if (isApiError(result)) throw new Error(result.message)
   return result as ProfilesState
 }
+
+// ===== Profile Templates =====
+export interface ProfileTemplates {
+  systemPromptTemplate: string
+  instructionsTemplate: string
+}
+
+export async function getProfileTemplates(): Promise<ProfileTemplates> {
+  const api = getApi()
+  const result = await api.get_profile_templates()
+  if (isApiError(result)) throw new Error(result.message)
+  return result as ProfileTemplates
+}
+
+export async function saveProfileTemplates(systemPromptTemplate: string, instructionsTemplate: string): Promise<boolean> {
+  const api = getApi()
+  const result = await api.save_profile_templates(systemPromptTemplate, instructionsTemplate)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as boolean
+}

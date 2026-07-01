@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { AlertCircle, ExternalLink, Info, RotateCcw, Save } from 'lucide-react'
-import { getDefaultSystemPrompt } from '../api'
+import { getProfileTemplates } from '../api'
 import { useI18n } from '../i18n'
 import { PROVIDERS } from '../types'
 import type { AppConfig, Series, WorkerStatus } from '../types'
@@ -45,6 +45,7 @@ export function PromptModelPanel({
   const [glossaryPreFilter, setGlossaryPreFilter] = useState(config?.glossaryPreFilter ?? true)
   const [dirty, setDirty] = useState(false)
   const [defaultPrompt, setDefaultPrompt] = useState('')
+  const [defaultInstructions, setDefaultInstructions] = useState('')
   const [loadingDefault, setLoadingDefault] = useState(false)
   const { t } = useI18n()
 
@@ -57,16 +58,23 @@ export function PromptModelPanel({
   }, [config, series?.workerId])
 
   useEffect(() => {
-    const targetLang = series?.targetLanguage || 'Indonesian'
     setLoadingDefault(true)
-    getDefaultSystemPrompt(targetLang)
-      .then(setDefaultPrompt)
-      .catch(() => setDefaultPrompt(''))
+    getProfileTemplates()
+      .then((tpl) => {
+        setDefaultPrompt(tpl.systemPromptTemplate)
+        setDefaultInstructions(tpl.instructionsTemplate)
+      })
+      .catch(() => { setDefaultPrompt(''); setDefaultInstructions('') })
       .finally(() => setLoadingDefault(false))
-  }, [series?.targetLanguage])
+  }, [])
 
   const displayPrompt = systemPrompt.trim() || defaultPrompt
   const isCustomPrompt = systemPrompt.trim().length > 0
+  const showPromptBadge = isCustomPrompt || defaultPrompt.length > 0
+
+  const displayInstructions = instructions.trim() || defaultInstructions
+  const isCustomInstructions = instructions.trim().length > 0
+  const showInstructionsBadge = isCustomInstructions || defaultInstructions.length > 0
   const workers = config?.workers || []
   const selectedWorker = workers.find((w) => w.id === workerId)
   const statusByWorker = new Map(workerStatuses.map((w) => [w.id, w]))
@@ -162,20 +170,24 @@ export function PromptModelPanel({
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
               {t.seriesSettings.systemPrompt}
             </label>
-            <div className="flex items-center gap-2">
-              <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomPrompt ? '#FFEF33' : '#fff', background: isCustomPrompt ? '#111' : '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>
-                {isCustomPrompt ? t.seriesSettings.custom : t.seriesSettings.default}
-              </span>
-              <button
-                type="button"
-                onClick={() => { onSystemPromptChange(''); setDirty(true) }}
-                className="flex items-center gap-1"
-                style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', border: 'none', background: 'transparent', cursor: 'pointer', textTransform: 'uppercase' }}
-                title="Reset ke default template"
-              >
-                <RotateCcw size={10} /> Reset
-              </button>
-            </div>
+            {showPromptBadge && (
+              <div className="flex items-center gap-2">
+                <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomPrompt ? '#FFEF33' : '#fff', background: isCustomPrompt ? '#111' : '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>
+                  {isCustomPrompt ? t.seriesSettings.custom : t.seriesSettings.default}
+                </span>
+                {isCustomPrompt && (
+                  <button
+                    type="button"
+                    onClick={() => { onSystemPromptChange(''); setDirty(true) }}
+                    className="flex items-center gap-1"
+                    style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', border: 'none', background: 'transparent', cursor: 'pointer', textTransform: 'uppercase' }}
+                    title="Reset ke default template"
+                  >
+                    <RotateCcw size={10} /> Reset
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           <textarea
             value={displayPrompt}
@@ -207,13 +219,33 @@ export function PromptModelPanel({
         <div style={{ height: '2px', backgroundColor: 'var(--color-separator)' }} />
 
         <div>
-          <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
-            {t.seriesSettings.instructionPrompt}
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+              {t.seriesSettings.instructionPrompt}
+            </label>
+            {showInstructionsBadge && (
+              <div className="flex items-center gap-2">
+                <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomInstructions ? '#FFEF33' : '#fff', background: isCustomInstructions ? '#111' : '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>
+                  {isCustomInstructions ? t.seriesSettings.custom : t.seriesSettings.default}
+                </span>
+                {isCustomInstructions && (
+                  <button
+                    type="button"
+                    onClick={() => { onInstructionsChange(''); setDirty(true) }}
+                    className="flex items-center gap-1"
+                    style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', border: 'none', background: 'transparent', cursor: 'pointer', textTransform: 'uppercase' }}
+                    title="Reset ke default template"
+                  >
+                    <RotateCcw size={10} /> Reset
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
           <textarea
-            value={instructions}
+            value={displayInstructions}
             onChange={(e) => { onInstructionsChange(e.target.value); setDirty(true) }}
-            placeholder={t.seriesSettings.instructionPlaceholder}
+            placeholder={loadingDefault ? t.common.loading : t.seriesSettings.instructionPlaceholder}
             className="neo-textarea"
             style={{ minHeight: '80px', fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           />

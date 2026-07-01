@@ -5,67 +5,16 @@ Builds system and user prompts for translation with template variable support
 
 from typing import Dict, Any, List
 
-
-# Default system prompt templates per target language
-# Supports variables: {source_language}, {target_language}, {title}
-DEFAULT_SYSTEM_PROMPTS = {
-    "Indonesian": """Kamu adalah penerjemah profesional light novel dan web novel dari {source_language} ke {target_language}.
-
-# Panduan Penerjemahan:
-- Pertahankan nada dan gaya asli teks (humor, serius, dramatis, romantis, dll.)
-- Jaga struktur paragraf — satu paragraf asli = satu paragraf terjemahan
-- Gunakan bahasa {target_language} yang natural, mengalir, dan enak dibaca
-- Pertahankan honorifik dari bahasa sumber secara kontekstual (contoh: -san, -nim, 前辈, dll.)
-- Jaga nuansa puitis, idiom, dan permainan kata bila memungkinkan
-
-# Format Output (Markdown):
-- Gunakan *teks miring* untuk monolog batin karakter dan onomatopea/SFX (contoh: *Kenapa dia ada di sini...*, *Brak!*)
-- Gunakan *** (tiga bintang di baris tersendiri) untuk pemisah adegan atau pergantian POV
-- JANGAN sertakan catatan penerjemah, penjelasan, atau komentar apapun
-- Berikan HANYA teks terjemahan, langsung tanpa pembuka
-- Saat terjemahan selesai, akhiri dengan: [SELESAI]""",
-
-    "English": """You are a professional light novel and web novel translator from {source_language} to {target_language}.
-
-# Translation Guidelines:
-- Maintain the original tone and style (humorous, serious, dramatic, romantic, etc.)
-- Preserve paragraph structure — one original paragraph = one translated paragraph
-- Use natural, fluent, and readable {target_language} language
-- Adapt honorifics from the source language contextually (e.g. -san, -nim, 前辈, etc.)
-- Preserve poetic nuances, idioms, and wordplay where possible
-
-# Output Format (Markdown):
-- Use *italic text* for character inner monologue and onomatopoeia/SFX (e.g. *Why is he here...*, *Crash!*)
-- Use *** (three asterisks on their own line) for scene breaks or POV shifts
-- Do NOT include translator notes, explanations, or any meta-commentary
-- Provide ONLY the translated text, starting immediately
-- When complete, end with: [DONE]""",
-}
-
-# Template for custom languages
-GENERIC_TEMPLATE = """You are a professional light novel and web novel translator from {source_language} to {target_language}.
-
-# Translation Guidelines:
-- Maintain the original tone and style (humorous, serious, dramatic, romantic, etc.)
-- Preserve paragraph structure — one original paragraph = one translated paragraph
-- Use natural, fluent, and readable {target_language} language
-- Adapt honorifics from the source language contextually
-- Preserve poetic nuances, idioms, and wordplay where possible
-
-# Output Format (Markdown):
-- Use *italic text* for character inner monologue and onomatopoeia/SFX
-- Use *** (three asterisks on their own line) for scene breaks or POV shifts
-- Do NOT include translator notes, explanations, or any meta-commentary
-- Provide ONLY the translated text, starting immediately
-- When complete, end with: [END]"""
+def get_profile_system_prompt_template() -> str:
+    """Get the active profile's system prompt template (empty string if not set)."""
+    from core.storage.templates import get_profile_templates
+    return get_profile_templates().get("systemPromptTemplate", "")
 
 
-def get_default_system_prompt(target_language: str) -> str:
-    """Get default system prompt template for a target language"""
-    if target_language in DEFAULT_SYSTEM_PROMPTS:
-        return DEFAULT_SYSTEM_PROMPTS[target_language]
-    # Generate from generic template
-    return GENERIC_TEMPLATE
+def get_profile_instructions_template() -> str:
+    """Get the active profile's instructions template (empty string if not set)."""
+    from core.storage.templates import get_profile_templates
+    return get_profile_templates().get("instructionsTemplate", "")
 
 
 def resolve_template_vars(template: str, series: Dict[str, Any]) -> str:
@@ -105,20 +54,18 @@ def build_system_prompt(
     """
     custom_prompt = series.get("systemPrompt", "").strip()
 
-    # Use custom prompt if provided, otherwise use default for target language
-    target_lang = series.get("targetLanguage", "Indonesian")
-    if custom_prompt:
-        base_prompt = custom_prompt
+    # Resolution order: per-series custom → profile template → nothing
+    base_prompt = custom_prompt or get_profile_system_prompt_template()
+
+    if not base_prompt:
+        system_prompt = ""
     else:
-        base_prompt = get_default_system_prompt(target_lang)
+        system_prompt = resolve_template_vars(base_prompt, series) + "\n\n"
 
-    # Resolve template variables
-    system_prompt = resolve_template_vars(base_prompt, series) + "\n\n"
-
-    # Add custom instructions (per-series, user-defined)
-    instructions = series.get("instructions", "").strip()
+    # Instructions: per-series → profile template → nothing
+    instructions = series.get("instructions", "").strip() or get_profile_instructions_template().strip()
     if instructions:
-        system_prompt += f"# Custom Instructions:\n{instructions}\n\n"
+        system_prompt += f"# Custom Instructions:\n{resolve_template_vars(instructions, series)}\n\n"
 
     # Add glossary — pre-filtered to terms that actually appear in this chapter.
     # Injecting the full glossary when it has hundreds of entries overwhelms the

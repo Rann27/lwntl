@@ -8,6 +8,9 @@ import re
 from typing import Dict, Any, Set
 
 
+_VML_NS = 'urn:schemas-microsoft-com:vml'
+
+
 def _filename_to_title(filename: str) -> str:
     name = filename.rsplit('.', 1)[0]
     return re.sub(r'[_\-]+', ' ', name).strip()
@@ -46,7 +49,7 @@ def parse_docx(data: bytes, filename: str) -> Dict[str, Any]:
                 else:
                     img_counter += 1
                     images_in_para.append(f"image_{img_counter}.jpg")
-            for v_img in run._r.findall('.//' + qn('v:imagedata')):
+            for v_img in run._r.findall(f'.//{{{_VML_NS}}}imagedata'):
                 r_id = v_img.get(qn('r:id'))
                 if r_id and r_id in doc.part.rels:
                     img_name = doc.part.rels[r_id].target_ref.split('/')[-1]
@@ -174,6 +177,16 @@ def parse_pdf(data: bytes, filename: str, top_margin: float = 0, bottom_margin: 
 
                 for span in line.get("spans", []):
                     t = span.get("text", "")
+                    # SegoeUIEmoji (Windows emoji font) glyphs that PyMuPDF cannot
+                    # map to Unicode come back as empty text in dict mode.
+                    # Detect by: empty text + SegoeUIEmoji font + wide span bbox.
+                    # Each glyph is ~1.375× the font size wide (measured from real PDF data).
+                    if not t.strip() and 'SegoeUIEmoji' in span.get('font', ''):
+                        _sbbox = span.get('bbox', (0, 0, 0, 0))
+                        _em = span.get('size', body_size) or body_size
+                        _w = _sbbox[2] - _sbbox[0]
+                        if _w > _em * 0.5:  # wider than half an em → real emoji glyph(s)
+                            t = '♡' * max(1, round(_w / (_em * 1.375)))
                     sz = span.get("size", body_size)
                     fl = span.get("flags", 0)
                     color = span.get("color", 0)

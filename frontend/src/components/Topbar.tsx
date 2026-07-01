@@ -4,12 +4,13 @@
  */
 
 import { useNavigate } from 'react-router-dom'
-import { Settings, ArrowLeft, ScrollText, Activity, Layers } from 'lucide-react'
+import { Settings, ArrowLeft, ScrollText, Activity, Layers, FileCode2 } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { useState } from 'react'
 import { WorkerLogPanel } from './WorkerLogPanel'
 import { BatchersListPanel } from './BatchersListPanel'
 import { ProfileSwitcherPanel } from './ProfileSwitcherPanel'
+import { ProfileTemplatesModal } from './ProfileTemplatesModal'
 import { useAppStore } from '../store/appStore'
 
 interface TopbarProps {
@@ -24,6 +25,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
   const [logsOpen, setLogsOpen] = useState(false)
   const [batchersOpen, setBatchersOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
 
   const batches = useAppStore((s) => s.batches)
   const profiles = useAppStore((s) => s.profiles)
@@ -153,6 +155,16 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
           )}
         </button>
 
+        {/* Template prompt editor */}
+        <button
+          onClick={() => setTemplatesOpen(true)}
+          className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
+          style={{ color: '#00F7FF' }}
+          title="Edit template prompt"
+        >
+          <FileCode2 size={20} />
+        </button>
+
         {/* Worker logs */}
         <button
           onClick={() => setLogsOpen(true)}
@@ -178,6 +190,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
     <WorkerLogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
     <BatchersListPanel open={batchersOpen} onClose={() => setBatchersOpen(false)} />
     <ProfileSwitcherPanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+    <ProfileTemplatesModal open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
     </>
   )
 }
