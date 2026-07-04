@@ -150,25 +150,15 @@ def build_glossary_table(glossary: List[Dict[str, Any]]) -> str:
     return table
 
 
-def build_user_prompt(raw_content: str, chapter: Dict[str, Any], target_language: str = "Indonesian") -> str:
-    """
-    Build user prompt for translation
-
-    Args:
-        raw_content: Raw text content to translate
-        chapter: Chapter data
-        target_language: Target language to translate to
-    """
-    title = chapter.get("title", "Chapter")
-    chapter_number = chapter.get("chapterNumber", 1)
-
-    user_prompt = f"""Translate the following content from {title} (Chapter {chapter_number}):
+def build_user_prompt(raw_content: str, chapter: Dict[str, Any] = None, target_language: str = "Indonesian") -> str:
+    """Build user prompt for translation. chapter param kept for call-site compatibility."""
+    user_prompt = f"""Translate the following content to {target_language}:
 
 --- START CONTENT ---
 {raw_content}
 --- END CONTENT ---
 
-Translate to {target_language}. Start your response immediately with the translated text.
+Start your response immediately with the translated text.
 """
 
     return user_prompt
