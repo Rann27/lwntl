@@ -403,6 +403,14 @@ export async function exportGlossaryFile(seriesId: string, fmt: 'json' | 'csv', 
   return result
 }
 
+// ===== CJK Fix =====
+export async function fixCjkText(text: string, workerId?: string | null): Promise<{ fixed: string }> {
+  const api = getApi()
+  const result = await api.fix_cjk_text(text, workerId || null)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { fixed: string }
+}
+
 // ===== Ping =====
 export async function ping(): Promise<{ status: string; message: string }> {
   const api = getApi()

@@ -407,6 +407,73 @@ class API:
         """Estimate token count for text"""
         return {"tokens": estimate_tokens(text)}
 
+    def fix_cjk_text(self, text: str, worker_id: str = None):
+        """Fix CJK characters embedded in translated text using AI.
+        Uses the specified worker (or first available worker / default config).
+        """
+        try:
+            config = self._get_config()
+            workers = config.get("workers", [])
+
+            # Resolve which worker config to use
+            target_worker = None
+            if worker_id:
+                target_worker = next((w for w in workers if w.get("id") == worker_id), None)
+            if target_worker is None and workers:
+                target_worker = workers[0]
+
+            if target_worker:
+                worker_config = {**config}
+                worker_config["provider"] = target_worker.get("provider") or config.get("provider")
+                worker_config["model"] = target_worker.get("model") or config.get("model")
+                client = LLMClient(worker_config)
+            else:
+                client = self._get_llm_client()
+
+            system_prompt = (
+                "You are a translation error fixer. The text you receive is an excerpt from an "
+                "English translation of a Japanese/Korean light novel. It contains one or more "
+                "untranslated CJK characters embedded inline in English sentences.\n\n"
+                "Your task: replace each CJK sequence with its correct English meaning, keeping "
+                "everything else IDENTICAL — same punctuation, same formatting, same whitespace.\n\n"
+                "Language identification:\n"
+                "- Hiragana/Katakana present → Japanese reading and meaning\n"
+                "- Kanji only (in LN context) → Japanese reading and meaning "
+                "(e.g. 治安→public order, 成果→results, 平凡→ordinary, 優秀→excellent, 契約→contract)\n"
+                "- Hangul → Korean meaning\n\n"
+                "Output ONLY the corrected text. No explanation, no preamble, no markdown."
+            )
+
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Fix the CJK in this text:\n\n{text}"},
+            ]
+
+            response = client.complete(messages, stream=False, max_tokens=512)
+
+            # Extract text from response (handles content str or list of parts)
+            fixed = ""
+            if hasattr(response, "choices") and response.choices:
+                choice = response.choices[0]
+                if hasattr(choice, "message"):
+                    content = getattr(choice.message, "content", "")
+                    if isinstance(content, str):
+                        fixed = content.strip()
+                    elif isinstance(content, list):
+                        parts = []
+                        for item in content:
+                            if isinstance(item, str):
+                                parts.append(item)
+                            elif isinstance(item, dict):
+                                parts.append(str(item.get("text") or item.get("content") or ""))
+                        fixed = "".join(parts).strip()
+
+            if not fixed:
+                return {"error": True, "message": "Model returned empty response"}
+            return {"fixed": fixed}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
     def parse_document(self, filename: str, data_base64: str, mode: str = 'standard', top_margin: float = 0, bottom_margin: float = 0):
         """Parse a .docx or .pdf file and return markdown content.
         mode: 'standard' (default) or 'flow' (paragraph reconstruction for line-break PDFs).

@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { MoreVertical, Edit, Settings, Trash2, FolderInput } from 'lucide-react'
 import { useI18n } from '../i18n'
@@ -29,21 +30,44 @@ export function SeriesCard({
   const navigate = useNavigate()
   const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const totalChapters = chapters.length
   const doneChapters = chapters.filter(c => c.status === 'done').length
   const progress = totalChapters > 0 ? Math.round((doneChapters / totalChapters) * 100) : 0
 
+  const openMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!menuOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    }
+    setMenuOpen(v => !v)
+  }
+
+  // Close on click-outside
   useEffect(() => {
     if (!menuOpen) return
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
         setMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
+  // Close on scroll
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = () => setMenuOpen(false)
+    window.addEventListener('scroll', handler, true)
+    return () => window.removeEventListener('scroll', handler, true)
   }, [menuOpen])
 
   return (
@@ -69,7 +93,6 @@ export function SeriesCard({
       }}
       onMouseLeave={(e) => {
         e.currentTarget.style.boxShadow = '4px 4px 0px var(--color-border)'
-        setMenuOpen(false)
       }}
       onClick={() => navigate(`/series/${series.id}/settings`)}
     >
@@ -96,9 +119,10 @@ export function SeriesCard({
           </h3>
 
           {/* Menu button */}
-          <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
+              ref={buttonRef}
+              onClick={openMenu}
               className="flex items-center justify-center w-8 h-8 transition-colors"
               style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
@@ -106,61 +130,6 @@ export function SeriesCard({
             >
               <MoreVertical size={18} style={{ color: 'var(--color-text-muted)' }} />
             </button>
-
-            {menuOpen && (
-              <div
-                className="absolute right-0 top-full mt-1 z-50"
-                style={{
-                  backgroundColor: 'var(--color-surface)',
-                  border: '2.5px solid var(--color-border)',
-                  boxShadow: 'var(--neo-shadow)',
-                  minWidth: '180px',
-                }}
-              >
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(series) }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <Edit size={14} /> {t.seriesCard.edit}
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); navigate(`/series/${series.id}/settings`) }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <Settings size={14} /> {t.seriesCard.settings}
-                </button>
-                {hasGroups && onMoveToGroup && (
-                  <>
-                    <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveToGroup(series) }}
-                      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-                      style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
-                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                    >
-                      <FolderInput size={14} /> {t.group.moveToGroup}
-                    </button>
-                  </>
-                )}
-                <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
-                <button
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(series) }}
-                  className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: '#FF3C3C' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,60,60,0.08)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <Trash2 size={14} /> {t.seriesCard.delete}
-                </button>
-              </div>
-            )}
           </div>
         </div>
 
@@ -179,6 +148,67 @@ export function SeriesCard({
           {doneChapters} / {totalChapters} {t.seriesCard.translated} ({progress}%)
         </p>
       </div>
+
+      {/* Dropdown menu — portaled to body to escape overflow:hidden */}
+      {menuOpen && menuPos && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: menuPos.top,
+            right: menuPos.right,
+            zIndex: 9999,
+            backgroundColor: 'var(--color-surface)',
+            border: '2.5px solid var(--color-border)',
+            boxShadow: 'var(--neo-shadow)',
+            minWidth: '180px',
+          }}
+        >
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(series) }}
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <Edit size={14} /> {t.seriesCard.edit}
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(false); navigate(`/series/${series.id}/settings`) }}
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <Settings size={14} /> {t.seriesCard.settings}
+          </button>
+          {hasGroups && onMoveToGroup && (
+            <>
+              <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
+              <button
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveToGroup(series) }}
+                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+              >
+                <FolderInput size={14} /> {t.group.moveToGroup}
+              </button>
+            </>
+          )}
+          <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(series) }}
+            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: '#FF3C3C' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,60,60,0.08)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            <Trash2 size={14} /> {t.seriesCard.delete}
+          </button>
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

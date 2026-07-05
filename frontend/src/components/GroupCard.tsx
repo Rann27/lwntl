@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { MoreVertical, Folder, Edit, Trash2, FolderPlus, Palette } from 'lucide-react'
 import { useI18n } from '../i18n'
 import type { SeriesGroup, Series, Chapter } from '../types'
@@ -40,7 +41,6 @@ function countDescendants(
   allSeries: Series[],
   chaptersMap: Record<string, Chapter[]>,
 ): { seriesCount: number; done: number; total: number } {
-  // Collect all group ids in this subtree
   const subtreeIds = new Set<string>([groupId])
   let changed = true
   while (changed) {
@@ -82,23 +82,46 @@ export function GroupCard({
 }: GroupCardProps) {
   const { t } = useI18n()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
 
   const directSubGroups = allGroups.filter((g) => g.parentId === group.id).length
   const { seriesCount, done, total } = countDescendants(group.id, allGroups, allSeries, chaptersMap)
   const progress = total > 0 ? Math.round((done / total) * 100) : 0
-  const canAddSubGroup = depth < 2 // max depth is 2 (0-indexed) → 3 levels
+  const canAddSubGroup = depth < 2
 
+  const openMenu = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!menuOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    }
+    setMenuOpen(v => !v)
+  }
+
+  // Close on click-outside
   useEffect(() => {
     if (!menuOpen) return
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      if (
+        menuRef.current && !menuRef.current.contains(e.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(e.target as Node)
+      ) {
         setMenuOpen(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
+  }, [menuOpen])
+
+  // Close on scroll
+  useEffect(() => {
+    if (!menuOpen) return
+    const handler = () => setMenuOpen(false)
+    window.addEventListener('scroll', handler, true)
+    return () => window.removeEventListener('scroll', handler, true)
   }, [menuOpen])
 
   return (
@@ -116,10 +139,8 @@ export function GroupCard({
       }}
       onMouseLeave={(e) => {
         if (!isDragOver) e.currentTarget.style.boxShadow = '4px 4px 0px var(--color-border)'
-        setMenuOpen(false)
       }}
       onClick={() => !anyDragging && onOpen(group)}
-      // Drop zone
       onDragOver={(e) => {
         if (!e.dataTransfer.types.includes('series-id')) return
         e.preventDefault()
@@ -138,7 +159,7 @@ export function GroupCard({
         if (seriesId && onDropSeries) onDropSeries(seriesId, group.id)
       }}
     >
-      {/* Color accent bar — pulses when drag target */}
+      {/* Color accent bar */}
       <div style={{
         height: isDragOver ? '10px' : '6px',
         backgroundColor: group.color,
@@ -171,9 +192,10 @@ export function GroupCard({
           </div>
 
           {/* Menu button */}
-          <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()}>
             <button
-              onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
+              ref={buttonRef}
+              onClick={openMenu}
               className="flex items-center justify-center w-8 h-8 transition-colors"
               style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
@@ -181,26 +203,6 @@ export function GroupCard({
             >
               <MoreVertical size={18} style={{ color: 'var(--color-text-muted)' }} />
             </button>
-
-            {menuOpen && (
-              <div
-                className="absolute right-0 top-full mt-1 z-50"
-                style={{
-                  backgroundColor: 'var(--color-surface)',
-                  border: '2.5px solid var(--color-border)',
-                  boxShadow: 'var(--neo-shadow)',
-                  minWidth: '180px',
-                }}
-              >
-                <MenuItem icon={<Edit size={13} />} label={t.group.rename} onClick={() => { setMenuOpen(false); onRename(group) }} />
-                <MenuItem icon={<Palette size={13} />} label={t.group.changeColor} onClick={() => { setMenuOpen(false); onChangeColor(group) }} />
-                {canAddSubGroup && (
-                  <MenuItem icon={<FolderPlus size={13} />} label={t.group.addSubGroup} onClick={() => { setMenuOpen(false); onAddSubGroup(group) }} />
-                )}
-                <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
-                <MenuItem icon={<Trash2 size={13} />} label={t.group.delete} onClick={() => { setMenuOpen(false); onDelete(group) }} danger />
-              </div>
-            )}
           </div>
         </div>
 
@@ -239,6 +241,32 @@ export function GroupCard({
           </div>
         )}
       </div>
+
+      {/* Dropdown menu — portaled to body to escape overflow:hidden */}
+      {menuOpen && menuPos && createPortal(
+        <div
+          ref={menuRef}
+          style={{
+            position: 'fixed',
+            top: menuPos.top,
+            right: menuPos.right,
+            zIndex: 9999,
+            backgroundColor: 'var(--color-surface)',
+            border: '2.5px solid var(--color-border)',
+            boxShadow: 'var(--neo-shadow)',
+            minWidth: '180px',
+          }}
+        >
+          <MenuItem icon={<Edit size={13} />} label={t.group.rename} onClick={() => { setMenuOpen(false); onRename(group) }} />
+          <MenuItem icon={<Palette size={13} />} label={t.group.changeColor} onClick={() => { setMenuOpen(false); onChangeColor(group) }} />
+          {canAddSubGroup && (
+            <MenuItem icon={<FolderPlus size={13} />} label={t.group.addSubGroup} onClick={() => { setMenuOpen(false); onAddSubGroup(group) }} />
+          )}
+          <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
+          <MenuItem icon={<Trash2 size={13} />} label={t.group.delete} onClick={() => { setMenuOpen(false); onDelete(group) }} danger />
+        </div>,
+        document.body
+      )}
     </div>
   )
 }

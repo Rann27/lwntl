@@ -676,7 +676,7 @@ export function SeriesSettingsPage() {
       <BatchTranslationPanel seriesId={seriesId!} chapters={chapters} onCancel={cancelBatch} />
 
       {/* CJK Detector bubble */}
-      <CJKBubble incidents={cjkIncidents} />
+      <CJKBubble incidents={cjkIncidents} workerId={series?.workerId} />
     </div>
   )
 }
