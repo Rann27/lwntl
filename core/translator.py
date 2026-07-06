@@ -367,7 +367,9 @@ class Translator:
                 # Check if translation is complete.
                 # Note: stop markers are already stripped mid-stream by _stream_completion,
                 # so chunk_text won't contain them. These checks are a safety fallback.
-                _stop_markers = ("[DONE]", "[SELESAI]", "[END]")
+                # "[DONE" (no bracket) is a fuzzy fallback for models that omit the closing ]
+                # at higher temperatures — it must come AFTER the exact markers so exact takes priority.
+                _stop_markers = ("[DONE]", "[SELESAI]", "[END]", "[DONE")
                 if any(m in chunk_text for m in _stop_markers) or self._is_translation_complete(chunk_text):
                     # Strip any marker that slipped through (e.g. from sync fallback path)
                     for m in _stop_markers:
@@ -389,8 +391,9 @@ class Translator:
                 self._send_status("cancelled")
                 return
 
-            # Final safety: strip any completion marker that survived (e.g. sync fallback path)
-            for _m in ("[DONE]", "[SELESAI]", "[END]"):
+            # Final safety: strip any completion marker that survived (e.g. sync fallback path).
+            # "[DONE" (no bracket) is last so exact markers take priority.
+            for _m in ("[DONE]", "[SELESAI]", "[END]", "[DONE"):
                 if _m in full_translation:
                     full_translation = full_translation[:full_translation.index(_m)].rstrip()
                     break
@@ -527,7 +530,10 @@ class Translator:
         # Without this, models that output [DONE] continue generating duplicate content
         # because the LLM has no built-in "stop here" concept beyond stop sequences
         # (which we cannot reliably use across all providers).
-        STOP_MARKERS = ("[DONE]", "[SELESAI]", "[END]")
+        # "[DONE" (no bracket) is a fuzzy fallback: at high temperatures some models
+        # emit "[DONE" without the closing "]", causing the exact marker to be missed.
+        # Exact markers are checked first; "[DONE" only fires when none of them match.
+        STOP_MARKERS = ("[DONE]", "[SELESAI]", "[END]", "[DONE")
 
         for chunk in stream:
             if self._cancelled:
