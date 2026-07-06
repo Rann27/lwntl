@@ -79,6 +79,15 @@ export function PromptModelPanel({
   const selectedWorker = workers.find((w) => w.id === workerId)
   const statusByWorker = new Map(workerStatuses.map((w) => [w.id, w]))
   const selectedStatus = selectedWorker ? statusByWorker.get(selectedWorker.id) : null
+  const tempMax = selectedWorker?.provider === 'deepseek' ? 2.0 : 1.0
+
+  // Clamp temperature when switching away from DeepSeek
+  useEffect(() => {
+    if (temperature > tempMax) {
+      setTemperature(tempMax)
+      setDirty(true)
+    }
+  }, [workerId])
 
   const handleSave = () => {
     if (!config) return
@@ -269,12 +278,19 @@ export function PromptModelPanel({
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.temperature}</label>
+            <div className="flex items-center gap-2">
+              <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.temperature}</label>
+              {tempMax === 2.0 && (
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: '#00F7FF', color: '#111', letterSpacing: '0.3px' }}>
+                  max 2.0 · DeepSeek
+                </span>
+              )}
+            </div>
             <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>{temperature.toFixed(1)}</span>
           </div>
           <div className="flex items-center gap-3">
-            <input type="range" min={0} max={1} step={0.1} value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: '#00F7FF' }} />
-            <input type="number" value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value) || 0.3); setDirty(true) }} className="neo-input" style={{ width: '70px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} min={0} max={1} step={0.1} />
+            <input type="range" min={0} max={tempMax} step={0.1} value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: '#00F7FF' }} />
+            <input type="number" value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value) || 0.3); setDirty(true) }} className="neo-input" style={{ width: '70px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} min={0} max={tempMax} step={0.1} />
           </div>
         </div>
 
