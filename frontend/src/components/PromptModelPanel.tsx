@@ -17,7 +17,7 @@ interface PromptModelPanelProps {
   onInstructionsChange: (val: string) => void
   systemPrompt: string
   onSystemPromptChange: (val: string) => void
-  onSave: (config: AppConfig, instructions: string, systemPrompt: string, workerId: string) => void
+  onSave: (config: AppConfig, instructions: string, systemPrompt: string, workerId: string, iterationLock: boolean) => void
   workerStatuses?: WorkerStatus[]
   loading?: boolean
 }
@@ -43,6 +43,7 @@ export function PromptModelPanel({
   const [temperature, setTemperature] = useState(config?.temperature ?? 0.3)
   const [maxTokens, setMaxTokens] = useState(config?.maxTokensPerIteration ?? 16000)
   const [glossaryPreFilter, setGlossaryPreFilter] = useState(config?.glossaryPreFilter ?? true)
+  const [iterationLock, setIterationLock] = useState(series?.iterationLock ?? true)
   const [dirty, setDirty] = useState(false)
   const [defaultPrompt, setDefaultPrompt] = useState('')
   const [defaultInstructions, setDefaultInstructions] = useState('')
@@ -55,6 +56,7 @@ export function PromptModelPanel({
     setTemperature(config.temperature)
     setMaxTokens(config.maxTokensPerIteration)
     setGlossaryPreFilter(config.glossaryPreFilter ?? true)
+    setIterationLock(series?.iterationLock ?? true)
   }, [config, series?.workerId])
 
   useEffect(() => {
@@ -101,6 +103,7 @@ export function PromptModelPanel({
       instructions,
       systemPrompt,
       workerId,
+      iterationLock,
     )
     setDirty(false)
   }
@@ -308,6 +311,25 @@ export function PromptModelPanel({
             style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: glossaryPreFilter ? '#28E272' : 'var(--color-surface)', color: glossaryPreFilter ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
           >
             {glossaryPreFilter ? 'ON' : 'OFF'}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+          <div>
+            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+              Iteration Lock
+            </span>
+            <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+              {iterationLock
+                ? 'Max 1 iterasi — aman untuk chapter yang muat dalam 1 output'
+                : 'Multi-iterasi aktif — translator akan lanjutkan jika konten belum selesai'}
+            </p>
+          </div>
+          <button
+            onClick={() => { setIterationLock(v => !v); setDirty(true) }}
+            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: iterationLock ? '#00F7FF' : 'var(--color-surface)', color: iterationLock ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
+          >
+            {iterationLock ? 'ON' : 'OFF'}
           </button>
         </div>
       </div>

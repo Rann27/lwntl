@@ -136,9 +136,9 @@ def get_series(series_id: str) -> Optional[Dict[str, Any]]:
     return _normalize_series(series)
 
 
-def update_series(series_id: str, title: str, language: str, 
+def update_series(series_id: str, title: str, language: str,
                   target_language: str = None, system_prompt: str = None,
-                  worker_id: str = None) -> Dict[str, Any]:
+                  worker_id: str = None, iteration_lock: bool = None) -> Dict[str, Any]:
     """
     Update a series
     
@@ -165,6 +165,8 @@ def update_series(series_id: str, title: str, language: str,
         series["systemPrompt"] = system_prompt
     if worker_id is not None:
         series["workerId"] = worker_id
+    if iteration_lock is not None:
+        series["iterationLock"] = iteration_lock
     series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
     
     # Write updated series.json

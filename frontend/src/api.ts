@@ -131,10 +131,11 @@ export async function updateSeries(
   language: string,
   targetLanguage?: string,
   systemPrompt?: string,
-  workerId?: string
+  workerId?: string,
+  iterationLock?: boolean,
 ): Promise<Series> {
   const api = getApi()
-  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null, workerId ?? null)
+  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null, workerId ?? null, iterationLock ?? null)
   if (isApiError(result)) throw new Error(result.message)
   return result as Series
 }

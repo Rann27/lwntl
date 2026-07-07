@@ -73,6 +73,7 @@ export interface Series {
   targetLanguage: string
   groupId: string | null
   workerId: string
+  iterationLock: boolean
   systemPrompt: string
   instructions: string
   glossary: GlossaryEntry[]

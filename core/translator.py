@@ -301,10 +301,14 @@ class Translator:
             # Smart iteration - translate in chunks if needed
             full_translation = ""
             remaining_content = raw_content
-            
+
             self._iteration = 0
-            
-            while remaining_content and not self._cancelled and self._iteration < 10:
+            # iterationLock=True (default) caps at 1 iteration — safe for chapters that
+            # fit within max_tokens in one pass, and prevents runaway continuation loops.
+            iteration_lock = series.get("iterationLock", True)
+            max_iterations = 1 if iteration_lock else 10
+
+            while remaining_content and not self._cancelled and self._iteration < max_iterations:
                 self._iteration += 1
                 
                 # Progress callback

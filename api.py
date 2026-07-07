@@ -193,10 +193,11 @@ class API:
 
     def update_series(self, series_id: str, title: str, language: str,
                       target_language: str = None, system_prompt: str = None,
-                      worker_id: str = None):
+                      worker_id: str = None, iteration_lock=None):
         """Update a series"""
         try:
-            return update_series_db(series_id, title, language, target_language, system_prompt, worker_id)
+            lock = bool(iteration_lock) if iteration_lock is not None else None
+            return update_series_db(series_id, title, language, target_language, system_prompt, worker_id, lock)
         except Exception as e:
             return {"error": True, "message": str(e)}
     
