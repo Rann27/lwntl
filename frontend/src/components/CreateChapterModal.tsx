@@ -61,7 +61,7 @@ export function CreateChapterModal({
   open, onClose, onSubmit, onBulkSubmit, nextChapterNumber, loading,
 }: CreateChapterModalProps) {
   const { t: tx } = useI18n()
-  const [tab, setTab] = useState<'single' | 'bulk' | 'pdf1' | 'pdf2' | 'docx'>('single')
+  const [tab, setTab] = useState<'single' | 'bulk' | 'md' | 'pdf1' | 'pdf2' | 'docx'>('single')
 
   // Per-tab PDF margin state — set via PrePreview (pt, 0 = auto 8%)
   const [pdf1MarginTop, setPdf1MarginTop] = useState(0)
@@ -248,6 +248,40 @@ export function CreateChapterModal({
         })),
       ])
     })
+  }
+
+  const processMdFiles = (files: File[]) => {
+    const mdFiles = files.filter(f => f.name.toLowerCase().endsWith('.md'))
+    if (!mdFiles.length) return
+    const readers = mdFiles.map(file =>
+      new Promise<Omit<BulkEntry, 'number'>>((resolve) => {
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+          resolve({
+            id: `${Date.now()}-${Math.random()}`,
+            filename: file.name,
+            title: file.name.replace(/\.md$/i, ''),
+            content: (ev.target?.result as string) || '',
+          })
+        }
+        reader.readAsText(file, 'utf-8')
+      })
+    )
+    Promise.all(readers).then(newEntries => {
+      setEntries(prev => [
+        ...prev,
+        ...newEntries.map((e, i) => ({
+          ...e,
+          number: String(parseFloat(nextChapterNumber || '1') + prev.length + i),
+        })),
+      ])
+    })
+  }
+
+  const switchBulkTab = (newTab: 'bulk' | 'md') => {
+    setEntries([])
+    setIsDragOver(false)
+    setTab(newTab)
   }
 
   const handleBulkSubmit = async () => {
@@ -489,6 +523,7 @@ export function CreateChapterModal({
           {([
             ['single', 'Single'],
             ['bulk',   'Bulk TXT'],
+            ['md',     'Bulk MD'],
             ['pdf1',   'PDF'],
             ['pdf2',   'PDF ↵'],
             ['docx',   'Docx'],
@@ -498,6 +533,8 @@ export function CreateChapterModal({
               onClick={() => {
                 if (tabKey === 'pdf1' || tabKey === 'pdf2' || tabKey === 'docx') {
                   switchDocTab(tabKey)
+                } else if (tabKey === 'bulk' || tabKey === 'md') {
+                  switchBulkTab(tabKey)
                 } else {
                   setTab(tabKey)
                 }
@@ -587,6 +624,96 @@ export function CreateChapterModal({
                   <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>.txt</p>
                   <input ref={fileInputRef} type="file" accept=".txt" multiple style={{ display: 'none' }}
                     onChange={e => { if (e.target.files) { processTxtFiles(Array.from(e.target.files)); e.target.value = '' } }} />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-6" style={{ minHeight: 0 }}>
+                {entries.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p style={{ color: '#ccc', fontSize: '13px' }}>{tx.common.noData}</p>
+                  </div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+                      <tr style={{ borderBottom: '2.5px solid #111' }}>
+                        <th style={{ width: '28px', padding: '6px 4px' }} />
+                        <th style={{ width: '82px', ...thStyle }}>No.</th>
+                        <th style={{ ...thStyle }}>Judul</th>
+                        <th style={{ width: '90px', ...thStyle, textAlign: 'right' }}>Karakter</th>
+                        <th style={{ width: '28px' }} />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {entries.map((entry, idx) => (
+                        <tr key={entry.id} {...makeRowHandlers(idx, dragIndexRef, setEntries)}
+                          style={{ borderBottom: '1.5px solid #eee', background: '#fff' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: '#ccc' }}>
+                            <GripVertical size={14} />
+                          </td>
+                          <td style={{ padding: '5px 8px' }}>
+                            <input type="text" value={entry.number}
+                              onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, number: e.target.value } : en))}
+                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: '#F8F3EA', outline: 'none' }} />
+                          </td>
+                          <td style={{ padding: '5px 8px' }}>
+                            <input type="text" value={entry.title}
+                              onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, title: e.target.value } : en))}
+                              style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: '#F8F3EA', outline: 'none' }} />
+                          </td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', color: '#999', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
+                            {entry.content.length.toLocaleString()}
+                          </td>
+                          <td style={{ padding: '5px 4px', textAlign: 'center' }}>
+                            <button onClick={() => setEntries(prev => prev.filter(e => e.id !== entry.id))}
+                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#FF3C3C', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
+                <span style={{ fontSize: '13px', color: '#666', fontWeight: 600 }}>
+                  {entries.length > 0 ? `${entries.length}` : tx.common.noData}
+                </span>
+                <div className="flex gap-3">
+                  <button onClick={onClose} disabled={bulkLoading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>{tx.common.cancel}</button>
+                  <button onClick={handleBulkSubmit} disabled={!entries.length || bulkLoading} className="neo-button" style={{ opacity: entries.length && !bulkLoading ? 1 : 0.5 }}>
+                    {bulkLoading ? tx.common.loading : `${tx.common.add} ${entries.length}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── BULK MD ── */}
+          {tab === 'md' && (
+            <div className="flex flex-col h-full">
+              <div className="px-6 pt-5 pb-4" style={{ flexShrink: 0 }}>
+                <div
+                  className="flex flex-col items-center justify-center gap-2"
+                  style={{
+                    border: `2.5px dashed ${isDragOver ? '#C084FC' : '#aaa'}`,
+                    background: isDragOver ? '#f5edff' : '#fafaf8',
+                    padding: '28px 20px', cursor: 'pointer', transition: 'all 0.15s',
+                    boxShadow: isDragOver ? '4px 4px 0px #C084FC' : 'none',
+                  }}
+                  onDragOver={e => { e.preventDefault(); setIsDragOver(true) }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files) processMdFiles(Array.from(e.dataTransfer.files)) }}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload size={28} style={{ color: isDragOver ? '#9333ea' : '#aaa' }} />
+                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: isDragOver ? '#111' : '#666' }}>
+                    {isDragOver ? '↓' : 'Drag & drop .md'}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>.md — markdown with formatting</p>
+                  <input ref={fileInputRef} type="file" accept=".md" multiple style={{ display: 'none' }}
+                    onChange={e => { if (e.target.files) { processMdFiles(Array.from(e.target.files)); e.target.value = '' } }} />
                 </div>
               </div>
 
