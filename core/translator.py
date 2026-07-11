@@ -177,18 +177,27 @@ class Translator:
             current = series.get("glossary", []) if series else []
             existing = {e.get("sourceTerm", "").lower().strip() for e in current}
 
+            _CJK_RE = __import__('re').compile(
+                r'[぀-ゟ゠-ヿ一-鿿가-힯㐀-䶿]'
+            )
+
             added = 0
             for entry in new_entries:
                 src = (entry.get("sourceTerm") or "").strip()
-                if src and src.lower() not in existing:
-                    add_glossary_entry(
-                        series_id,
-                        src,
-                        entry.get("translatedTerm", ""),
-                        entry.get("notes", ""),
-                    )
-                    existing.add(src.lower())
-                    added += 1
+                translated = entry.get("translatedTerm", "")
+                if not src or src.lower() in existing:
+                    continue
+                if _CJK_RE.search(translated):
+                    print(f"[Glossary] Skipped '{src}': translatedTerm contains CJK (model bias)")
+                    continue
+                add_glossary_entry(
+                    series_id,
+                    src,
+                    translated,
+                    entry.get("notes", ""),
+                )
+                existing.add(src.lower())
+                added += 1
 
             if added:
                 print(f"[Glossary] Auto-applied {added} new term(s) from chapter {chapter_id}")

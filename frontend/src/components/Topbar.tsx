@@ -4,7 +4,7 @@
  */
 
 import { useNavigate } from 'react-router-dom'
-import { Settings, ArrowLeft, ScrollText, Activity, Layers, FileCode2 } from 'lucide-react'
+import { Settings, ArrowLeft, ArrowRight, ScrollText, Activity, Layers, FileCode2 } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { useState } from 'react'
 import { WorkerLogPanel } from './WorkerLogPanel'
@@ -37,13 +37,24 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
       {/* Left section */}
       <div className="flex items-center gap-4">
         {showBack && (
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-1 text-sm font-bold hover:opacity-80 transition-opacity"
-            style={{ color: '#00F7FF' }}
-          >
-            <ArrowLeft size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center hover:opacity-80 transition-opacity"
+              style={{ color: '#00F7FF' }}
+              title="Back"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <button
+              onClick={() => navigate(1)}
+              className="flex items-center hover:opacity-80 transition-opacity"
+              style={{ color: '#444' }}
+              title="Forward"
+            >
+              <ArrowRight size={18} />
+            </button>
+          </div>
         )}
 
         {/* Logo */}

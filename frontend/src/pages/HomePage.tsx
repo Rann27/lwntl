@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Plus, ChevronRight } from 'lucide-react'
 import { Topbar } from '../components/Topbar'
 import { SeriesCard } from '../components/SeriesCard'
@@ -34,6 +35,8 @@ export function HomePage() {
   const toast = useToast()
   const { t } = useI18n()
   const { apiReady, config } = useAppStore()
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // Data
   const [seriesList, setSeriesList] = useState<Series[]>([])
@@ -100,16 +103,28 @@ export function HomePage() {
     if (apiReady) loadData()
   }, [apiReady, loadData])
 
-  // Navigation
+  // Sync group state from router location (handles browser back/forward)
+  useEffect(() => {
+    const state = location.state as { groupId: string | null; breadcrumb: Crumb[] } | null
+    if (state && 'groupId' in state) {
+      setCurrentGroupId(state.groupId)
+      setBreadcrumb(state.breadcrumb ?? [{ id: null, name: t.home.allSeries }])
+    } else {
+      setCurrentGroupId(null)
+      setBreadcrumb([{ id: null, name: t.home.allSeries }])
+    }
+  }, [location.state])
+
+  // Navigation — push to router history so browser back/forward works
   const navigateToGroup = (group: SeriesGroup) => {
-    setCurrentGroupId(group.id)
-    setBreadcrumb((prev) => [...prev, { id: group.id, name: group.name }])
+    const newBreadcrumb = [...breadcrumb, { id: group.id, name: group.name }]
+    navigate('/', { state: { groupId: group.id, breadcrumb: newBreadcrumb } })
   }
 
   const navigateToCrumb = (idx: number) => {
     const crumb = breadcrumb[idx]
-    setCurrentGroupId(crumb.id)
-    setBreadcrumb((prev) => prev.slice(0, idx + 1))
+    const newBreadcrumb = breadcrumb.slice(0, idx + 1)
+    navigate('/', { state: { groupId: crumb.id, breadcrumb: newBreadcrumb } })
   }
 
   // Visible items

@@ -3,7 +3,7 @@
  * 3-panel layout: Chapter list | Prompt/Model | Glossary
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { Topbar } from '../components/Topbar'
 import { ChapterList } from '../components/ChapterList'
@@ -14,9 +14,10 @@ import { EditChapterModal } from '../components/EditChapterModal'
 import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
 import BatchTranslationPanel from '../components/BatchTranslationPanel'
 import MemoryPanel from '../components/MemoryPanel'
+import { AllTermsModal, countInconsistencies } from '../components/AllTermsModal'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen } from 'lucide-react'
 import {
   getAllSeries,
   getChapters,
@@ -53,6 +54,7 @@ export function SeriesSettingsPage() {
   const { isBatchActive, startBatch, startSelectedBatch, cancelBatch } = useBatchTranslation(seriesId!)
   const [showMemory, setShowMemory] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
+  const [showAllTerms, setShowAllTerms] = useState(false)
   const [seriesLogLines, setSeriesLogLines] = useState<string[]>([])
   const logEndRef = useRef<HTMLDivElement>(null)
   const [selectMode, setSelectMode] = useState(false)
@@ -62,6 +64,7 @@ export function SeriesSettingsPage() {
 
   const [series, setSeries] = useState<Series | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
+  const inconsistencyCount = useMemo(() => countInconsistencies(chapters), [chapters])
   const [glossary, setGlossary] = useState<GlossaryEntry[]>([])
   const [instructions, setInstructions] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
@@ -334,16 +337,18 @@ export function SeriesSettingsPage() {
   ) => {
     if (!seriesId) return
     let added = 0
-    try {
-      for (const e of entries) {
+    let skipped = 0
+    for (const e of entries) {
+      try {
         const entry = await addGlossaryEntry(seriesId, e.sourceTerm, e.translatedTerm, e.notes)
         setGlossary((prev) => [...prev, entry])
         added++
+      } catch {
+        skipped++
       }
-      toast.success(`✓ ${added}`)
-    } catch {
-      toast.error(t.settings.saveFailed)
     }
+    if (added > 0) toast.success(`✓ ${added}${skipped > 0 ? ` (${skipped} skipped)` : ''}`)
+    else if (skipped > 0) toast.error(`All ${skipped} entries already exist`)
   }
 
   const handleDeleteGlossaryConfirm = async () => {
@@ -547,6 +552,38 @@ export function SeriesSettingsPage() {
             onToggleSelect={handleToggleSelect}
           />
 
+          {/* All Extracted Terms */}
+          <div className="relative">
+            <button
+              onClick={() => setShowAllTerms(true)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+              style={{ backgroundColor: inconsistencyCount > 0 ? '#FFE0E0' : '#E8D5FF' }}
+            >
+              <BookOpen size={14} />
+              ALL TERMS ({chapters.reduce((n, c) => n + (c.glossaryUpdates?.entries?.length ?? 0), 0)})
+            </button>
+            {inconsistencyCount > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 flex items-center justify-center"
+                style={{
+                  minWidth: '18px',
+                  height: '18px',
+                  padding: '0 3px',
+                  backgroundColor: '#FF3C3C',
+                  color: '#fff',
+                  fontSize: '9px',
+                  fontWeight: 900,
+                  fontFamily: 'monospace',
+                  border: '2px solid #111',
+                  lineHeight: 1,
+                }}
+                title={`${inconsistencyCount} inconsistenc${inconsistencyCount === 1 ? 'y' : 'ies'} detected`}
+              >
+                !{inconsistencyCount > 1 ? inconsistencyCount : ''}
+              </span>
+            )}
+          </div>
+
           {/* Memory toggle */}
           <button
             onClick={() => setShowMemory(!showMemory)}
@@ -670,6 +707,14 @@ export function SeriesSettingsPage() {
         entityName={t.batch.confirmDeleteSelectedMsg.replace('{count}', String(selectedIds.size))}
         details={[]}
         loading={deletingSelected}
+      />
+
+      {/* All Extracted Terms Modal */}
+      <AllTermsModal
+        open={showAllTerms}
+        onClose={() => setShowAllTerms(false)}
+        chapters={chapters}
+        seriesGlossary={glossary}
       />
 
       {/* Batch Translation Overlay */}

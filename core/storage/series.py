@@ -270,13 +270,18 @@ def add_glossary_entry(series_id: str, source_term: str, translated_term: str, n
         FileNotFoundError: If series doesn't exist
     """
     series = get_series(series_id)
-    
+
     if series is None:
         raise FileNotFoundError(f"Series {series_id} not found")
-    
+
+    src_normalized = source_term.strip().lower()
+    for existing in series.get("glossary", []):
+        if existing.get("sourceTerm", "").strip().lower() == src_normalized:
+            raise ValueError(f"Source term '{source_term}' already exists in glossary")
+
     entry_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat() + 'Z'
-    
+
     entry = {
         "id": entry_id,
         "sourceTerm": source_term,
@@ -284,7 +289,7 @@ def add_glossary_entry(series_id: str, source_term: str, translated_term: str, n
         "notes": notes,
         "updatedAt": now
     }
-    
+
     series["glossary"].append(entry)
     series["updatedAt"] = now
     
@@ -318,10 +323,14 @@ def update_glossary_entry(series_id: str, entry_id: str, source_term: str, trans
     if series is None:
         raise FileNotFoundError(f"Series {series_id} not found")
     
-    # Find and update the entry
+    src_normalized = source_term.strip().lower()
+    for existing in series.get("glossary", []):
+        if existing.get("id") != entry_id and existing.get("sourceTerm", "").strip().lower() == src_normalized:
+            raise ValueError(f"Source term '{source_term}' already exists in glossary")
+
     entry_found = False
     now = datetime.utcnow().isoformat() + 'Z'
-    
+
     for entry in series["glossary"]:
         if entry["id"] == entry_id:
             entry["sourceTerm"] = source_term

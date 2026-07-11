@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, Component, type ReactNode } from 'react'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { ToastContainer } from './components/ToastContainer'
 import { OnboardingModal } from './components/OnboardingModal'
 import { HomePage } from './pages/HomePage'
@@ -53,8 +53,19 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 function AppInner() {
   const { config, setConfig, setApiReady, setProfiles } = useAppStore()
   const toast = useToast()
+  const navigate = useNavigate()
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [initializing, setInitializing] = useState(true)
+
+  // Mouse back (button 3) / forward (button 4) navigation
+  useEffect(() => {
+    const handleMouseNav = (e: MouseEvent) => {
+      if (e.button === 3) { e.preventDefault(); navigate(-1) }
+      if (e.button === 4) { e.preventDefault(); navigate(1) }
+    }
+    window.addEventListener('mouseup', handleMouseNav)
+    return () => window.removeEventListener('mouseup', handleMouseNav)
+  }, [navigate])
 
   const { setLanguage, t } = useI18n()
 
