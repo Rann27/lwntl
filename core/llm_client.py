@@ -295,9 +295,11 @@ class LLMClient:
         elif p == "deepseek":
             thinking = config.get("deepseekThinking", False)
             effort = config.get("deepseekReasoningEffort", "high")
+            if effort not in ("high", "max"):
+                effort = "high"
             self._extra_body = (
                 {"thinking": {"type": "enabled", "reasoning_effort": effort}}
-                if thinking else None
+                if thinking else {"thinking": {"type": "disabled"}}
             )
             self._init_openai_compat(config.get("deepseekApiKey", ""), PROVIDERS["deepseek"]["baseUrl"])
         elif p == "mimo":

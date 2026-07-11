@@ -18,7 +18,7 @@ export interface AppConfig {
   moonshotApiKey: string
   deepseekApiKey: string
   deepseekThinking: boolean
-  deepseekReasoningEffort: 'low' | 'medium' | 'high'
+  deepseekReasoningEffort: 'high' | 'max'
   mimoApiKey: string
   mimoThinking: boolean
   mimoReasoningEffort: 'low' | 'medium' | 'high'

@@ -400,7 +400,9 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   })
   const [baseUrl, setBaseUrl] = useState(config.openaicompatBaseUrl || '')
   const [deepseekThinking, setDeepseekThinking] = useState(config.deepseekThinking ?? false)
-  const [deepseekReasoningEffort, setDeepseekReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.deepseekReasoningEffort ?? 'high')
+  const [deepseekReasoningEffort, setDeepseekReasoningEffort] = useState<'high' | 'max'>(
+    (config.deepseekReasoningEffort === 'max' ? 'max' : 'high')
+  )
   const [zhipuaiThinking, setZhipuaiThinking] = useState(config.zhipuaiThinking ?? true)
   const [mimoThinking, setMimoThinking] = useState(config.mimoThinking ?? true)
   const [mimoReasoningEffort, setMimoReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.mimoReasoningEffort ?? 'medium')
@@ -526,16 +528,21 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 else if (isMimo) setMimoThinking(v => !v)
                 setTestResult(null)
               }
-              const setEffort = (v: 'low' | 'medium' | 'high') => {
-                if (isDeepseek) setDeepseekReasoningEffort(v)
-                else if (isMimo) setMimoReasoningEffort(v)
+              const setEffort = (v: string) => {
+                if (isDeepseek) setDeepseekReasoningEffort(v as 'high' | 'max')
+                else if (isMimo) setMimoReasoningEffort(v as 'low' | 'medium' | 'high')
                 setTestResult(null)
               }
-              const EFFORT_OPTIONS: Array<{ value: 'low' | 'medium' | 'high'; label: string; color: string }> = [
-                { value: 'low',    label: 'LOW',  color: '#28E272' },
-                { value: 'medium', label: 'MED',  color: '#FFD600' },
-                { value: 'high',   label: 'HIGH', color: '#FF3C3C' },
-              ]
+              const EFFORT_OPTIONS = isDeepseek
+                ? [
+                    { value: 'high', label: 'HIGH', color: '#FFD600' },
+                    { value: 'max',  label: 'MAX',  color: '#FF3C3C' },
+                  ]
+                : [
+                    { value: 'low',    label: 'LOW',  color: '#28E272' },
+                    { value: 'medium', label: 'MED',  color: '#FFD600' },
+                    { value: 'high',   label: 'HIGH', color: '#FF3C3C' },
+                  ]
               return (
                 <>
                   <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
