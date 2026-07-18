@@ -443,7 +443,8 @@ class Translator:
                     self.client,
                     full_translation,
                     chapter.get("chapterNumber", 1),
-                    chapter.get("title", "")
+                    chapter.get("title", ""),
+                    series.get("targetLanguage", "English")
                 )
                 if summary:
                     update_chapter_summary(series_id, chapter_id, summary)

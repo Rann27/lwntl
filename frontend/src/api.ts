@@ -196,6 +196,17 @@ export async function updateChapter(
   return result as Chapter
 }
 
+export async function updateChapterSummary(
+  seriesId: string,
+  chapterId: string,
+  summary: string
+): Promise<Chapter> {
+  const api = getApi()
+  const result = await api.update_chapter_summary(seriesId, chapterId, summary)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as Chapter
+}
+
 export async function getChapter(
   seriesId: string,
   chapterId: string

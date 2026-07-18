@@ -15,9 +15,10 @@ import { DeleteConfirmModal } from '../components/DeleteConfirmModal'
 import BatchTranslationPanel from '../components/BatchTranslationPanel'
 import MemoryPanel from '../components/MemoryPanel'
 import { AllTermsModal, countInconsistencies } from '../components/AllTermsModal'
+import { RollingMemoryModal } from '../components/RollingMemoryModal'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText } from 'lucide-react'
 import {
   getAllSeries,
   getChapters,
@@ -55,6 +56,7 @@ export function SeriesSettingsPage() {
   const [showMemory, setShowMemory] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
   const [showAllTerms, setShowAllTerms] = useState(false)
+  const [showRollingMemory, setShowRollingMemory] = useState(false)
   const [seriesLogLines, setSeriesLogLines] = useState<string[]>([])
   const logEndRef = useRef<HTMLDivElement>(null)
   const [selectMode, setSelectMode] = useState(false)
@@ -447,7 +449,7 @@ export function SeriesSettingsPage() {
         style={{ backgroundColor: 'var(--color-bg)', display: 'flex' }}
       >
         {/* Left: Chapter List */}
-        <div className="flex flex-col gap-2 overflow-hidden" style={{ minWidth: '240px', maxWidth: '280px', minHeight: 0 }}>
+        <div className="flex flex-col gap-2 overflow-y-auto overflow-x-visible" style={{ minWidth: '240px', maxWidth: '280px', minHeight: 0, paddingRight: '4px' }}>
 
           {!selectMode ? (
             /* Normal mode: Translate All + Retry Failed (if any) + Select */
@@ -584,6 +586,16 @@ export function SeriesSettingsPage() {
             )}
           </div>
 
+          {/* Rolling Memory */}
+          <button
+            onClick={() => setShowRollingMemory(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#111] hover:opacity-80 transition-all"
+            style={{ color: '#00F7FF' }}
+          >
+            <BookText size={14} />
+            ROLLING MEMORY ({chapters.filter(c => c.summary).length}/{chapters.length})
+          </button>
+
           {/* Memory toggle */}
           <button
             onClick={() => setShowMemory(!showMemory)}
@@ -707,6 +719,15 @@ export function SeriesSettingsPage() {
         entityName={t.batch.confirmDeleteSelectedMsg.replace('{count}', String(selectedIds.size))}
         details={[]}
         loading={deletingSelected}
+      />
+
+      {/* Rolling Memory Modal */}
+      <RollingMemoryModal
+        open={showRollingMemory}
+        onClose={() => setShowRollingMemory(false)}
+        seriesId={seriesId!}
+        chapters={chapters}
+        onChapterUpdated={(updated) => setChapters(prev => prev.map(c => c.id === updated.id ? updated : c))}
       />
 
       {/* All Extracted Terms Modal */}

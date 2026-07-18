@@ -266,6 +266,13 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
+    def update_chapter_summary(self, series_id: str, chapter_id: str, summary: str):
+        """Update chapter rolling memory summary"""
+        try:
+            return update_chapter_summary(series_id, chapter_id, summary)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
     def get_chapter_delete_info(self, series_id: str, chapter_id: str):
         """Get information about what will be deleted"""
         try:

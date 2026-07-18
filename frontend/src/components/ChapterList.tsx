@@ -182,7 +182,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
                   }}
                 />
                 <span style={{ fontSize: '12px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  Bab {ch.chapterNumber}{ch.title ? ` — ${ch.title}` : ''}
+                  {ch.title || `${t.chapter.chapter} ${ch.chapterNumber}`}
                 </span>
               </button>
             ))}
@@ -310,8 +310,7 @@ function ChapterItem({
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p style={{ fontSize: '13px', fontWeight: 600, color: selected ? '#00F7FF' : 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {t.chapter.chapter} {chapter.chapterNumber}
-          {chapter.title ? ` — ${chapter.title}` : ''}
+          {chapter.title || `${t.chapter.chapter} ${chapter.chapterNumber}`}
         </p>
       </div>
 

@@ -253,7 +253,8 @@ def generate_chapter_summary(
     llm_client: LLMClient,
     translated_content: str,
     chapter_number: int,
-    chapter_title: str = ""
+    chapter_title: str = "",
+    target_language: str = "English"
 ) -> str:
     """
     Generate a concise summary of a translated chapter using LLM.
@@ -274,29 +275,29 @@ def generate_chapter_summary(
     # Use first 3000 chars for summary generation (enough context, saves tokens)
     text_for_summary = translated_content[:3000]
     if len(translated_content) > 3000:
-        text_for_summary += "\n[...berlanjut]"
-    
-    title_info = f"Bab {chapter_number}"
+        text_for_summary += "\n[...continues]"
+
+    title_info = f"Chapter {chapter_number}"
     if chapter_title:
         title_info += f": {chapter_title}"
-    
+
     messages = [
         {
             "role": "system",
             "content": (
-                "Kamu adalah analis cerita novel. Buat ringkasan singkat bab berikut dalam Bahasa Indonesia.\n"
-                "Fokus pada:\n"
-                "- Peristiwa penting yang terjadi\n"
-                "- Perkembangan karakter\n"
-                "- Plot point penting\n"
-                "- Informasi baru yang terungkap\n"
-                "- Istilah/nama penting yang muncul\n\n"
-                "Ringkasan harus padat (maksimal 500 karakter). Tulis dalam Bahasa Indonesia."
+                f"You are a story analyst. Write a concise summary of the following chapter in {target_language}.\n"
+                "Focus on:\n"
+                "- Key events that occurred\n"
+                "- Character developments\n"
+                "- Important plot points\n"
+                "- New information revealed\n"
+                "- Important terms/names introduced\n\n"
+                f"Keep the summary compact (max 500 characters). Write in {target_language}."
             )
         },
         {
             "role": "user",
-            "content": f"Ringkas {title_info}:\n\n{text_for_summary}"
+            "content": f"Summarize {title_info}:\n\n{text_for_summary}"
         }
     ]
     
