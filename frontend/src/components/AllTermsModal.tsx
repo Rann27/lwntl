@@ -75,6 +75,8 @@ function CopyCell({ text, style, bold }: { text: string; style?: React.CSSProper
 export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'inconsistent' | 'main'>('all')
+  const [collapseMain, setCollapseMain] = useState(false)
+  const [sortBy, setSortBy] = useState<'chapter' | 'source'>('chapter')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -158,15 +160,38 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
     let base = allRows
     if (filter === 'inconsistent') base = allRows.filter(r => r.isInconsistent)
     else if (filter === 'main') base = allRows.filter(r => r.isMain)
-    if (!query.trim()) return base
-    const q = query.toLowerCase()
-    return base.filter(r =>
-      r.sourceTerm.toLowerCase().includes(q) ||
-      r.translatedTerm.toLowerCase().includes(q) ||
-      r.notes.toLowerCase().includes(q) ||
-      r.chapterLabel.toLowerCase().includes(q)
-    )
-  }, [allRows, query, filter])
+
+    if (query.trim()) {
+      const q = query.toLowerCase()
+      base = base.filter(r =>
+        r.sourceTerm.toLowerCase().includes(q) ||
+        r.translatedTerm.toLowerCase().includes(q) ||
+        r.notes.toLowerCase().includes(q) ||
+        r.chapterLabel.toLowerCase().includes(q)
+      )
+    }
+
+    // Sort
+    if (sortBy === 'source') {
+      base = [...base].sort((a, b) =>
+        a.sourceTerm.localeCompare(b.sourceTerm) || a.chapterNumber - b.chapterNumber
+      )
+    }
+
+    // Collapse MAIN: keep only first occurrence per source term among MAIN rows
+    if (collapseMain) {
+      const seenMain = new Set<string>()
+      base = base.filter(r => {
+        if (!r.isMain) return true
+        const key = r.sourceTerm.trim().toLowerCase()
+        if (seenMain.has(key)) return false
+        seenMain.add(key)
+        return true
+      })
+    }
+
+    return base
+  }, [allRows, query, filter, sortBy, collapseMain])
 
   if (!open) return null
 
@@ -244,6 +269,52 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
                 <X size={12} />
               </button>
             )}
+          </div>
+        </div>
+
+        {/* Options row: sort + collapse */}
+        <div className="flex items-center gap-4 px-4 py-2" style={{ borderBottom: '1px solid #eee', flexShrink: 0, backgroundColor: '#fafaf8' }}>
+          {/* Sort */}
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', color: '#888' }}>Sort:</span>
+            <div className="flex" style={{ border: '1.5px solid #ccc' }}>
+              <button
+                onClick={() => setSortBy('chapter')}
+                style={{ padding: '3px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', border: 'none', borderRight: '1.5px solid #ccc', cursor: 'pointer', backgroundColor: sortBy === 'chapter' ? '#111' : 'transparent', color: sortBy === 'chapter' ? '#fff' : '#666' }}
+              >
+                By Chapter
+              </button>
+              <button
+                onClick={() => setSortBy('source')}
+                style={{ padding: '3px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', border: 'none', cursor: 'pointer', backgroundColor: sortBy === 'source' ? '#111' : 'transparent', color: sortBy === 'source' ? '#fff' : '#666' }}
+              >
+                By Source Term
+              </button>
+            </div>
+          </div>
+
+          {/* Collapse MAIN toggle */}
+          <div className="flex items-center gap-2" style={{ marginLeft: 'auto' }}>
+            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', color: '#888' }}>
+              Collapse MAIN duplicates:
+            </span>
+            <button
+              onClick={() => setCollapseMain(v => !v)}
+              style={{
+                padding: '3px 12px',
+                fontSize: '10px',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                border: '1.5px solid',
+                cursor: 'pointer',
+                borderColor: collapseMain ? '#1565C0' : '#ccc',
+                backgroundColor: collapseMain ? '#1565C0' : 'transparent',
+                color: collapseMain ? '#fff' : '#888',
+                letterSpacing: '0.3px',
+              }}
+            >
+              {collapseMain ? 'ON' : 'OFF'}
+            </button>
           </div>
         </div>
 
