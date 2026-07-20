@@ -10,7 +10,7 @@ import { useAppStore } from '../store/appStore'
 import { saveConfig, testConfig as testConfigApi } from '../api'
 import { useToast } from '../hooks/useToast'
 import { PROVIDERS } from '../types'
-import type { AppConfig, WorkerProfile } from '../types'
+import type { AppConfig, WorkerProfile, DeepSeekApiKeyEntry } from '../types'
 import { useI18n, LANGUAGE_OPTIONS, type Language } from '../i18n'
 
 const API_KEY_FIELDS: Array<{
@@ -233,6 +233,25 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
                 )}
               </div>
 
+              {worker.provider === 'deepseek' && config.deepseekApiKeys?.length > 1 && (
+                <div className="flex items-center gap-2 mt-2">
+                  <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                    DeepSeek Key
+                  </label>
+                  <select
+                    value={worker.deepseekApiKeyId || ''}
+                    onChange={e => updateWorker(worker.id, { deepseekApiKeyId: e.target.value || undefined })}
+                    className="neo-input flex-1"
+                    style={{ padding: '4px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)' }}
+                  >
+                    <option value="">Default ({config.deepseekApiKeys[0]?.label})</option>
+                    {config.deepseekApiKeys.map(k => (
+                      <option key={k.id} value={k.id}>{k.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="flex items-center gap-2 mt-2">
                 <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
                   Max Concurrent
@@ -399,6 +418,9 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     return init
   })
   const [baseUrl, setBaseUrl] = useState(config.openaicompatBaseUrl || '')
+  const [deepseekApiKeys, setDeepseekApiKeys] = useState<DeepSeekApiKeyEntry[]>(
+    config.deepseekApiKeys?.length ? config.deepseekApiKeys : []
+  )
   const [deepseekThinking, setDeepseekThinking] = useState(config.deepseekThinking ?? false)
   const [deepseekReasoningEffort, setDeepseekReasoningEffort] = useState<'high' | 'max'>(
     (config.deepseekReasoningEffort === 'max' ? 'max' : 'high')
@@ -417,6 +439,8 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     const updated = { ...config }
     API_KEY_FIELDS.forEach(({ field }) => { ;(updated as any)[field] = keys[field] || '' })
     updated.openaicompatBaseUrl = baseUrl.trim()
+    updated.deepseekApiKeys = deepseekApiKeys
+    updated.deepseekApiKey = deepseekApiKeys[0]?.key || keys['deepseekApiKey'] || ''
     updated.deepseekThinking = deepseekThinking
     updated.deepseekReasoningEffort = deepseekReasoningEffort
     updated.zhipuaiThinking = zhipuaiThinking
@@ -507,6 +531,69 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
                   Compatible with Ollama, LM Studio, LocalAI, or any OpenAI-compatible endpoint.
                 </p>
+              </div>
+            )}
+            {provider === 'deepseek' && (
+              <div className="mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)' }}>
+                    API Keys ({deepseekApiKeys.length})
+                  </label>
+                  <button
+                    onClick={() => {
+                      const newEntry: DeepSeekApiKeyEntry = { id: crypto.randomUUID(), label: `Key ${deepseekApiKeys.length + 1}`, key: '' }
+                      setDeepseekApiKeys(prev => [...prev, newEntry])
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 10px', fontSize: '10px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: 'var(--color-primary)', cursor: 'pointer', textTransform: 'uppercase' }}
+                  >
+                    <Plus size={11} /> ADD KEY
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {deepseekApiKeys.map((entry, idx) => (
+                    <div key={entry.id} className="flex items-center gap-2">
+                      <input
+                        value={entry.label}
+                        onChange={e => setDeepseekApiKeys(prev => prev.map(k => k.id === entry.id ? { ...k, label: e.target.value } : k))}
+                        placeholder="Label"
+                        className="neo-input"
+                        style={{ width: '110px', flexShrink: 0, padding: '5px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
+                      />
+                      <div className="relative flex-1">
+                        <input
+                          type={showKey[`ds_${entry.id}`] ? 'text' : 'password'}
+                          value={entry.key}
+                          onChange={e => setDeepseekApiKeys(prev => prev.map(k => k.id === entry.id ? { ...k, key: e.target.value } : k))}
+                          placeholder="sk-..."
+                          className="neo-input"
+                          style={{ paddingRight: '36px', fontSize: '12px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
+                        />
+                        <button
+                          onClick={() => setShowKey(prev => ({ ...prev, [`ds_${entry.id}`]: !prev[`ds_${entry.id}`] }))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2"
+                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                        >
+                          {showKey[`ds_${entry.id}`] ? <EyeOff size={13} /> : <Eye size={13} />}
+                        </button>
+                      </div>
+                      {idx === 0 && (
+                        <span style={{ fontSize: '9px', fontWeight: 700, color: '#888', whiteSpace: 'nowrap' }}>DEFAULT</span>
+                      )}
+                      <button
+                        onClick={() => setDeepseekApiKeys(prev => prev.filter(k => k.id !== entry.id))}
+                        disabled={deepseekApiKeys.length <= 1}
+                        style={{ border: '2px solid var(--color-border)', background: '#FF3C3C', color: '#fff', padding: '5px', cursor: deepseekApiKeys.length <= 1 ? 'not-allowed' : 'pointer', opacity: deepseekApiKeys.length <= 1 ? 0.4 : 1, flexShrink: 0 }}
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  {deepseekApiKeys.length === 0 && (
+                    <p style={{ fontSize: '11px', color: 'var(--color-text-subtle)', fontStyle: 'italic' }}>
+                      Belum ada key. Klik ADD KEY untuk menambahkan.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {hasThinkingToggle && (() => {

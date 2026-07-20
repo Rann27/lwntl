@@ -301,7 +301,9 @@ class LLMClient:
                 {"thinking": {"type": "enabled", "reasoning_effort": effort}}
                 if thinking else {"thinking": {"type": "disabled"}}
             )
-            self._init_openai_compat(config.get("deepseekApiKey", ""), PROVIDERS["deepseek"]["baseUrl"])
+            # Resolve API key: prefer worker-specific key, fall back to legacy single key
+            deepseek_key = self._resolve_deepseek_key(config)
+            self._init_openai_compat(deepseek_key, PROVIDERS["deepseek"]["baseUrl"])
         elif p == "mimo":
             # MiMo thinking is ON by default; turn off by passing enable_thinking=False.
             # When ON, reasoning_effort controls depth (low/medium/high).
@@ -332,6 +334,18 @@ class LLMClient:
         from zai import ZaiClient
         self._client = ZaiClient(api_key=api_key)
         self._client_type = "zhipuai"
+
+    def _resolve_deepseek_key(self, config: Dict[str, Any]) -> str:
+        """Return the correct DeepSeek API key for this worker."""
+        key_id = config.get("deepseekApiKeyId", "")
+        keys = config.get("deepseekApiKeys", [])
+        if key_id and keys:
+            for entry in keys:
+                if entry.get("id") == key_id:
+                    return entry.get("key", "")
+        if keys:
+            return keys[0].get("key", "")
+        return config.get("deepseekApiKey", "")
 
     def _init_openai_compat(
         self,

@@ -47,6 +47,8 @@ class WorkerManager:
         result["provider"] = worker.get("provider") or config.get("provider")
         result["model"] = worker.get("model") or config.get("model")
         result["workerLabel"] = worker.get("label", "")
+        if worker.get("deepseekApiKeyId"):
+            result["deepseekApiKeyId"] = worker["deepseekApiKeyId"]
         result["logCallback"] = lambda line, wid=worker.get("id", "unknown"): self.log(wid, line, already_prefixed=True)
         return result
 

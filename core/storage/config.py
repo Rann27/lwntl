@@ -172,6 +172,7 @@ DEFAULT_CONFIG = {
     "xaiApiKey": "",
     "moonshotApiKey": "",
     "deepseekApiKey": "",
+    "deepseekApiKeys": [],
     "deepseekThinking": False,
     "deepseekReasoningEffort": "high",
     "mimoApiKey": "",
@@ -246,7 +247,22 @@ def get_config() -> Dict[str, Any]:
     with open(config_path, 'r', encoding='utf-8') as f:
         stored = json.load(f)
 
-    return _normalize_workers({**DEFAULT_CONFIG, **stored})
+    merged = {**DEFAULT_CONFIG, **stored}
+    merged = _migrate_deepseek_keys(merged)
+    return _normalize_workers(merged)
+
+
+def _migrate_deepseek_keys(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Migrate single deepseekApiKey → deepseekApiKeys list (one-time, non-destructive)."""
+    import uuid as _uuid
+    existing_keys = config.get("deepseekApiKeys")
+    if not isinstance(existing_keys, list):
+        existing_keys = []
+    legacy_key = config.get("deepseekApiKey", "").strip()
+    if legacy_key and not existing_keys:
+        existing_keys = [{"id": str(_uuid.uuid4()), "label": "Default", "key": legacy_key}]
+    config["deepseekApiKeys"] = existing_keys
+    return config
 
 
 def save_config(config: Dict[str, Any]) -> bool:

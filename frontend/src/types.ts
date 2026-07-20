@@ -2,6 +2,12 @@
  * LWNTL TypeScript Type Definitions
  */
 
+export interface DeepSeekApiKeyEntry {
+  id: string
+  label: string
+  key: string
+}
+
 // Config
 export interface AppConfig {
   provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'mimo' | 'openaicompat'
@@ -17,6 +23,7 @@ export interface AppConfig {
   xaiApiKey: string
   moonshotApiKey: string
   deepseekApiKey: string
+  deepseekApiKeys: DeepSeekApiKeyEntry[]
   deepseekThinking: boolean
   deepseekReasoningEffort: 'high' | 'max'
   mimoApiKey: string
@@ -42,6 +49,7 @@ export interface WorkerProfile {
   provider: AppConfig['provider']
   model: string
   maxConcurrent?: number
+  deepseekApiKeyId?: string
 }
 
 export interface WorkerStatus extends WorkerProfile {
