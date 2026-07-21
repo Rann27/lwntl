@@ -21,6 +21,7 @@ export interface AppConfig {
   geminiApiKey: string
   anthropicApiKey: string
   xaiApiKey: string
+  xaiReasoningEffort: 'low' | 'medium' | 'high'
   moonshotApiKey: string
   deepseekApiKey: string
   deepseekApiKeys: DeepSeekApiKeyEntry[]
@@ -244,8 +245,9 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'anthropicApiKey',
   },
   xai: {
-    models: ['grok-4.20-0309', 'grok-4.1-fast', 'grok-3', 'grok-3-mini', 'custom'],
+    models: ['grok-4.5', 'grok-4.20-0309', 'grok-4.1-fast', 'grok-3', 'grok-3-mini', 'custom'],
     displayNames: {
+      'grok-4.5': 'Grok 4.5',
       'grok-4.20-0309': 'Grok 4.20 (0309)',
       'grok-4.1-fast': 'Grok 4.1 Fast',
       'grok-3': 'Grok 3',

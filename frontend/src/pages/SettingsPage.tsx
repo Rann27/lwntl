@@ -428,6 +428,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   const [zhipuaiThinking, setZhipuaiThinking] = useState(config.zhipuaiThinking ?? true)
   const [mimoThinking, setMimoThinking] = useState(config.mimoThinking ?? true)
   const [mimoReasoningEffort, setMimoReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.mimoReasoningEffort ?? 'medium')
+  const [xaiReasoningEffort, setXaiReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.xaiReasoningEffort ?? 'high')
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
@@ -446,6 +447,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     updated.zhipuaiThinking = zhipuaiThinking
     updated.mimoThinking = mimoThinking
     updated.mimoReasoningEffort = mimoReasoningEffort
+    updated.xaiReasoningEffort = xaiReasoningEffort
     return updated
   }
 
@@ -593,6 +595,39 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                       Belum ada key. Klik ADD KEY untuk menambahkan.
                     </p>
                   )}
+                </div>
+              </div>
+            )}
+            {provider === 'xai' && (
+              <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+                <div>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    Reasoning Effort
+                  </span>
+                  <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                    Grok always reasons — adjust depth only. Low = faster, High = deeper.
+                  </p>
+                </div>
+                <div className="flex gap-1" style={{ flexShrink: 0, marginLeft: '12px' }}>
+                  {([
+                    { value: 'low',    label: 'LOW',  color: '#28E272' },
+                    { value: 'medium', label: 'MED',  color: '#FFD600' },
+                    { value: 'high',   label: 'HIGH', color: '#FF3C3C' },
+                  ] as const).map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setXaiReasoningEffort(opt.value); setTestResult(null) }}
+                      style={{
+                        padding: '4px 10px', fontSize: '10px', fontWeight: 700,
+                        border: '2px solid var(--color-border)', cursor: 'pointer',
+                        textTransform: 'uppercase', letterSpacing: '0.4px',
+                        backgroundColor: xaiReasoningEffort === opt.value ? opt.color : 'var(--color-surface)',
+                        color: xaiReasoningEffort === opt.value ? '#111' : 'var(--color-text-muted)',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

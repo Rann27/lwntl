@@ -170,6 +170,7 @@ DEFAULT_CONFIG = {
     "geminiApiKey": "",
     "anthropicApiKey": "",
     "xaiApiKey": "",
+    "xaiReasoningEffort": "high",
     "moonshotApiKey": "",
     "deepseekApiKey": "",
     "deepseekApiKeys": [],
