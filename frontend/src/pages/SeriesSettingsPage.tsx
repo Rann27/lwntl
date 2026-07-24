@@ -177,7 +177,7 @@ export function SeriesSettingsPage() {
   }, [chapters])
 
   // Save config + instructions + systemPrompt
-  const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string, iterationLock: boolean) => {
+  const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean) => {
     if (!seriesId || !series) return
     setSaveLoading(true)
     try {
@@ -187,9 +187,9 @@ export function SeriesSettingsPage() {
       await saveInstructions(seriesId, newInstructions)
       setInstructions(newInstructions)
 
-      await updateSeries(seriesId, series.title, series.sourceLanguage, series.targetLanguage, newSystemPrompt, workerId, iterationLock)
+      await updateSeries(seriesId, series.title, series.sourceLanguage, series.targetLanguage, newSystemPrompt, workerId, iterationLock, autoFixCjk)
       setSystemPrompt(newSystemPrompt)
-      setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, instructions: newInstructions, workerId, iterationLock } : prev)
+      setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, instructions: newInstructions, workerId, iterationLock, autoFixCjk } : prev)
       setWorkerStatuses(await getWorkerStatuses())
 
       toast.success(t.seriesSettings.saveSuccess)

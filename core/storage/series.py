@@ -16,6 +16,7 @@ def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
     """Backfill fields added in later versions."""
     series.setdefault("groupId", None)
     series.setdefault("workerId", "")
+    series.setdefault("autoFixCjk", False)
     return series
 
 
@@ -89,6 +90,7 @@ def create_series(title: str, language: str, target_language: str = "Indonesian"
         "targetLanguage": target_language,
         "groupId": None,
         "workerId": "",
+        "autoFixCjk": False,
         "systemPrompt": "",
         "instructions": "",
         "glossary": [],
@@ -138,7 +140,8 @@ def get_series(series_id: str) -> Optional[Dict[str, Any]]:
 
 def update_series(series_id: str, title: str, language: str,
                   target_language: str = None, system_prompt: str = None,
-                  worker_id: str = None, iteration_lock: bool = None) -> Dict[str, Any]:
+                  worker_id: str = None, iteration_lock: bool = None,
+                  auto_fix_cjk: bool = None) -> Dict[str, Any]:
     """
     Update a series
     
@@ -167,6 +170,8 @@ def update_series(series_id: str, title: str, language: str,
         series["workerId"] = worker_id
     if iteration_lock is not None:
         series["iterationLock"] = iteration_lock
+    if auto_fix_cjk is not None:
+        series["autoFixCjk"] = auto_fix_cjk
     series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
     
     # Write updated series.json

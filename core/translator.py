@@ -429,7 +429,28 @@ class Translator:
             if raw_len > 500 and trans_len < raw_len * 0.05:
                 self._log(f"[Translator] WARNING: Translation suspiciously short ({trans_len} chars vs {raw_len} chars raw). Possible thinking-mode output.")
                 # Still continue — might be valid short translation
-            
+
+            # AutoFix CJK — optional per-series post-processing. Repairs untranslated
+            # CJK leakage line-by-line BEFORE the translation is saved, so the summary,
+            # glossary extraction, and exports are all built from clean text.
+            if series.get("autoFixCjk", False):
+                self._send_status("cjk_autofix")
+                try:
+                    from .cjk_autofix import autofix_cjk_text
+                    fixed_text, n_fixed = autofix_cjk_text(
+                        self.client,
+                        full_translation,
+                        series.get("targetLanguage", "English"),
+                        log=self._log,
+                    )
+                    if n_fixed > 0 and fixed_text.strip():
+                        full_translation = fixed_text
+                        self._log(f"[AutoFix CJK] Replaced {n_fixed} CJK occurrence(s)")
+                    else:
+                        self._log("[AutoFix CJK] No CJK leakage repaired")
+                except Exception as e:
+                    self._log(f"[AutoFix CJK] Failed (non-fatal): {e}")
+
             # Translation complete!
             update_chapter_status(series_id, chapter_id, "done")
             update_chapter_translation(series_id, chapter_id, full_translation)

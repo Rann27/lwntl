@@ -83,6 +83,7 @@ export interface Series {
   groupId: string | null
   workerId: string
   iterationLock: boolean
+  autoFixCjk: boolean
   systemPrompt: string
   instructions: string
   glossary: GlossaryEntry[]
@@ -245,10 +246,18 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'anthropicApiKey',
   },
   xai: {
-    models: ['grok-4.5', 'grok-4.20-0309', 'grok-4.1-fast', 'grok-3', 'grok-3-mini', 'custom'],
+    models: [
+      'grok-4.5', 'grok-4.3',
+      'grok-4.20-0309-reasoning', 'grok-4.20-0309-non-reasoning', 'grok-4.20-multi-agent-0309',
+      'grok-build-0.1', 'grok-4.1-fast', 'grok-3', 'grok-3-mini', 'custom',
+    ],
     displayNames: {
-      'grok-4.5': 'Grok 4.5',
-      'grok-4.20-0309': 'Grok 4.20 (0309)',
+      'grok-4.5': 'Grok 4.5 (Coding)',
+      'grok-4.3': 'Grok 4.3',
+      'grok-4.20-0309-reasoning': 'Grok 4.20 Reasoning (0309)',
+      'grok-4.20-0309-non-reasoning': 'Grok 4.20 Non-Reasoning (0309)',
+      'grok-4.20-multi-agent-0309': 'Grok 4.20 Multi-Agent (0309)',
+      'grok-build-0.1': 'Grok Build 0.1',
       'grok-4.1-fast': 'Grok 4.1 Fast',
       'grok-3': 'Grok 3',
       'grok-3-mini': 'Grok 3 Mini',
