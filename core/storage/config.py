@@ -216,13 +216,20 @@ def _normalize_workers(config: Dict[str, Any]) -> Dict[str, Any]:
         if worker_id in seen_ids:
             worker_id = str(uuid.uuid4())
         seen_ids.add(worker_id)
-        normalized.append({
+        normalized_worker = {
             "id": worker_id,
             "label": str(worker.get("label") or f"worker {i}").strip() or f"worker {i}",
             "provider": str(worker.get("provider") or config.get("provider", DEFAULT_CONFIG["provider"])),
             "model": str(worker.get("model") or config.get("model", DEFAULT_CONFIG["model"])),
             "maxConcurrent": max(1, int(worker.get("maxConcurrent") or 1)),
-        })
+        }
+        # Preserve the worker-specific DeepSeek key selection. Without this, the
+        # field is stripped on every get_config()/save_config() and the worker
+        # silently falls back to the default (first) key.
+        deepseek_key_id = str(worker.get("deepseekApiKeyId") or "").strip()
+        if deepseek_key_id:
+            normalized_worker["deepseekApiKeyId"] = deepseek_key_id
+        normalized.append(normalized_worker)
 
     if not normalized:
         normalized = DEFAULT_CONFIG["workers"].copy()

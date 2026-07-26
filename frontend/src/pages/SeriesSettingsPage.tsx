@@ -310,8 +310,8 @@ export function SeriesSettingsPage() {
       const entry = await addGlossaryEntry(seriesId, sourceTerm, translatedTerm, notes)
       setGlossary((prev) => [...prev, entry])
       toast.success('✓')
-    } catch {
-      toast.error(t.settings.saveFailed)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.settings.saveFailed)
       throw new Error('add failed')
     } finally {
       setAddGlossaryLoading(false)
@@ -329,8 +329,8 @@ export function SeriesSettingsPage() {
       const updated = await updateGlossaryEntry(seriesId, entry.id, sourceTerm, translatedTerm, notes)
       setGlossary((prev) => prev.map((e) => (e.id === entry.id ? updated : e)))
       toast.success('✓')
-    } catch {
-      toast.error(t.settings.saveFailed)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.settings.saveFailed)
     }
   }
 

@@ -180,12 +180,17 @@ class Translator:
             _CJK_RE = __import__('re').compile(
                 r'[぀-ゟ゠-ヿ一-鿿가-힯㐀-䶿]'
             )
+            source_lang = (series.get("sourceLanguage") or "").strip().lower() if series else ""
+            cjk_source = source_lang in ("japanese", "chinese", "korean")
 
             added = 0
             for entry in new_entries:
                 src = (entry.get("sourceTerm") or "").strip()
                 translated = entry.get("translatedTerm", "")
                 if not src or src.lower() in existing:
+                    continue
+                if cjk_source and not _CJK_RE.search(src):
+                    print(f"[Glossary] Skipped '{src}': sourceTerm has no CJK (Latin leak for {source_lang} source)")
                     continue
                 if _CJK_RE.search(translated):
                     print(f"[Glossary] Skipped '{src}': translatedTerm contains CJK (model bias)")

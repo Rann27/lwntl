@@ -4,12 +4,40 @@ Handles series.json CRUD operations and cascade delete
 """
 
 import json
+import re
 import shutil
 import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .config import get_profile_data_dir
+
+# Source languages whose glossary source terms must be written in the original
+# CJK script — a Latin-only source term is almost always an extraction mistake
+# (the translated term leaked into the source column).
+_CJK_SOURCE_LANGS = {"japanese", "chinese", "korean"}
+_CJK_CHAR_RE = re.compile(
+    r'[぀-ヿ㐀-䶿一-鿿가-힯豈-﫿]'
+)
+
+
+def _is_cjk_source(language: Optional[str]) -> bool:
+    return (language or "").strip().lower() in _CJK_SOURCE_LANGS
+
+
+def _has_cjk_char(text: str) -> bool:
+    return bool(_CJK_CHAR_RE.search(text or ""))
+
+
+def _validate_source_term(series: Dict[str, Any], source_term: str) -> None:
+    """Reject a Latin-only source term when the series source language is CJK."""
+    language = series.get("sourceLanguage")
+    if _is_cjk_source(language) and not _has_cjk_char(source_term):
+        raise ValueError(
+            f"Source term '{source_term}' has no {language} characters. For a "
+            f"{language} source, the glossary source term must be in the original "
+            "script (kanji/kana/hanzi/hangul), not Latin letters."
+        )
 
 
 def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
@@ -279,6 +307,8 @@ def add_glossary_entry(series_id: str, source_term: str, translated_term: str, n
     if series is None:
         raise FileNotFoundError(f"Series {series_id} not found")
 
+    _validate_source_term(series, source_term)
+
     src_normalized = source_term.strip().lower()
     for existing in series.get("glossary", []):
         if existing.get("sourceTerm", "").strip().lower() == src_normalized:
@@ -324,10 +354,12 @@ def update_glossary_entry(series_id: str, entry_id: str, source_term: str, trans
         FileNotFoundError: If series or entry doesn't exist
     """
     series = get_series(series_id)
-    
+
     if series is None:
         raise FileNotFoundError(f"Series {series_id} not found")
-    
+
+    _validate_source_term(series, source_term)
+
     src_normalized = source_term.strip().lower()
     for existing in series.get("glossary", []):
         if existing.get("id") != entry_id and existing.get("sourceTerm", "").strip().lower() == src_normalized:
