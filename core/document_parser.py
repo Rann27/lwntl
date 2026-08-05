@@ -3,12 +3,24 @@ LWNTL Document Parser
 Parses DOCX and PDF files into clean markdown text.
 """
 
+import base64
 import io
 import re
-from typing import Dict, Any, Set
+from typing import Dict, Any, List, Set
 
 
 _VML_NS = 'urn:schemas-microsoft-com:vml'
+
+_MIME_BY_EXT = {
+    'jpg': 'image/jpeg', 'jpeg': 'image/jpeg', 'png': 'image/png',
+    'gif': 'image/gif', 'bmp': 'image/bmp', 'webp': 'image/webp',
+    'tif': 'image/tiff', 'tiff': 'image/tiff', 'emf': 'image/emf', 'wmf': 'image/wmf',
+}
+
+
+def _mime_from_name(name: str) -> str:
+    ext = name.rsplit('.', 1)[-1].lower() if '.' in name else ''
+    return _MIME_BY_EXT.get(ext, 'image/jpeg')
 
 
 def _filename_to_title(filename: str) -> str:
@@ -29,6 +41,30 @@ def parse_docx(data: bytes, filename: str) -> Dict[str, Any]:
     paragraphs_out = []
     title = None
     img_counter = 0
+    images: List[Dict[str, str]] = []  # {filename, mime, data(base64)}
+    seen_images: Set[str] = set()
+
+    def _collect(rel_id: str) -> str:
+        """Save the image behind a relationship id, returning its placeholder filename."""
+        nonlocal img_counter
+        rel = doc.part.rels.get(rel_id)
+        if rel is None:
+            img_counter += 1
+            return f"image_{img_counter}.jpg"
+        img_name = rel.target_ref.split('/')[-1]
+        if img_name not in seen_images:
+            try:
+                blob = rel.target_part.blob
+                mime = getattr(rel.target_part, 'content_type', '') or _mime_from_name(img_name)
+                images.append({
+                    'filename': img_name,
+                    'mime': mime,
+                    'data': base64.b64encode(blob).decode('ascii'),
+                })
+                seen_images.add(img_name)
+            except Exception:
+                pass
+        return img_name
 
     HEADING_MAP = {
         'heading 1': '#', 'heading 2': '##',
@@ -44,16 +80,14 @@ def parse_docx(data: bytes, filename: str) -> Dict[str, Any]:
             for blip in run._r.findall('.//' + qn('a:blip')):
                 r_embed = blip.get(qn('r:embed'))
                 if r_embed and r_embed in doc.part.rels:
-                    img_name = doc.part.rels[r_embed].target_ref.split('/')[-1]
-                    images_in_para.append(img_name)
+                    images_in_para.append(_collect(r_embed))
                 else:
                     img_counter += 1
                     images_in_para.append(f"image_{img_counter}.jpg")
             for v_img in run._r.findall(f'.//{{{_VML_NS}}}imagedata'):
                 r_id = v_img.get(qn('r:id'))
                 if r_id and r_id in doc.part.rels:
-                    img_name = doc.part.rels[r_id].target_ref.split('/')[-1]
-                    images_in_para.append(img_name)
+                    images_in_para.append(_collect(r_id))
 
         if images_in_para:
             for img_name in images_in_para:
@@ -96,6 +130,7 @@ def parse_docx(data: bytes, filename: str) -> Dict[str, Any]:
         "title": title or _filename_to_title(filename),
         "content": content,
         "charCount": len(content),
+        "images": images,
     }
 
 
@@ -111,7 +146,7 @@ def parse_pdf(data: bytes, filename: str, top_margin: float = 0, bottom_margin: 
 
     if doc.page_count == 0:
         doc.close()
-        return {"title": _filename_to_title(filename), "content": "", "charCount": 0}
+        return {"title": _filename_to_title(filename), "content": "", "charCount": 0, "images": []}
 
     hf_texts = _detect_hf(doc)
     body_size, bold_is_default = _detect_body_style(doc)
@@ -122,6 +157,34 @@ def parse_pdf(data: bytes, filename: str, top_margin: float = 0, bottom_margin: 
     blocks_out = []
     title = None
     img_counter = 0
+    images: List[Dict[str, str]] = []  # {filename, mime, data(base64)}
+    seen_xrefs: Dict[int, str] = {}    # xref → placeholder filename (dedupe bytes)
+
+    def _extract_image(xref: int, page_no: int) -> str:
+        """Save the image behind an xref, returning its placeholder filename."""
+        nonlocal img_counter
+        if xref in seen_xrefs:
+            return seen_xrefs[xref]
+        img_counter += 1
+        try:
+            info = doc.extract_image(xref)
+            ext = (info.get("ext") or "jpg").lower()
+            blob = info.get("image")
+            if blob:
+                fname = f"image_p{page_no}_{img_counter}.{ext}"
+                images.append({
+                    'filename': fname,
+                    'mime': _MIME_BY_EXT.get(ext, f'image/{ext}'),
+                    'data': base64.b64encode(blob).decode('ascii'),
+                })
+                seen_xrefs[xref] = fname
+                return fname
+        except Exception:
+            pass
+        # Bytes unavailable — placeholder only, still positioned correctly.
+        fname = f"image_p{page_no}_{img_counter}.jpg"
+        seen_xrefs[xref] = fname
+        return fname
 
     for page_num in range(doc.page_count):
         page = doc[page_num]
@@ -133,16 +196,29 @@ def parse_pdf(data: bytes, filename: str, top_margin: float = 0, bottom_margin: 
 
         raw_blocks = list(page.get_text("dict", flags=0)["blocks"])
 
+        # Map each image's top-Y to its xref so we can recover bytes for both the
+        # type==1 blocks emitted by get_text (which carry no xref) and the
+        # page-level XObjects injected below.
+        xref_by_y: Dict[int, int] = {}
+        try:
+            img_infos = page.get_image_info(hashes=False, xrefs=True)
+        except Exception:
+            img_infos = []
+        for info in img_infos:
+            xr = info.get("xref")
+            if xr:
+                xref_by_y[round(info["bbox"][1])] = xr
+
         # Inject images that don't appear as type==1 blocks in get_text output.
         # These are typically full-page illustrations stored as page-level XObjects.
         existing_type1_ys = {round(b["bbox"][1]) for b in raw_blocks if b["type"] == 1}
-        for info in page.get_image_info(hashes=False, xrefs=True):
+        for info in img_infos:
             bx0, by0, bx1, by1 = info["bbox"]
             w, h = info.get("width", 0), info.get("height", 0)
             area = (bx1 - bx0) * abs(by1 - by0) / max(pw * ph, 1)
             # Only inject for substantial images not already captured
             if w > 100 and h > 100 and area > 0.05 and round(by0) not in existing_type1_ys:
-                raw_blocks.append({"type": 1, "bbox": (bx0, by0, bx1, by1)})
+                raw_blocks.append({"type": 1, "bbox": (bx0, by0, bx1, by1), "xref": info.get("xref")})
 
         for block in sorted(raw_blocks, key=lambda b: b["bbox"][1]):
             btype = block["type"]
@@ -153,10 +229,13 @@ def parse_pdf(data: bytes, filename: str, top_margin: float = 0, bottom_margin: 
                 continue
 
             if btype == 1:  # Image block
-                img_counter += 1
-                blocks_out.append(
-                    f"Image Placeholder: image_p{page_num + 1}_{img_counter}.jpg"
-                )
+                xref = block.get("xref") or xref_by_y.get(round(by0))
+                if xref:
+                    fname = _extract_image(xref, page_num + 1)
+                else:
+                    img_counter += 1
+                    fname = f"image_p{page_num + 1}_{img_counter}.jpg"
+                blocks_out.append(f"Image Placeholder: {fname}")
                 continue
 
             # Process lines within a block.
@@ -326,6 +405,7 @@ def parse_pdf(data: bytes, filename: str, top_margin: float = 0, bottom_margin: 
         "title": title or _filename_to_title(filename),
         "content": content,
         "charCount": len(content),
+        "images": images,
     }
 
 
@@ -445,6 +525,7 @@ def parse_pdf_flow(data: bytes, filename: str, top_margin: float = 0, bottom_mar
         "title": result["title"],
         "content": content,
         "charCount": len(content),
+        "images": result.get("images", []),
     }
 
 

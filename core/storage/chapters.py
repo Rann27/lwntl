@@ -3,6 +3,7 @@ Chapter Management
 Handles chapter.json CRUD operations and cascade delete
 """
 
+import base64
 import json
 import shutil
 import uuid
@@ -24,6 +25,79 @@ def get_chapters_dir(series_id: str) -> Path:
 def get_chapter_path(series_id: str, chapter_id: str) -> Path:
     """Get the path to a chapter.json file"""
     return get_chapters_dir(series_id) / chapter_id / 'chapter.json'
+
+
+def get_chapter_assets_dir(series_id: str, chapter_id: str) -> Path:
+    """Directory holding a chapter's imported images (illustrations)."""
+    return get_chapters_dir(series_id) / chapter_id / 'assets'
+
+
+# Only allow simple asset filenames — never a path that could escape the folder.
+def _safe_asset_name(name: str) -> str:
+    return Path(name).name
+
+
+def save_chapter_images(series_id: str, chapter_id: str, images: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """
+    Persist imported images to the chapter's assets/ folder.
+
+    Args:
+        images: list of {filename, mime, data(base64)} as produced by the document parser.
+
+    Returns:
+        Manifest list of {filename, mime, file} (file is a chapter-relative path).
+    """
+    if not images:
+        return []
+    assets_dir = get_chapter_assets_dir(series_id, chapter_id)
+    assets_dir.mkdir(parents=True, exist_ok=True)
+
+    manifest: List[Dict[str, str]] = []
+    seen = set()
+    for img in images:
+        fname = _safe_asset_name(str(img.get('filename') or '').strip())
+        data_b64 = img.get('data') or ''
+        if not fname or not data_b64 or fname in seen:
+            continue
+        try:
+            blob = base64.b64decode(data_b64)
+        except Exception:
+            continue
+        with open(assets_dir / fname, 'wb') as f:
+            f.write(blob)
+        manifest.append({
+            'filename': fname,
+            'mime': str(img.get('mime') or 'image/jpeg'),
+            'file': f'assets/{fname}',
+        })
+        seen.add(fname)
+    return manifest
+
+
+def get_chapter_assets(series_id: str, chapter_id: str) -> Dict[str, str]:
+    """
+    Return every stored asset for a chapter as {filename: data-URI}.
+    Used by the frontend to render Image Placeholder lines inline.
+    """
+    chapter = get_chapter(series_id, chapter_id)
+    if not chapter:
+        return {}
+    result: Dict[str, str] = {}
+    assets_dir = get_chapter_assets_dir(series_id, chapter_id)
+    for entry in chapter.get('images', []) or []:
+        fname = _safe_asset_name(str(entry.get('filename') or ''))
+        if not fname:
+            continue
+        path = assets_dir / fname
+        if not path.exists():
+            continue
+        try:
+            blob = path.read_bytes()
+        except Exception:
+            continue
+        mime = entry.get('mime') or 'image/jpeg'
+        result[fname] = f"data:{mime};base64,{base64.b64encode(blob).decode('ascii')}"
+    return result
 
 
 def _chapter_sort_key(num) -> tuple:
@@ -98,31 +172,36 @@ def get_chapters(series_id: str) -> List[Dict[str, Any]]:
 def _normalize_chapter(chapter: Dict[str, Any]) -> Dict[str, Any]:
     """Backfill fields introduced in later versions so old chapter.json files keep working."""
     chapter.setdefault("translationHistory", [])
+    chapter.setdefault("images", [])
     # Migrate chapterNumber from int → str (backward compat for old chapter.json files)
     if isinstance(chapter.get("chapterNumber"), int):
         chapter["chapterNumber"] = str(chapter["chapterNumber"])
     return chapter
 
 
-def create_chapter(series_id: str, number: str, title: str, raw_content: str) -> Dict[str, Any]:
+def create_chapter(series_id: str, number: str, title: str, raw_content: str,
+                   images: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
     """
     Create a new chapter
-    
+
     Args:
         series_id: Series UUID
         number: Chapter number
         title: Chapter title
         raw_content: Raw text content
-        
+        images: Optional list of {filename, mime, data(base64)} extracted from a
+                DOCX/PDF import. Saved to the chapter's assets/ folder; the text keeps
+                its "Image Placeholder: <filename>" anchors so the LLM never sees bytes.
+
     Returns:
         dict: The created chapter data
-        
+
     Raises:
         OSError: If unable to create directories or write file
     """
     chapter_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat() + 'Z'
-    
+
     chapter = {
         "id": chapter_id,
         "seriesId": series_id,
@@ -142,19 +221,24 @@ def create_chapter(series_id: str, number: str, title: str, raw_content: str) ->
             "translatedAt": None
         },
         "translationHistory": [],
+        "images": [],
         "createdAt": now,
         "updatedAt": now
     }
-    
+
     # Create chapter directory
     chapter_dir = get_chapters_dir(series_id) / chapter_id
     chapter_dir.mkdir(parents=True, exist_ok=True)
-    
+
+    # Persist imported images (if any) and record the manifest.
+    if images:
+        chapter["images"] = save_chapter_images(series_id, chapter_id, images)
+
     # Write chapter.json
     chapter_json = chapter_dir / 'chapter.json'
     with open(chapter_json, 'w', encoding='utf-8') as f:
         json.dump(chapter, f, indent=2, ensure_ascii=False)
-    
+
     return chapter
 
 

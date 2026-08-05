@@ -12,12 +12,106 @@ from typing import Dict, Any, List, Optional
 
 from docx import Document
 from .extractor import strip_glossary_table
-from docx.shared import Pt, Cm, RGBColor
+from .placeholder import is_placeholder_line
+from .storage.chapters import get_chapter_assets_dir
+from docx.shared import Pt, Cm, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 TEMPLATE_FILENAME = 'TemplateNew.docx'
+
+# "Image Placeholder: filename.jpg" → capture the filename (may be absent).
+_PLACEHOLDER_FILE_RE = re.compile(
+    r'^(?:Image|Illustration)\s+Place[Hh]older(?:\s*:\s*(.+?))?\s*$',
+    re.IGNORECASE,
+)
+
+
+def _placeholder_filename(line: str):
+    """Return (is_placeholder, filename|None) for a stripped line."""
+    m = _PLACEHOLDER_FILE_RE.match(line.strip())
+    if not m:
+        return False, None
+    return True, (m.group(1).strip() if m.group(1) else None)
+
+
+# Assumed resolution for images that carry no DPI metadata. Illustrations pulled
+# out of a PDF routinely report 0 dpi, which makes python-docx's native-size math
+# (px / dpi) raise ZeroDivisionError.
+_DEFAULT_DPI = 96
+
+
+def _image_emu_size(path: Path):
+    """Return (width, height) in EMU for an image, tolerating missing DPI metadata.
+
+    Returns (None, None) when the size cannot be determined, in which case the
+    caller should let python-docx decide.
+    """
+    try:
+        from docx.image.image import Image as DocxImage
+        img = DocxImage.from_file(str(path))
+        px_w, px_h = img.px_width, img.px_height
+        if not px_w or not px_h:
+            return None, None
+        dpi_x = img.horz_dpi or _DEFAULT_DPI
+        dpi_y = img.vert_dpi or _DEFAULT_DPI
+        # A zero/negative/absurd dpi means "unknown" — fall back to the default.
+        if dpi_x <= 0:
+            dpi_x = _DEFAULT_DPI
+        if dpi_y <= 0:
+            dpi_y = _DEFAULT_DPI
+        return Inches(px_w / dpi_x), Inches(px_h / dpi_y)
+    except Exception:
+        return None, None
+
+
+def _add_image_to_doc(doc: Document, series_id: str, chapter_id: str, filename: str) -> bool:
+    """Insert an imported illustration at the current end of the document.
+
+    Scaled to fit the page content box (never upscaled), centered.
+    Returns True if the image was added, False if its bytes were not found.
+    """
+    if not filename:
+        return False
+    path = get_chapter_assets_dir(series_id, chapter_id) / Path(filename).name
+    if not path.exists():
+        return False
+    try:
+        section = doc.sections[0]
+        max_w = section.page_width - section.left_margin - section.right_margin
+        max_h = section.page_height - section.top_margin - section.bottom_margin
+
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.paragraph_format.space_before = Pt(10)
+        p.paragraph_format.space_after = Pt(10)
+        # An illustration owns its page: start a new one here. The caller queues a
+        # matching break for whatever follows, so nothing shares the page.
+        # page_break_before is used instead of a separate break paragraph so no
+        # stray empty paragraph (and no blank page) is left behind.
+        p.paragraph_format.page_break_before = True
+        run = p.add_run()
+
+        # Compute the size ourselves so python-docx never has to divide by a
+        # missing DPI. Passing BOTH width and height also skips its internal
+        # scaled_dimensions() call, which would hit the same division.
+        w, h = _image_emu_size(path)
+        if w and h:
+            # Fit inside the content box, preserving aspect ratio, never upscaling.
+            scale = min(max_w / w, max_h / h, 1.0)
+            run.add_picture(str(path), width=int(w * scale), height=int(h * scale))
+        else:
+            # Size unknown — let python-docx try, then clamp the width if needed.
+            pic = run.add_picture(str(path))
+            if pic.width and pic.width > max_w:
+                ratio = max_w / pic.width
+                pic.width = int(pic.width * ratio)
+                pic.height = int(pic.height * ratio)
+        return True
+    except Exception as e:
+        print(f"[Export] Failed to embed image {filename}: {e}")
+        return False
 
 # Unicode ranges not reliably covered by Times New Roman (or any single Latin font).
 # These need an explicit fallback so Word doesn't corrupt them.
@@ -164,6 +258,7 @@ def _add_scene_break(doc: Document):
     p.paragraph_format.space_after  = Pt(12)
     for run in p.runs:
         run.font.color.rgb = RGBColor(0x99, 0x99, 0x99)
+    return p
 
 
 def _add_page_break(doc: Document):
@@ -224,11 +319,60 @@ def _add_chapter_to_doc(
     # When not using template, explicitly set Times New Roman.
     body_base_font = None if use_template_styles else 'Times New Roman'
 
-    # Body content — split on blank lines
-    blocks = re.split(r'\n{2,}', content.strip())
+    series_id  = series.get('id', '')
+    chapter_id = chapter.get('id', '')
+
+    # Body content — split on blank lines. Isolate any image-placeholder line into
+    # its own block so it renders as a real embedded image, not paragraph text.
+    raw_blocks = re.split(r'\n{2,}', content.strip())
+    blocks: List[str] = []
+    for block in raw_blocks:
+        lines = block.split('\n')
+        if not any(is_placeholder_line(ln.strip()) for ln in lines):
+            blocks.append(block)
+            continue
+        buf: List[str] = []
+        for ln in lines:
+            if is_placeholder_line(ln.strip()):
+                if buf:
+                    blocks.append('\n'.join(buf))
+                    buf = []
+                blocks.append(ln.strip())
+            else:
+                buf.append(ln)
+        if buf:
+            blocks.append('\n'.join(buf))
+
+    # Set after an illustration so the next body element starts on a fresh page,
+    # leaving the illustration alone on its own. Applied to the element itself
+    # rather than as a standalone break paragraph, so a trailing illustration
+    # never produces an empty page.
+    pending_break = False
+
+    def _claim_break(par):
+        """Apply a queued page break to the element just created."""
+        nonlocal pending_break
+        if pending_break and par is not None:
+            par.paragraph_format.page_break_before = True
+            pending_break = False
+
     for block in blocks:
         block = block.strip()
         if not block:
+            continue
+
+        # Image placeholder → embed the actual illustration (fall back to text if
+        # the bytes are missing, e.g. a manually typed placeholder with no asset).
+        is_ph, ph_file = _placeholder_filename(block)
+        if is_ph:
+            if _add_image_to_doc(doc, series_id, chapter_id, ph_file):
+                # The image paragraph already broke the page; isolate what follows.
+                pending_break = True
+                continue
+            # No asset found — keep the placeholder text so nothing is silently lost.
+            p = doc.add_paragraph()
+            _claim_break(p)
+            _add_inline_content(p, block, base_font=body_base_font)
             continue
 
         heading_match = re.match(r'^(#{1,4})\s+(.+)$', block)
@@ -236,21 +380,24 @@ def _add_chapter_to_doc(
             level = min(len(heading_match.group(1)) + 1, 4)
             text  = heading_match.group(2).strip()
             h2 = doc.add_heading(text, level=level)
+            _claim_break(h2)
             if not use_template_styles:
                 for run in h2.runs:
                     run.font.name = 'Times New Roman'
             continue
 
         if _is_scene_break(block):
-            _add_scene_break(doc)
+            _claim_break(_add_scene_break(doc))
             continue
 
         lines = block.split('\n')
         if len(lines) == 1:
             p = doc.add_paragraph()
+            _claim_break(p)
             _add_inline_content(p, block, base_font=body_base_font)
         else:
             p = doc.add_paragraph()
+            _claim_break(p)
             for i, line in enumerate(lines):
                 line = line.strip()
                 if not line:

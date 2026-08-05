@@ -123,6 +123,12 @@ export interface TranslationLog {
   translatedAt: string
 }
 
+export interface ChapterImage {
+  filename: string
+  mime: string
+  file: string
+}
+
 export interface Chapter {
   id: string
   seriesId: string
@@ -135,6 +141,7 @@ export interface Chapter {
   glossaryUpdates: GlossaryUpdates | null
   translationLog: TranslationLog | null
   translationHistory: TranslationVersion[]
+  images?: ChapterImage[]
   createdAt: string
   updatedAt: string
 }

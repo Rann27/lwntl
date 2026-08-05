@@ -26,6 +26,7 @@ from core.storage.chapters import (
     update_chapter_status, update_chapter_translation, update_chapter_summary,
     update_glossary_updates, update_translation_log,
     restore_translation_version as restore_version_db,
+    get_chapter_assets as get_chapter_assets_db,
 )
 from core.llm_client import LLMClient, test_client as test_llm_client
 from core.worker_manager import WorkerManager
@@ -246,10 +247,17 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
-    def create_chapter(self, series_id: str, number: str, title: str, raw_content: str):
-        """Create a new chapter"""
+    def create_chapter(self, series_id: str, number: str, title: str, raw_content: str, images=None):
+        """Create a new chapter. Optional images: [{filename, mime, data(base64)}] from import."""
         try:
-            return create_chapter(series_id, str(number), title, raw_content)
+            return create_chapter(series_id, str(number), title, raw_content, images=images)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def get_chapter_assets(self, series_id: str, chapter_id: str):
+        """Return a chapter's stored images as {filename: data-URI} for inline rendering."""
+        try:
+            return get_chapter_assets_db(series_id, chapter_id)
         except Exception as e:
             return {"error": True, "message": str(e)}
 

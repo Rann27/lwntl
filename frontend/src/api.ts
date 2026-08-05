@@ -172,16 +172,34 @@ export async function getChapters(seriesId: string): Promise<Chapter[]> {
   return result as Chapter[]
 }
 
+export interface ImportedImage {
+  filename: string
+  mime: string
+  data: string // base64 (no data-URI prefix)
+}
+
 export async function createChapter(
   seriesId: string,
   number: string,
   title: string,
-  rawContent: string
+  rawContent: string,
+  images?: ImportedImage[]
 ): Promise<Chapter> {
   const api = getApi()
-  const result = await api.create_chapter(seriesId, number, title, rawContent)
+  const result = await api.create_chapter(seriesId, number, title, rawContent, images ?? null)
   if (isApiError(result)) throw new Error(result.message)
   return result as Chapter
+}
+
+/** Fetch a chapter's stored illustrations as { filename: data-URI }. */
+export async function getChapterAssets(
+  seriesId: string,
+  chapterId: string
+): Promise<Record<string, string>> {
+  const api = getApi()
+  const result = await api.get_chapter_assets(seriesId, chapterId)
+  if (isApiError(result)) throw new Error(result.message)
+  return (result || {}) as Record<string, string>
 }
 
 export async function updateChapter(
@@ -455,6 +473,7 @@ export interface ParsedDocument {
   title: string
   content: string
   charCount: number
+  images?: ImportedImage[]
 }
 
 export async function parseDocument(filename: string, dataBase64: string, mode: string = 'standard', topMargin: number = 0, bottomMargin: number = 0): Promise<ParsedDocument> {

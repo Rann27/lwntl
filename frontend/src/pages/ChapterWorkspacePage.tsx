@@ -24,6 +24,7 @@ import {
   getContextInfo,
   updateChapter,
   restoreTranslationVersion,
+  getChapterAssets,
 } from '../api'
 import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
@@ -56,6 +57,8 @@ export function ChapterWorkspacePage() {
   const [viewingVersion, setViewingVersion] = useState<TranslationVersion | null>(null)
 
   const [cjkIncidents, setCjkIncidents] = useState<CJKIncident[]>([])
+  // Imported illustrations for this chapter: { filename: data-URI }
+  const [assets, setAssets] = useState<Record<string, string>>({})
 
   const containerRef = useRef<HTMLDivElement>(null)
   const dragging = useRef(false)
@@ -87,6 +90,13 @@ export function ChapterWorkspacePage() {
       ])
       setChapter(ch)
       setSeriesGlossary(gloss)
+      // Preload imported illustrations so both raw and translated views can
+      // render them inline. Only fetch when the chapter actually has images.
+      if (ch && Array.isArray(ch.images) && ch.images.length > 0) {
+        getChapterAssets(seriesId, chapterId).then(setAssets).catch(() => setAssets({}))
+      } else {
+        setAssets({})
+      }
       // Only free the cached streamingText once fresh data is on disk.
       // If translation is still in progress (e.g. user navigated here mid-stream),
       // keep the buffer alive so the full streamed text remains visible.
@@ -500,7 +510,7 @@ export function ChapterWorkspacePage() {
           {/* Doc view — markdown renderer for formatted source content */}
           {rawViewMode === 'doc' && (
             <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
-              <MarkdownRenderer content={rawRef.current?.value ?? chapter.rawContent ?? ''} />
+              <MarkdownRenderer content={rawRef.current?.value ?? chapter.rawContent ?? ''} images={assets} />
             </div>
           )}
         </div>
@@ -642,7 +652,7 @@ export function ChapterWorkspacePage() {
           )}
 
           <div className="flex-1 overflow-y-auto">
-            <MarkdownRenderer content={translatedText} />
+            <MarkdownRenderer content={translatedText} images={assets} />
           </div>
         </div>
       </div>

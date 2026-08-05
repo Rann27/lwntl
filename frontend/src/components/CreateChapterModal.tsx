@@ -7,8 +7,18 @@ import type { DragEvent } from 'react'
 import { Plus, X, Upload, GripVertical, Trash2, Eye, Loader2, AlertCircle, ChevronUp, ChevronDown, Search, ScanSearch } from 'lucide-react'
 import { useI18n } from '../i18n'
 import { parseDocument } from '../api'
+import type { ImportedImage } from '../api'
 import { MarkdownRenderer } from './MarkdownRenderer'
 import { PdfPrePreviewModal } from './PdfPrePreviewModal'
+
+/** Build a { filename: data-URI } map from in-memory imported images (for preview). */
+function imagesToMap(images?: ImportedImage[]): Record<string, string> {
+  const map: Record<string, string> = {}
+  for (const img of images ?? []) {
+    map[img.filename] = `data:${img.mime};base64,${img.data}`
+  }
+  return map
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,13 +39,14 @@ interface DocEntry {
   status: 'queued' | 'parsing' | 'done' | 'error'
   error: string | null
   file?: File
+  images?: ImportedImage[]
 }
 
 interface CreateChapterModalProps {
   open: boolean
   onClose: () => void
   onSubmit: (number: string, title: string, rawContent: string) => void
-  onBulkSubmit: (chapters: { number: string; title: string; rawContent: string }[]) => Promise<void>
+  onBulkSubmit: (chapters: { number: string; title: string; rawContent: string; images?: ImportedImage[] }[]) => Promise<void>
   nextChapterNumber: string
   loading?: boolean
 }
@@ -358,7 +369,7 @@ export function CreateChapterModal({
           const result = await parseDocument(file.name, b64, 'standard')
           setDocEntries(prev => prev.map(e =>
             e.id === placeholder.id
-              ? { ...e, status: 'done' as const, title: result.title, content: result.content }
+              ? { ...e, status: 'done' as const, title: result.title, content: result.content, images: result.images }
               : e
           ))
         } catch (err: any) {
@@ -387,7 +398,7 @@ export function CreateChapterModal({
         const result = await parseDocument(entry.filename, b64, mode, topMargin, bottomMargin)
         setDocEntries(prev => prev.map(e =>
           e.id === entry.id
-            ? { ...e, status: 'done' as const, title: result.title, content: result.content, file: undefined }
+            ? { ...e, status: 'done' as const, title: result.title, content: result.content, images: result.images, file: undefined }
             : e
         ))
       } catch (err: any) {
@@ -405,7 +416,7 @@ export function CreateChapterModal({
     if (!ready.length) return
     setDocBulkLoading(true)
     try {
-      await onBulkSubmit(ready.map(e => ({ number: e.number, title: e.title, rawContent: e.content })))
+      await onBulkSubmit(ready.map(e => ({ number: e.number, title: e.title, rawContent: e.content, images: e.images })))
     } finally {
       setDocBulkLoading(false)
     }
@@ -495,7 +506,7 @@ export function CreateChapterModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-4" ref={previewContentRef}>
-              <MarkdownRenderer content={previewEntry.content} />
+              <MarkdownRenderer content={previewEntry.content} images={imagesToMap(previewEntry.images)} />
             </div>
           </div>
         </div>

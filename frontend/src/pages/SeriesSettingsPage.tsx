@@ -38,6 +38,7 @@ import {
   exportChapter,
   exportSeriesMerged,
 } from '../api'
+import type { ImportedImage } from '../api'
 import { useAppStore } from '../store/appStore'
 import { useI18n } from '../i18n'
 import type { Series, Chapter, GlossaryEntry, AppConfig, WorkerStatus } from '../types'
@@ -221,11 +222,11 @@ export function SeriesSettingsPage() {
     }
   }
 
-  const handleBulkCreateChapter = async (bulk: { number: string; title: string; rawContent: string }[]) => {
+  const handleBulkCreateChapter = async (bulk: { number: string; title: string; rawContent: string; images?: ImportedImage[] }[]) => {
     if (!seriesId) return
     try {
       for (const ch of bulk) {
-        await createChapter(seriesId, ch.number, ch.title, ch.rawContent)
+        await createChapter(seriesId, ch.number, ch.title, ch.rawContent, ch.images)
       }
       const chaps = await getChapters(seriesId)
       setChapters(chaps)
