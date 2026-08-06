@@ -5,6 +5,7 @@ Implements anti-truncation translation with real-time streaming per Section 8.4-
 
 import threading
 import json
+import re
 import time
 from typing import Dict, List, Any, Optional, Callable
 from .llm_client import LLMClient
@@ -18,6 +19,28 @@ from .prompt_builder import build_system_prompt, build_user_prompt
 from .extractor import extract_glossary_terms, parse_glossary_from_translation
 from .context_window import build_context_window, generate_chapter_summary
 from .placeholder import wrap_placeholders, unwrap_placeholders, reinsert_missing_placeholders
+
+# Source languages whose glossary source terms must be written in the original
+# script. A Latin-only source term for these is an extraction fault: it can never
+# match the raw chapter text, so the glossary pre-filter drops it and the term is
+# effectively invisible to the model.
+_CJK_SOURCE_LANGS = ("japanese", "chinese", "korean")
+_CJK_CHAR_RE = re.compile(r'[぀-ゟ゠-ヿ一-鿿가-힯㐀-䶿]')
+# Share of parsed source terms that may lack CJK before the table is considered
+# unusable. Healthy chapters sit near zero; a corrupted table sits near 1.0.
+_MAX_LATIN_SOURCE_RATIO = 0.5
+
+
+def _is_cjk_source(language: str) -> bool:
+    return (language or "").strip().lower() in _CJK_SOURCE_LANGS
+
+
+def _latin_source_ratio(entries: List[Dict[str, Any]]) -> float:
+    """Fraction of entries whose sourceTerm contains no CJK character."""
+    if not entries:
+        return 0.0
+    bad = sum(1 for e in entries if not _CJK_CHAR_RE.search(e.get("sourceTerm") or ""))
+    return bad / len(entries)
 
 
 class Translator:
@@ -177,11 +200,8 @@ class Translator:
             current = series.get("glossary", []) if series else []
             existing = {e.get("sourceTerm", "").lower().strip() for e in current}
 
-            _CJK_RE = __import__('re').compile(
-                r'[぀-ゟ゠-ヿ一-鿿가-힯㐀-䶿]'
-            )
-            source_lang = (series.get("sourceLanguage") or "").strip().lower() if series else ""
-            cjk_source = source_lang in ("japanese", "chinese", "korean")
+            source_lang = (series.get("sourceLanguage") or "") if series else ""
+            cjk_source = _is_cjk_source(source_lang)
 
             added = 0
             for entry in new_entries:
@@ -189,10 +209,10 @@ class Translator:
                 translated = entry.get("translatedTerm", "")
                 if not src or src.lower() in existing:
                     continue
-                if cjk_source and not _CJK_RE.search(src):
+                if cjk_source and not _CJK_CHAR_RE.search(src):
                     print(f"[Glossary] Skipped '{src}': sourceTerm has no CJK (Latin leak for {source_lang} source)")
                     continue
-                if _CJK_RE.search(translated):
+                if _CJK_CHAR_RE.search(translated):
                     print(f"[Glossary] Skipped '{src}': translatedTerm contains CJK (model bias)")
                     continue
                 add_glossary_entry(
@@ -438,18 +458,32 @@ class Translator:
             # AutoFix CJK — optional per-series post-processing. Repairs untranslated
             # CJK leakage line-by-line BEFORE the translation is saved, so the summary,
             # glossary extraction, and exports are all built from clean text.
+            #
+            # The trailing glossary table is deliberately EXCLUDED: its "Source Term"
+            # column is supposed to hold the original CJK term. Running AutoFix over it
+            # would "repair" those source terms into their English translation, leaving
+            # rows like "| Clarisse | Clarisse |" and destroying cross-chapter
+            # consistency (the source term is the lookup key).
             if series.get("autoFixCjk", False):
                 self._send_status("cjk_autofix")
                 try:
                     from .cjk_autofix import autofix_cjk_text
+                    from .extractor import strip_glossary_table
+
+                    body = strip_glossary_table(full_translation)
+                    if body and full_translation.startswith(body) and len(body) < len(full_translation):
+                        table_tail = full_translation[len(body):]
+                    else:
+                        body, table_tail = full_translation, ""
+
                     fixed_text, n_fixed = autofix_cjk_text(
                         self.client,
-                        full_translation,
+                        body,
                         series.get("targetLanguage", "English"),
                         log=self._log,
                     )
                     if n_fixed > 0 and fixed_text.strip():
-                        full_translation = fixed_text
+                        full_translation = fixed_text + table_tail
                         self._log(f"[AutoFix CJK] Replaced {n_fixed} CJK occurrence(s)")
                     else:
                         self._log("[AutoFix CJK] No CJK leakage repaired")
@@ -481,18 +515,48 @@ class Translator:
             # Glossary extraction — parse table from translation output first.
             # Models instructed to append a markdown glossary table incur zero
             # extra API calls this way.  Fall back to a separate LLM extraction
-            # call only when the table is absent (custom prompt without that rule).
+            # call only when the table is absent (custom prompt without that rule)
+            # or when its source-term column came back unusable.
             self._send_status("extracting")
             try:
                 glossary_updates = parse_glossary_from_translation(full_translation)
+                parsed_entries = glossary_updates.get("entries") or []
+                source_lang = series.get("sourceLanguage", "")
 
-                if not glossary_updates.get("entries"):
+                # A table whose source terms are mostly Latin for a CJK source is
+                # unusable: those terms can never match the raw text, so the
+                # pre-filter drops them and they are silently lost. Re-extract
+                # instead of discarding — extract_glossary_terms() prompts
+                # explicitly for the original-script term.
+                needs_reextract = (
+                    parsed_entries
+                    and _is_cjk_source(source_lang)
+                    and _latin_source_ratio(parsed_entries) > _MAX_LATIN_SOURCE_RATIO
+                )
+
+                if not parsed_entries:
                     self._log("[Glossary] No table found in translation - falling back to LLM extraction...")
                     glossary_updates = extract_glossary_terms(
                         self.client, raw_content, full_translation
                     )
+                elif needs_reextract:
+                    pct = int(_latin_source_ratio(parsed_entries) * 100)
+                    self._log(
+                        f"[Glossary] {pct}% of parsed source terms have no {source_lang} "
+                        f"characters - re-extracting to recover them..."
+                    )
+                    recovered = extract_glossary_terms(
+                        self.client, raw_content, full_translation
+                    )
+                    rec_entries = recovered.get("entries") or []
+                    # Keep the re-extraction only if it actually improved things.
+                    if rec_entries and _latin_source_ratio(rec_entries) < _latin_source_ratio(parsed_entries):
+                        glossary_updates = recovered
+                        self._log(f"[Glossary] Recovered {len(rec_entries)} term(s) via re-extraction")
+                    else:
+                        self._log("[Glossary] Re-extraction did not improve source terms - keeping parsed table")
                 else:
-                    self._log(f"[Glossary] {len(glossary_updates['entries'])} term(s) parsed from translation table (no extra API call)")
+                    self._log(f"[Glossary] {len(parsed_entries)} term(s) parsed from translation table (no extra API call)")
 
                 from .storage.chapters import update_glossary_updates
                 update_glossary_updates(series_id, chapter_id, glossary_updates)
