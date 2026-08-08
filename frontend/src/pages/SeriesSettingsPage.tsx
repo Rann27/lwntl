@@ -18,7 +18,9 @@ import { AllTermsModal, countInconsistencies } from '../components/AllTermsModal
 import { RollingMemoryModal } from '../components/RollingMemoryModal'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch } from 'lucide-react'
+import { TerminologyPrepassModal } from '../components/TerminologyPrepassModal'
+import type { ProposedTerm } from '../api'
 import {
   getAllSeries,
   getChapters,
@@ -57,6 +59,7 @@ export function SeriesSettingsPage() {
   const [showMemory, setShowMemory] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
   const [showAllTerms, setShowAllTerms] = useState(false)
+  const [showPrepass, setShowPrepass] = useState(false)
   const [showRollingMemory, setShowRollingMemory] = useState(false)
   const [seriesLogLines, setSeriesLogLines] = useState<string[]>([])
   const logEndRef = useRef<HTMLDivElement>(null)
@@ -335,6 +338,23 @@ export function SeriesSettingsPage() {
     }
   }
 
+  const handleApplyPrepass = async (terms: ProposedTerm[]) => {
+    if (!seriesId) return
+    let added = 0
+    let skipped = 0
+    for (const t of terms) {
+      try {
+        const entry = await addGlossaryEntry(seriesId, t.sourceTerm, t.translatedTerm, t.notes)
+        setGlossary((prev) => [...prev, entry])
+        added++
+      } catch {
+        skipped++ // duplicate or rejected source term
+      }
+    }
+    if (added > 0) toast.success(`✓ ${added}${skipped > 0 ? ` (${skipped} dilewati)` : ''}`)
+    else toast.error(skipped > 0 ? `${skipped} term dilewati (duplikat/ditolak)` : 'Tidak ada term ditambahkan')
+  }
+
   const handleImportGlossary = async (
     entries: Array<{ sourceTerm: string; translatedTerm: string; notes: string }>
   ) => {
@@ -555,6 +575,17 @@ export function SeriesSettingsPage() {
             onToggleSelect={handleToggleSelect}
           />
 
+          {/* Terminology pre-pass — build the glossary before translating */}
+          <button
+            onClick={() => setShowPrepass(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+            style={{ backgroundColor: '#C8FF8A' }}
+            title="Pindai raw semua chapter untuk mengunci istilah sebelum menerjemahkan"
+          >
+            <ScanSearch size={14} />
+            PRE-PASS TERMS
+          </button>
+
           {/* All Extracted Terms */}
           <div className="relative">
             <button
@@ -720,6 +751,16 @@ export function SeriesSettingsPage() {
         entityName={t.batch.confirmDeleteSelectedMsg.replace('{count}', String(selectedIds.size))}
         details={[]}
         loading={deletingSelected}
+      />
+
+      {/* Terminology Pre-Pass Modal */}
+      <TerminologyPrepassModal
+        open={showPrepass}
+        onClose={() => setShowPrepass(false)}
+        seriesId={seriesId!}
+        workerId={series?.workerId}
+        chapterCount={chapters.length}
+        onApply={handleApplyPrepass}
       />
 
       {/* Rolling Memory Modal */}

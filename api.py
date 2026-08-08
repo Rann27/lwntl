@@ -424,6 +424,47 @@ class API:
         """Estimate token count for text"""
         return {"tokens": estimate_tokens(text)}
 
+    def run_terminology_prepass(self, series_id: str, worker_id: str = None):
+        """Scan every chapter's raw source and propose glossary entries.
+
+        Returns the proposals only — nothing is written to the glossary, so the
+        user can review and edit before applying.
+        """
+        try:
+            from core.terminology import run_terminology_prepass as _prepass
+
+            series = get_series(series_id)
+            if not series:
+                return {"error": True, "message": "Series tidak ditemukan"}
+
+            chapters = get_chapters(series_id)
+            if not any((c.get("rawContent") or "").strip() for c in chapters):
+                return {"error": True, "message": "Belum ada chapter dengan raw content"}
+
+            config = self._get_config()
+            workers = config.get("workers", [])
+            target_worker = None
+            if worker_id:
+                target_worker = next((w for w in workers if w.get("id") == worker_id), None)
+            if target_worker is None:
+                target_worker = next((w for w in workers if w.get("id") == series.get("workerId")), None)
+            if target_worker is None and workers:
+                target_worker = workers[0]
+
+            if target_worker:
+                worker_config = {**config}
+                worker_config["provider"] = target_worker.get("provider") or config.get("provider")
+                worker_config["model"] = target_worker.get("model") or config.get("model")
+                if target_worker.get("deepseekApiKeyId"):
+                    worker_config["deepseekApiKeyId"] = target_worker["deepseekApiKeyId"]
+                client = LLMClient(worker_config)
+            else:
+                client = self._get_llm_client()
+
+            return _prepass(client, chapters, series, log=print)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
     def fix_cjk_text(self, text: str, worker_id: str = None):
         """Fix CJK characters embedded in translated text using AI.
         Uses the specified worker (or first available worker / default config).

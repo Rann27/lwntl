@@ -469,6 +469,30 @@ export async function getWorkerLogs(workerId = 'all'): Promise<{ workerId: strin
   return result as { workerId: string; lines: string[] }
 }
 
+export interface ProposedTerm {
+  sourceTerm: string
+  translatedTerm: string
+  notes: string
+}
+
+export interface TerminologyPrepassResult {
+  entries: ProposedTerm[]
+  batches: number
+  skipped: number
+  scannedChapters: number
+}
+
+/** Scan every chapter's raw source and propose glossary entries (nothing is saved yet). */
+export async function runTerminologyPrepass(
+  seriesId: string,
+  workerId?: string | null
+): Promise<TerminologyPrepassResult> {
+  const api = getApi()
+  const result = await api.run_terminology_prepass(seriesId, workerId || null)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as TerminologyPrepassResult
+}
+
 export interface ParsedDocument {
   title: string
   content: string
