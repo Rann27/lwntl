@@ -28,6 +28,39 @@ const TEMPLATE_VARS = [
   { variable: '{title}', description: 'Judul series' },
 ]
 
+// Slider stops for max output tokens. The slider snaps to these; the number input
+// next to it still accepts any value in between. "K" follows the existing 128000
+// convention (×1000), so the top stop is 1,024,000.
+const MAX_TOKEN_PRESETS = [
+  4000, 8000, 16000, 32000, 64000, 128000,
+  156000, 200000, 256000, 300000, 384000, 512000,
+  640000, 720000, 856000, 912000, 1024000,
+]
+const MAX_TOKEN_LIMIT = MAX_TOKEN_PRESETS[MAX_TOKEN_PRESETS.length - 1]
+
+// Slider stops for the model's total context window (input budget indicator).
+const CONTEXT_PRESETS = [
+  32000, 64000, 128000, 200000, 256000, 400000,
+  512000, 640000, 800000, 1000000, 2000000,
+]
+const CONTEXT_LIMIT = CONTEXT_PRESETS[CONTEXT_PRESETS.length - 1]
+
+/** Index of the preset closest to `value` — lets a custom value still position the slider. */
+function nearestPresetIndex(presets: number[], value: number): number {
+  let best = 0
+  for (let i = 1; i < presets.length; i++) {
+    if (Math.abs(presets[i] - value) < Math.abs(presets[best] - value)) best = i
+  }
+  return best
+}
+
+function formatTokens(value: number): string {
+  // Plain "1024K" — no locale grouping, which would render as an ambiguous "1.024K".
+  return value >= 1000 && value % 1000 === 0
+    ? `${value / 1000}K`
+    : value.toLocaleString()
+}
+
 export function PromptModelPanel({
   config,
   series,
@@ -42,6 +75,7 @@ export function PromptModelPanel({
   const [workerId, setWorkerId] = useState(series?.workerId || config?.workers?.[0]?.id || '')
   const [temperature, setTemperature] = useState(config?.temperature ?? 0.3)
   const [maxTokens, setMaxTokens] = useState(config?.maxTokensPerIteration ?? 16000)
+  const [maxContext, setMaxContext] = useState(config?.maxContextTokens ?? 128000)
   const [glossaryPreFilter, setGlossaryPreFilter] = useState(config?.glossaryPreFilter ?? true)
   const [iterationLock, setIterationLock] = useState(series?.iterationLock ?? true)
   const [autoFixCjk, setAutoFixCjk] = useState(series?.autoFixCjk ?? false)
@@ -56,6 +90,7 @@ export function PromptModelPanel({
     setWorkerId(series?.workerId || config.workers?.[0]?.id || '')
     setTemperature(config.temperature)
     setMaxTokens(config.maxTokensPerIteration)
+    setMaxContext(config.maxContextTokens ?? 128000)
     setGlossaryPreFilter(config.glossaryPreFilter ?? true)
     setIterationLock(series?.iterationLock ?? true)
     setAutoFixCjk(series?.autoFixCjk ?? false)
@@ -100,6 +135,7 @@ export function PromptModelPanel({
         ...config,
         temperature,
         maxTokensPerIteration: maxTokens,
+        maxContextTokens: maxContext,
         glossaryPreFilter,
       },
       instructions,
@@ -273,13 +309,91 @@ export function PromptModelPanel({
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.maxTokens}</label>
-            <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>{maxTokens.toLocaleString()}</span>
+            <div className="flex items-center gap-2">
+              <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.maxTokens}</label>
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1.5px solid var(--color-separator)', color: 'var(--color-text-muted)', letterSpacing: '0.3px' }}>
+                output
+              </span>
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
+              {formatTokens(maxTokens)}
+            </span>
           </div>
           <div className="flex items-center gap-3">
-            <input type="range" min={1000} max={128000} step={1000} value={maxTokens} onChange={(e) => { setMaxTokens(parseInt(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: '#00F7FF' }} />
-            <input type="number" value={maxTokens} onChange={(e) => { setMaxTokens(parseInt(e.target.value) || 16000); setDirty(true) }} className="neo-input" style={{ width: '90px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} min={1000} max={128000} />
+            <input
+              type="range"
+              min={0}
+              max={MAX_TOKEN_PRESETS.length - 1}
+              step={1}
+              value={nearestPresetIndex(MAX_TOKEN_PRESETS, maxTokens)}
+              onChange={(e) => { setMaxTokens(MAX_TOKEN_PRESETS[parseInt(e.target.value)]); setDirty(true) }}
+              className="flex-1"
+              style={{ accentColor: '#00F7FF' }}
+            />
+            <input
+              type="number"
+              value={maxTokens}
+              onChange={(e) => {
+                const v = parseInt(e.target.value)
+                setMaxTokens(isNaN(v) ? 16000 : Math.min(Math.max(v, 1000), MAX_TOKEN_LIMIT))
+                setDirty(true)
+              }}
+              className="neo-input"
+              style={{ width: '104px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+              min={1000}
+              max={MAX_TOKEN_LIMIT}
+            />
           </div>
+          <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
+            Batas panjang output per iterasi. Slider menempel ke preset; isi angka manual untuk nilai bebas.
+          </p>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2">
+              <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+                Context Window
+              </label>
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1.5px solid var(--color-separator)', color: 'var(--color-text-muted)', letterSpacing: '0.3px' }}>
+                input
+              </span>
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
+              {formatTokens(maxContext)}
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <input
+              type="range"
+              min={0}
+              max={CONTEXT_PRESETS.length - 1}
+              step={1}
+              value={nearestPresetIndex(CONTEXT_PRESETS, maxContext)}
+              onChange={(e) => { setMaxContext(CONTEXT_PRESETS[parseInt(e.target.value)]); setDirty(true) }}
+              className="flex-1"
+              style={{ accentColor: '#00F7FF' }}
+            />
+            <input
+              type="number"
+              value={maxContext}
+              onChange={(e) => {
+                const v = parseInt(e.target.value)
+                setMaxContext(isNaN(v) ? 128000 : Math.min(Math.max(v, 4000), CONTEXT_LIMIT))
+                setDirty(true)
+              }}
+              className="neo-input"
+              style={{ width: '104px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+              min={4000}
+              max={CONTEXT_LIMIT}
+            />
+          </div>
+          <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
+            Total context window model. Indikator di chapter memakai sisa setelah dikurangi Max Tokens:{' '}
+            <strong style={{ color: 'var(--color-text-muted)' }}>
+              {formatTokens(Math.max(maxContext - Math.min(maxTokens, Math.floor(maxContext / 2)), 0))} untuk input
+            </strong>.
+          </p>
         </div>
 
         <div>

@@ -80,6 +80,9 @@ class Translator:
         self._batch_total = 0
         self._batch_completed = 0
         self._glossary_pre_filter = True
+        # Text streamed so far in the current iteration — lets the error handler
+        # rescue a partial translation when the provider drops the connection.
+        self._partial_text = ""
     
     def is_running(self) -> bool:
         """Return True if a translation or batch is currently active."""
@@ -270,7 +273,8 @@ class Translator:
             # Reset counters (cancelled flag is set by caller before thread starts)
             self._total_tokens = 0
             self._iteration = 0
-            
+            self._partial_text = ""
+
             # Get chapter data
             chapter = get_chapter(series_id, chapter_id)
             if chapter is None:
@@ -390,7 +394,6 @@ class Translator:
                         self._send_chunk({
                             "chunk": chunk_text,
                             "iteration": self._iteration,
-                            "fullText": full_translation + chunk_text
                         })
                     else:
                         self._log("[Translator] Fallback also returned empty")
@@ -423,7 +426,15 @@ class Translator:
                 update_chapter_translation(series_id, chapter_id, full_translation)
             
             if self._cancelled:
-                # Translation was cancelled
+                # Keep what streamed before the user cancelled — cancelling a long
+                # run (e.g. after a silent stall) should not throw the work away.
+                try:
+                    partial = (full_translation or "") or (self._partial_text or "")
+                    if partial.strip():
+                        update_chapter_translation(series_id, chapter_id, partial)
+                        self._log(f"[Recovery] Saved {len(partial.strip())} chars from cancelled run")
+                except Exception as e:
+                    self._log(f"[Recovery] Could not save partial on cancel: {e}")
                 self._send_status("cancelled")
                 return
 
@@ -583,6 +594,21 @@ class Translator:
         except Exception as e:
             error_msg = str(e)
             self._log(f"Translation error: {error_msg}")
+
+            # Rescue whatever streamed before the failure. A dropped connection on a
+            # long generation used to discard everything, because the translation is
+            # normally only written once the whole pipeline completes.
+            try:
+                salvaged = (self._partial_text or "").strip()
+                if salvaged:
+                    update_chapter_translation(series_id, chapter_id, self._partial_text)
+                    self._log(
+                        f"[Recovery] Saved {len(salvaged)} chars of partial translation "
+                        "— open the chapter to review or copy it before re-translating."
+                    )
+            except Exception as save_err:
+                self._log(f"[Recovery] Could not save partial translation: {save_err}")
+
             # If cancel was requested at the same time as the exception, report cancelled
             # so the chapter status doesn't get stuck as "error" after a user-initiated cancel.
             if self._cancelled:
@@ -634,6 +660,13 @@ class Translator:
         # emit "[DONE" without the closing "]".
         STOP_MARKERS = ("<LWNTL_DONE/>", "[DONE]", "[SELESAI]", "[END]", "[DONE")
 
+        # Periodically persist what has streamed so far. Providers can close a long
+        # response mid-flight ("peer closed connection without sending complete
+        # message body"); without checkpoints the entire generation is lost, since
+        # the normal save only happens once the whole pipeline finishes.
+        CHECKPOINT_SECS = 30
+        _last_checkpoint = time.time()
+
         for chunk in stream:
             if self._cancelled:
                 break
@@ -679,13 +712,28 @@ class Translator:
                 now = time.time()
                 if len(_buf) >= BATCH_CHARS or (now - _last_flush) >= BATCH_SECS or should_stop:
                     if _buf:
+                        # Only the delta is sent. Including the accumulated text here
+                        # would make streaming O(n^2) — every flush would serialise the
+                        # whole translation into a JS string — which stalls the app on
+                        # long outputs. The frontend appends chunks itself.
                         self._send_chunk({
                             "chunk": _buf,
                             "iteration": self._iteration,
-                            "fullText": full_text,
                         })
                         _buf = ""
                         _last_flush = now
+
+                # Keep the running text reachable from the error handler, which can
+                # then persist a partial result instead of discarding the whole run.
+                self._partial_text = full_text
+
+                if now - _last_checkpoint >= CHECKPOINT_SECS and full_text.strip():
+                    try:
+                        update_chapter_translation(series_id, chapter_id, full_text)
+                        _last_checkpoint = now
+                    except Exception as e:
+                        self._log(f"[Checkpoint] Failed to persist partial: {e}")
+                        _last_checkpoint = now
 
                 if should_stop:
                     break
@@ -695,7 +743,6 @@ class Translator:
             self._send_chunk({
                 "chunk": _buf,
                 "iteration": self._iteration,
-                "fullText": full_text,
             })
 
         elapsed = time.time() - t0

@@ -186,6 +186,7 @@ DEFAULT_CONFIG = {
     "openaicompatExtraHeaders": {},
     "temperature": 0.3,
     "maxTokensPerIteration": 16000,
+    "maxContextTokens": 128000,
     "glossaryPreFilter": True,
     "theme": "light",
     "uiLanguage": "id",

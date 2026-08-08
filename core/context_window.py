@@ -13,12 +13,42 @@ from .llm_client import LLMClient
 from .prompt_builder import build_system_prompt
 
 
-# Context window configuration
-MAX_CONTEXT_TOKENS = 128_000          # Total context window
-RESERVED_RESPONSE_TOKENS = 16_000     # Reserved for LLM response
-AVAILABLE_CONTEXT_TOKENS = MAX_CONTEXT_TOKENS - RESERVED_RESPONSE_TOKENS  # 112k for input
+# Context window configuration — defaults only. The effective values come from
+# config (see get_context_limits): the total window is user-configurable per model,
+# and the reserve is the configured max output tokens, since that is exactly the
+# space the response will occupy.
+MAX_CONTEXT_TOKENS = 128_000          # Default total context window
+RESERVED_RESPONSE_TOKENS = 16_000     # Default reserve for the LLM response
 SUMMARY_GENERATION_MAX_TOKENS = 1000  # Max tokens for summary generation
 MEMORY_COMPACT_MAX_TOKENS = 2000      # Max tokens for memory compaction
+
+
+def get_context_limits() -> tuple:
+    """Return (max_context, reserved_for_response, available_for_input).
+
+    Reading these from config keeps the indicator honest for models whose window
+    is far larger than the old hardcoded 128k. The reserve is clamped to half the
+    window so a large max-output setting can never leave zero room for input.
+    """
+    try:
+        from .storage.config import get_config
+        cfg = get_config()
+    except Exception:
+        cfg = {}
+
+    try:
+        max_ctx = int(cfg.get("maxContextTokens") or MAX_CONTEXT_TOKENS)
+    except (TypeError, ValueError):
+        max_ctx = MAX_CONTEXT_TOKENS
+    max_ctx = max(max_ctx, 4_000)
+
+    try:
+        reserved = int(cfg.get("maxTokensPerIteration") or RESERVED_RESPONSE_TOKENS)
+    except (TypeError, ValueError):
+        reserved = RESERVED_RESPONSE_TOKENS
+    reserved = max(1_000, min(reserved, max_ctx // 2))
+
+    return max_ctx, reserved, max_ctx - reserved
 
 
 def estimate_tokens(text: str) -> int:
@@ -106,18 +136,20 @@ def get_context_info(series_id: str, chapter_id: str) -> Optional[Dict[str, Any]
     
     total = system_tokens + rolling_tokens + memory_tokens + current_tokens
     
+    max_ctx, reserved, available = get_context_limits()
+
     return {
         "totalTokens": total,
-        "availableTokens": AVAILABLE_CONTEXT_TOKENS,
-        "maxTokens": MAX_CONTEXT_TOKENS,
-        "fits": total <= AVAILABLE_CONTEXT_TOKENS,
-        "utilization": round(total / AVAILABLE_CONTEXT_TOKENS * 100, 1),
+        "availableTokens": available,
+        "maxTokens": max_ctx,
+        "fits": total <= available,
+        "utilization": round(total / available * 100, 1) if available > 0 else 0.0,
         "breakdown": {
             "system": system_tokens,
             "rolling": rolling_tokens,
             "memory": memory_tokens,
             "current": current_tokens,
-            "reserved": RESERVED_RESPONSE_TOKENS,
+            "reserved": reserved,
         },
         "summariesAvailable": len([c for c in chapters if c.get("createdAt", "") < current_chapter.get("createdAt", "") and c.get("summary", "").strip()]),
         "memoriesAvailable": len(series.get("memory", [])),
@@ -191,8 +223,9 @@ def build_context_window(
         return cached
     
     # === Auto-Compact if over limit ===
+    _max_ctx, _reserved, available_tokens = get_context_limits()
     compacted = False
-    if total_tokens > AVAILABLE_CONTEXT_TOKENS:
+    if total_tokens > available_tokens:
         rolling_context, rolling_tokens, compacted = _auto_compact(
             series_id=series_id,
             series=series,
@@ -218,8 +251,8 @@ def build_context_window(
             "rolling": rolling_tokens,
             "memory": memory_tokens,
             "current": current_tokens,
-            "available": AVAILABLE_CONTEXT_TOKENS,
-            "max": MAX_CONTEXT_TOKENS,
+            "available": available_tokens,
+            "max": _max_ctx,
         }
     }
     
@@ -405,23 +438,24 @@ def _auto_compact(
     window_eval: Optional[Callable]
 ) -> tuple:
     """
-    Auto-compact context when total exceeds AVAILABLE_CONTEXT_TOKENS.
-    
+    Auto-compact context when total exceeds the available input budget.
+
     Strategy:
     1. Reduce number of rolling summaries (keep only most recent)
     2. If LLM client available, trigger memory compaction for older summaries
     3. Return compacted rolling context
-    
+
     Returns:
         tuple: (rolling_context, rolling_tokens, compacted_flag)
     """
-    available_for_rolling = AVAILABLE_CONTEXT_TOKENS - system_tokens - memory_tokens - current_tokens
-    
+    _max_ctx, _reserved, available_tokens = get_context_limits()
+    available_for_rolling = available_tokens - system_tokens - memory_tokens - current_tokens
+
     if available_for_rolling < 0:
         # Even without rolling context, we're over limit
         # Current chapter itself is too large - nothing we can do
         print(f"[ContextWindow] WARNING: Current chapter alone exceeds available tokens "
-              f"({current_tokens} > {AVAILABLE_CONTEXT_TOKENS - system_tokens - memory_tokens})")
+              f"({current_tokens} > {available_tokens - system_tokens - memory_tokens})")
         return "", 0, True
     
     # Step 1: Reduce rolling summaries to fit

@@ -37,6 +37,7 @@ export interface AppConfig {
   openaicompatExtraHeaders: Record<string, string>
   temperature: number
   maxTokensPerIteration: number
+  maxContextTokens: number
   glossaryPreFilter: boolean
   theme: string
   uiLanguage: 'id' | 'en'
@@ -324,7 +325,6 @@ export const PROVIDERS: Record<string, {
 export interface TranslationChunkEvent {
   chunk: string
   iteration: number
-  fullText?: string
   jobId?: string
   workerId?: string
   workerLabel?: string
