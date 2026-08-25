@@ -6,6 +6,31 @@ Supports: ZhipuAI, Qwen, OpenAI, Google Gemini, Anthropic, xAI (Grok), Moonshot 
 import time
 from typing import Dict, List, Any, Optional
 
+# The four harm categories Gemini lets developers adjust. Child-safety and other
+# core protections are enforced by Google and cannot be changed from here.
+GEMINI_SAFETY_CATEGORIES = (
+    "HARM_CATEGORY_HARASSMENT",
+    "HARM_CATEGORY_HATE_SPEECH",
+    "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+    "HARM_CATEGORY_DANGEROUS_CONTENT",
+)
+
+# Loosest first. "OFF" turns filtering off outright and is what current models
+# accept; "BLOCK_NONE" is the older equivalent, kept as a fallback for models that
+# reject "OFF".
+GEMINI_SAFETY_THRESHOLDS = ("OFF", "BLOCK_NONE")
+
+
+def _gemini_safety_body(threshold: str) -> Dict[str, Any]:
+    return {
+        "google": {
+            "safety_settings": [
+                {"category": c, "threshold": threshold}
+                for c in GEMINI_SAFETY_CATEGORIES
+            ]
+        }
+    }
+
 
 PROVIDERS = {
     "zhipuai": {
@@ -286,6 +311,14 @@ class LLMClient:
         elif p == "openai":
             self._init_openai_compat(config.get("openaiApiKey", ""), None)
         elif p == "gemini":
+            # Gemini applies safety filtering that can reject perfectly ordinary
+            # fiction — violence, sexual content and crude language are staples of
+            # the genre. When the filter is switched off we send the permissive
+            # threshold for every adjustable category. Google's non-adjustable core
+            # protections still apply regardless.
+            if not config.get("geminiSafetyFilter", True):
+                self._extra_body = _gemini_safety_body("OFF")
+                self._gemini_safety_relaxed = True
             self._init_openai_compat(config.get("geminiApiKey", ""), PROVIDERS["gemini"]["baseUrl"])
         elif p == "anthropic":
             self._init_anthropic(config.get("anthropicApiKey", ""))
@@ -332,6 +365,27 @@ class LLMClient:
             )
         else:
             raise ValueError(f"Unknown provider: {p}")
+
+    def _downgrade_gemini_safety(self, error: Exception) -> bool:
+        """Step the safety threshold down one level after a rejection.
+
+        Returns True when the request is worth retrying. Only fires for Gemini
+        while the relaxed setting is active, and only once per level, so an
+        unrelated failure is never retried in a loop.
+        """
+        if self.provider != "gemini" or not getattr(self, "_gemini_safety_relaxed", False):
+            return False
+        idx = getattr(self, "_gemini_threshold_index", 0)
+        if idx + 1 >= len(GEMINI_SAFETY_THRESHOLDS):
+            return False
+        msg = str(error).lower()
+        # Must name the safety field specifically. Matching anything looser (e.g.
+        # a bare "invalid") would swallow auth failures, which say "invalid api key".
+        if "safety" not in msg and "threshold" not in msg:
+            return False
+        self._gemini_threshold_index = idx + 1
+        self._extra_body = _gemini_safety_body(GEMINI_SAFETY_THRESHOLDS[idx + 1])
+        return True
 
     def _init_zhipuai(self, api_key: str):
         if not api_key:
@@ -444,14 +498,25 @@ class LLMClient:
 
         t0 = time.time()
 
-        if self._client_type == "zhipuai":
-            result = self._complete_zhipuai(messages, stream, mt, temp)
-        elif self._client_type == "openai":
-            result = self._complete_openai(messages, stream, mt, temp)
-        elif self._client_type == "anthropic":
-            result = self._complete_anthropic(messages, stream, mt, temp)
-        else:
+        def _dispatch():
+            if self._client_type == "zhipuai":
+                return self._complete_zhipuai(messages, stream, mt, temp)
+            elif self._client_type == "openai":
+                return self._complete_openai(messages, stream, mt, temp)
+            elif self._client_type == "anthropic":
+                return self._complete_anthropic(messages, stream, mt, temp)
             raise ValueError(f"Unknown client type: {self._client_type}")
+
+        try:
+            result = _dispatch()
+        except Exception as e:
+            # A model that predates the "OFF" threshold rejects the request outright.
+            # Step down to the older BLOCK_NONE rather than failing the translation.
+            if self._downgrade_gemini_safety(e):
+                self._log("[Gemini] 'OFF' threshold rejected — retrying with BLOCK_NONE")
+                result = _dispatch()
+            else:
+                raise
 
         if not stream:
             elapsed = time.time() - t0

@@ -168,6 +168,7 @@ DEFAULT_CONFIG = {
     "qwenApiKey": "",
     "openaiApiKey": "",
     "geminiApiKey": "",
+    "geminiSafetyFilter": True,
     "anthropicApiKey": "",
     "xaiApiKey": "",
     "xaiReasoningEffort": "high",

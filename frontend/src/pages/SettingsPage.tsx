@@ -429,6 +429,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   const [mimoThinking, setMimoThinking] = useState(config.mimoThinking ?? true)
   const [mimoReasoningEffort, setMimoReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.mimoReasoningEffort ?? 'medium')
   const [xaiReasoningEffort, setXaiReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.xaiReasoningEffort ?? 'high')
+  const [geminiSafetyFilter, setGeminiSafetyFilter] = useState(config.geminiSafetyFilter ?? true)
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [testing, setTesting] = useState(false)
   const [testResult, setTestResult] = useState<'success' | 'error' | null>(null)
@@ -448,6 +449,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     updated.mimoThinking = mimoThinking
     updated.mimoReasoningEffort = mimoReasoningEffort
     updated.xaiReasoningEffort = xaiReasoningEffort
+    updated.geminiSafetyFilter = geminiSafetyFilter
     return updated
   }
 
@@ -596,6 +598,32 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                     </p>
                   )}
                 </div>
+              </div>
+            )}
+            {provider === 'gemini' && (
+              <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+                <div>
+                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                    Safety Filter
+                  </span>
+                  <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', maxWidth: '420px', lineHeight: 1.5 }}>
+                    {geminiSafetyFilter
+                      ? 'Default Google — konten fanservice/ecchi kadang ditolak.'
+                      : 'Mode paling longgar: threshold OFF untuk harassment, hate speech, seksual, dan dangerous content. Proteksi inti Google tetap berlaku.'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setGeminiSafetyFilter(v => !v); setTestResult(null) }}
+                  style={{
+                    flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700,
+                    border: '2px solid var(--color-border)', cursor: 'pointer',
+                    textTransform: 'uppercase', letterSpacing: '0.4px',
+                    backgroundColor: geminiSafetyFilter ? '#28E272' : '#FF3C3C',
+                    color: '#fff',
+                  }}
+                >
+                  {geminiSafetyFilter ? 'ON' : 'OFF'}
+                </button>
               </div>
             )}
             {provider === 'xai' && (

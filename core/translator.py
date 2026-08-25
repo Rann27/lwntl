@@ -35,6 +35,16 @@ def _is_cjk_source(language: str) -> bool:
     return (language or "").strip().lower() in _CJK_SOURCE_LANGS
 
 
+# finish_reason values that mean the provider withheld content rather than the
+# model choosing to stop. Providers spell these differently, so match loosely.
+_BLOCKED_FINISH_MARKERS = ("content_filter", "safety", "prohibited", "blocklist", "recitation")
+
+
+def _is_blocked_finish(reason: str) -> bool:
+    r = (reason or "").strip().lower()
+    return any(m in r for m in _BLOCKED_FINISH_MARKERS)
+
+
 def _latin_source_ratio(entries: List[Dict[str, Any]]) -> float:
     """Fraction of entries whose sourceTerm contains no CJK character."""
     if not entries:
@@ -83,6 +93,9 @@ class Translator:
         # Text streamed so far in the current iteration — lets the error handler
         # rescue a partial translation when the provider drops the connection.
         self._partial_text = ""
+        # Last finish_reason seen, so a provider-side content block can be reported
+        # as such instead of looking like an ordinary empty response.
+        self._last_finish_reason = ""
     
     def is_running(self) -> bool:
         """Return True if a translation or batch is currently active."""
@@ -274,6 +287,7 @@ class Translator:
             self._total_tokens = 0
             self._iteration = 0
             self._partial_text = ""
+            self._last_finish_reason = ""
 
             # Get chapter data
             chapter = get_chapter(series_id, chapter_id)
@@ -457,7 +471,14 @@ class Translator:
             raw_len = len(raw_content.strip()) if raw_content else 0
             trans_len = len(full_translation.strip())
             if trans_len == 0:
-                err = "Translation returned empty output from provider"
+                if _is_blocked_finish(self._last_finish_reason):
+                    err = (
+                        "Provider blocked this chapter (safety filter, "
+                        f"finish_reason={self._last_finish_reason}). "
+                        "For Gemini, try Settings -> Google Gemini -> Safety Filter: OFF."
+                    )
+                else:
+                    err = "Translation returned empty output from provider"
                 self._log(f"[Translator] {err}")
                 update_chapter_status(series_id, chapter_id, "error")
                 self._send_error(err)
@@ -671,6 +692,15 @@ class Translator:
             if self._cancelled:
                 break
 
+            # Remember why generation stopped; providers report a content block here.
+            try:
+                if getattr(chunk, 'choices', None):
+                    fr = getattr(chunk.choices[0], 'finish_reason', None)
+                    if fr:
+                        self._last_finish_reason = str(fr)
+            except Exception:
+                pass
+
             # Track thinking tokens (models with reasoning mode)
             if hasattr(chunk, 'choices') and len(chunk.choices) > 0:
                 delta = chunk.choices[0].delta
@@ -751,6 +781,10 @@ class Translator:
         if thinking_chars > 0:
             self._log(f"[API ←] thinking: {thinking_chars} chars | content: {len(full_text)} chars")
         self._log(f"[API ←] stream done in {elapsed:.1f}s | ~{len(full_text)} chars output")
+        if _is_blocked_finish(self._last_finish_reason):
+            self._log(
+                f"[API ←] BLOCKED by provider safety filter (finish_reason={self._last_finish_reason})"
+            )
 
         return full_text
 
@@ -798,6 +832,9 @@ class Translator:
                 return ""
 
             choice = response.choices[0]
+            fr = getattr(choice, 'finish_reason', None)
+            if fr:
+                self._last_finish_reason = str(fr)
             if not hasattr(choice, "message"):
                 return ""
 
