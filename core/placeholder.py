@@ -9,7 +9,7 @@ Option B: reinsert_missing_placeholders() — after translation, detect any that
 """
 
 import re
-from typing import List, Dict, Tuple
+from typing import List, Dict, Optional, Tuple
 
 # Handles all four user-facing variants plus DOCX/PDF parser output:
 #   Image PlaceHolder                  (manual, capital H)
@@ -18,7 +18,7 @@ from typing import List, Dict, Tuple
 #   Illustration PlaceHolder: filename.jpg
 #   Image Placeholder: filename.jpg    (DOCX / PDF parser, lowercase h)
 _PH_RE = re.compile(
-    r'^(?:Image|Illustration)\s+Place[Hh]older(?:\s*:\s*.+)?$',
+    r'^(?:Image|Illustration)\s+Place[Hh]older(?:\s*:\s*(?P<file>.+?))?\s*$',
     re.IGNORECASE,
 )
 
@@ -37,6 +37,31 @@ _STRAY_TAG_RE = re.compile(r'</?lwntl_preserve>', re.IGNORECASE)
 
 def is_placeholder_line(line: str) -> bool:
     return bool(_PH_RE.match(line.strip()))
+
+
+def placeholder_filename(line: str) -> Optional[str]:
+    """Return the filename a placeholder line points at, or None.
+
+    None means either "not a placeholder" or "a placeholder with no filename"
+    (e.g. a bare `Image PlaceHolder`), both of which have nothing to resolve.
+    """
+    m = _PH_RE.match(line.strip())
+    if not m:
+        return None
+    name = (m.group('file') or '').strip()
+    return name or None
+
+
+def collect_placeholder_filenames(content: str) -> List[str]:
+    """Every filename referenced by a placeholder line, in order, deduplicated."""
+    seen = set()
+    out: List[str] = []
+    for line in (content or '').split('\n'):
+        name = placeholder_filename(line)
+        if name and name not in seen:
+            seen.add(name)
+            out.append(name)
+    return out
 
 
 def wrap_placeholders(content: str) -> str:

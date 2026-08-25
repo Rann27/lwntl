@@ -19,6 +19,7 @@ export interface AppConfig {
   qwenApiKey: string
   openaiApiKey: string
   geminiApiKey: string
+  geminiSafetyFilter: boolean
   anthropicApiKey: string
   xaiApiKey: string
   xaiReasoningEffort: 'low' | 'medium' | 'high'
@@ -85,6 +86,7 @@ export interface Series {
   workerId: string
   iterationLock: boolean
   autoFixCjk: boolean
+  imageFolder: string
   systemPrompt: string
   instructions: string
   glossary: GlossaryEntry[]

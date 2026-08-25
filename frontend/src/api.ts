@@ -134,11 +134,82 @@ export async function updateSeries(
   workerId?: string,
   iterationLock?: boolean,
   autoFixCjk?: boolean,
+  imageFolder?: string,
 ): Promise<Series> {
   const api = getApi()
-  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null, workerId ?? null, iterationLock ?? null, autoFixCjk ?? null)
+  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null, workerId ?? null, iterationLock ?? null, autoFixCjk ?? null, imageFolder ?? null)
   if (isApiError(result)) throw new Error(result.message)
   return result as Series
+}
+
+// ===== Series images (placeholder → real image) =====
+
+export interface ImageFolderInfo {
+  exists: boolean
+  count: number
+  samples: string[]
+}
+
+export interface SeriesImageStatus {
+  folder: string
+  folderCount: number
+  poolCount: number
+}
+
+export interface ImageSyncResult {
+  matched: number
+  missing: number
+  chaptersUpdated: number
+  missingNames: string[]
+  poolCount: number
+  folderCount: number
+}
+
+/** Native folder picker. Returns '' when cancelled. */
+export async function pickImageFolder(initial = ''): Promise<string> {
+  const api = getApi()
+  const result = await api.pick_image_folder(initial)
+  if (isApiError(result)) throw new Error(result.message)
+  return (result as { path?: string }).path || ''
+}
+
+export async function describeImageFolder(folder: string): Promise<ImageFolderInfo> {
+  const api = getApi()
+  const result = await api.describe_image_folder(folder)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as ImageFolderInfo
+}
+
+export async function getSeriesImageStatus(seriesId: string): Promise<SeriesImageStatus> {
+  const api = getApi()
+  const result = await api.get_series_image_status(seriesId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as SeriesImageStatus
+}
+
+/** Upload dropped images into the series' managed pool. */
+export async function uploadSeriesImages(
+  seriesId: string,
+  images: Array<{ filename: string; data: string }>
+): Promise<number> {
+  const api = getApi()
+  const result = await api.upload_series_images(seriesId, images)
+  if (isApiError(result)) throw new Error(result.message)
+  return (result as { saved: number }).saved
+}
+
+/** Match placeholder lines across the series against the image sources. */
+export async function syncSeriesImages(seriesId: string): Promise<ImageSyncResult> {
+  const api = getApi()
+  const result = await api.sync_series_images(seriesId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as ImageSyncResult
+}
+
+export async function clearSeriesImagePool(seriesId: string): Promise<void> {
+  const api = getApi()
+  const result = await api.clear_series_image_pool(seriesId)
+  if (isApiError(result)) throw new Error(result.message)
 }
 
 export async function getDefaultSystemPrompt(targetLanguage: string): Promise<string> {

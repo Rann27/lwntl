@@ -45,6 +45,7 @@ def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
     series.setdefault("groupId", None)
     series.setdefault("workerId", "")
     series.setdefault("autoFixCjk", False)
+    series.setdefault("imageFolder", "")
     return series
 
 
@@ -119,6 +120,7 @@ def create_series(title: str, language: str, target_language: str = "Indonesian"
         "groupId": None,
         "workerId": "",
         "autoFixCjk": False,
+        "imageFolder": "",
         "systemPrompt": "",
         "instructions": "",
         "glossary": [],
@@ -169,7 +171,7 @@ def get_series(series_id: str) -> Optional[Dict[str, Any]]:
 def update_series(series_id: str, title: str, language: str,
                   target_language: str = None, system_prompt: str = None,
                   worker_id: str = None, iteration_lock: bool = None,
-                  auto_fix_cjk: bool = None) -> Dict[str, Any]:
+                  auto_fix_cjk: bool = None, image_folder: str = None) -> Dict[str, Any]:
     """
     Update a series
     
@@ -200,6 +202,8 @@ def update_series(series_id: str, title: str, language: str,
         series["iterationLock"] = iteration_lock
     if auto_fix_cjk is not None:
         series["autoFixCjk"] = auto_fix_cjk
+    if image_folder is not None:
+        series["imageFolder"] = image_folder
     series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
     
     # Write updated series.json

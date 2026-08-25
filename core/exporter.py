@@ -12,7 +12,7 @@ from typing import Dict, Any, List, Optional
 
 from docx import Document
 from .extractor import strip_glossary_table
-from .placeholder import is_placeholder_line
+from .placeholder import is_placeholder_line, placeholder_filename
 from .storage.chapters import get_chapter_assets_dir
 from docx.shared import Pt, Cm, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -21,19 +21,11 @@ from docx.oxml import OxmlElement
 
 TEMPLATE_FILENAME = 'TemplateNew.docx'
 
-# "Image Placeholder: filename.jpg" → capture the filename (may be absent).
-_PLACEHOLDER_FILE_RE = re.compile(
-    r'^(?:Image|Illustration)\s+Place[Hh]older(?:\s*:\s*(.+?))?\s*$',
-    re.IGNORECASE,
-)
-
-
 def _placeholder_filename(line: str):
     """Return (is_placeholder, filename|None) for a stripped line."""
-    m = _PLACEHOLDER_FILE_RE.match(line.strip())
-    if not m:
+    if not is_placeholder_line(line):
         return False, None
-    return True, (m.group(1).strip() if m.group(1) else None)
+    return True, placeholder_filename(line)
 
 
 # Assumed resolution for images that carry no DPI metadata. Illustrations pulled

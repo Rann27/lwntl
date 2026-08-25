@@ -194,12 +194,15 @@ class API:
 
     def update_series(self, series_id: str, title: str, language: str,
                       target_language: str = None, system_prompt: str = None,
-                      worker_id: str = None, iteration_lock=None, auto_fix_cjk=None):
+                      worker_id: str = None, iteration_lock=None, auto_fix_cjk=None,
+                      image_folder=None):
         """Update a series"""
         try:
             lock = bool(iteration_lock) if iteration_lock is not None else None
             autofix = bool(auto_fix_cjk) if auto_fix_cjk is not None else None
-            return update_series_db(series_id, title, language, target_language, system_prompt, worker_id, lock, autofix)
+            folder = str(image_folder) if image_folder is not None else None
+            return update_series_db(series_id, title, language, target_language, system_prompt,
+                                    worker_id, lock, autofix, folder)
         except Exception as e:
             return {"error": True, "message": str(e)}
     
@@ -250,7 +253,27 @@ class API:
     def create_chapter(self, series_id: str, number: str, title: str, raw_content: str, images=None):
         """Create a new chapter. Optional images: [{filename, mime, data(base64)}] from import."""
         try:
-            return create_chapter(series_id, str(number), title, raw_content, images=images)
+            chapter = create_chapter(series_id, str(number), title, raw_content, images=images)
+            # TXT/MD/manual chapters carry placeholder lines but no image bytes.
+            # When the series has an image source, resolve them now — scoped to this
+            # chapter so a bulk import does not rescan the whole series each time.
+            try:
+                from core.image_sync import (
+                    sync_series_images as _sync, list_folder_images, get_series_image_pool,
+                )
+                series = get_series(series_id)
+                folder = (series or {}).get("imageFolder", "").strip()
+                has_source = bool(list_folder_images(folder)) or bool(
+                    list_folder_images(str(get_series_image_pool(series_id)))
+                )
+                if has_source:
+                    _sync(series_id, chapter_ids=[chapter["id"]])
+                    refreshed = get_chapter(series_id, chapter["id"])
+                    if refreshed:
+                        chapter = refreshed
+            except Exception as e:
+                print(f"[Images] Auto-sync after create failed (non-fatal): {e}")
+            return chapter
         except Exception as e:
             return {"error": True, "message": str(e)}
 
@@ -423,6 +446,74 @@ class API:
     def estimate_tokens(self, text: str):
         """Estimate token count for text"""
         return {"tokens": estimate_tokens(text)}
+
+    def pick_image_folder(self, initial: str = ""):
+        """Open a native folder picker for the series image source."""
+        try:
+            import webview
+            result = self._window.create_file_dialog(
+                webview.FOLDER_DIALOG,
+                directory=initial or "",
+            )
+            if not result:
+                return {"error": False, "cancelled": True, "path": ""}
+            path = result[0] if isinstance(result, (list, tuple)) else result
+            return {"error": False, "cancelled": False, "path": str(path)}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def describe_image_folder(self, folder: str):
+        """Validate a folder path and report how many images it holds."""
+        try:
+            from core.image_sync import describe_folder
+            return describe_folder(folder)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def get_series_image_status(self, series_id: str):
+        """Counts for the managed pool and the assigned external folder."""
+        try:
+            from core.image_sync import list_folder_images, get_series_image_pool
+            series = get_series(series_id)
+            if not series:
+                return {"error": True, "message": "Series tidak ditemukan"}
+            folder = (series.get("imageFolder") or "").strip()
+            return {
+                "folder": folder,
+                "folderCount": len(list_folder_images(folder)),
+                "poolCount": len(list_folder_images(str(get_series_image_pool(series_id)))),
+            }
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def upload_series_images(self, series_id: str, images=None):
+        """Store drag & dropped images into the series' managed image pool."""
+        try:
+            from core.image_sync import save_uploaded_images
+            saved = save_uploaded_images(series_id, images or [])
+            return {"saved": saved}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def sync_series_images(self, series_id: str):
+        """Match placeholder lines against the image sources and copy them in."""
+        try:
+            from core.image_sync import sync_series_images as _sync
+            return _sync(series_id, log=print)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def clear_series_image_pool(self, series_id: str):
+        """Empty the managed image pool (does not touch the external folder)."""
+        try:
+            import shutil
+            from core.image_sync import get_series_image_pool
+            pool = get_series_image_pool(series_id)
+            if pool.exists():
+                shutil.rmtree(pool)
+            return {"cleared": True}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
 
     def run_terminology_prepass(self, series_id: str, worker_id: str = None):
         """Scan every chapter's raw source and propose glossary entries.

@@ -18,8 +18,9 @@ import { AllTermsModal, countInconsistencies } from '../components/AllTermsModal
 import { RollingMemoryModal } from '../components/RollingMemoryModal'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch, Image as ImageIcon } from 'lucide-react'
 import { TerminologyPrepassModal } from '../components/TerminologyPrepassModal'
+import { ImageFolderModal } from '../components/ImageFolderModal'
 import type { ProposedTerm } from '../api'
 import {
   getAllSeries,
@@ -60,6 +61,7 @@ export function SeriesSettingsPage() {
   const [showLogs, setShowLogs] = useState(false)
   const [showAllTerms, setShowAllTerms] = useState(false)
   const [showPrepass, setShowPrepass] = useState(false)
+  const [showImageFolder, setShowImageFolder] = useState(false)
   const [showRollingMemory, setShowRollingMemory] = useState(false)
   const [seriesLogLines, setSeriesLogLines] = useState<string[]>([])
   const logEndRef = useRef<HTMLDivElement>(null)
@@ -586,6 +588,17 @@ export function SeriesSettingsPage() {
             PRE-PASS TERMS
           </button>
 
+          {/* Image source — link placeholder lines to real images */}
+          <button
+            onClick={() => setShowImageFolder(true)}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+            style={{ backgroundColor: '#9AD5FF' }}
+            title="Tetapkan folder gambar untuk mengisi Image Placeholder"
+          >
+            <ImageIcon size={14} />
+            IMAGE SOURCE
+          </button>
+
           {/* All Extracted Terms */}
           <div className="relative">
             <button
@@ -751,6 +764,17 @@ export function SeriesSettingsPage() {
         entityName={t.batch.confirmDeleteSelectedMsg.replace('{count}', String(selectedIds.size))}
         details={[]}
         loading={deletingSelected}
+      />
+
+      {/* Image Source Modal */}
+      <ImageFolderModal
+        open={showImageFolder}
+        onClose={() => setShowImageFolder(false)}
+        series={series}
+        onSeriesUpdated={(s) => setSeries(s)}
+        onSynced={async () => {
+          if (seriesId) setChapters(await getChapters(seriesId))
+        }}
       />
 
       {/* Terminology Pre-Pass Modal */}
