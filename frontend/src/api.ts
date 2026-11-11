@@ -18,6 +18,8 @@ import type {
   QaFixPreview,
   GlossaryAudit,
   QaChapterDetail,
+  PromptPreset,
+  ModelCatalog,
 } from './types'
 
 // Type guard for API errors
@@ -143,9 +145,12 @@ export async function updateSeries(
   revisionPass?: boolean,
   lookupEnabled?: boolean,
   lookupChapters?: number,
+  systemPromptPreset?: string,
 ): Promise<Series> {
   const api = getApi()
-  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null, workerId ?? null, iterationLock ?? null, autoFixCjk ?? null, imageFolder ?? null, revisionPass ?? null, lookupEnabled ?? null, lookupChapters ?? null)
+  // ?? (not ||): an empty string must reach the backend, or clearing a series
+  // prompt would never be saved.
+  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt ?? null, workerId ?? null, iterationLock ?? null, autoFixCjk ?? null, imageFolder ?? null, revisionPass ?? null, lookupEnabled ?? null, lookupChapters ?? null, systemPromptPreset ?? null)
   if (isApiError(result)) throw new Error(result.message)
   return result as Series
 }
@@ -347,10 +352,26 @@ export async function addGlossaryEntry(
   seriesId: string,
   sourceTerm: string,
   translatedTerm: string,
-  notes: string
+  notes: string,
+  aliases?: string[]
 ): Promise<GlossaryEntry> {
   const api = getApi()
-  const result = await api.add_glossary_entry(seriesId, sourceTerm, translatedTerm, notes)
+  const result = await api.add_glossary_entry(seriesId, sourceTerm, translatedTerm, notes, aliases ?? null)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as GlossaryEntry
+}
+
+/** Record another source spelling of an entry; the pre-filter then finds it under that spelling too. */
+export async function addGlossaryAlias(seriesId: string, entryId: string, alias: string): Promise<GlossaryEntry> {
+  const api = getApi()
+  const result = await api.add_glossary_alias(seriesId, entryId, alias)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as GlossaryEntry
+}
+
+export async function removeGlossaryAlias(seriesId: string, entryId: string, alias: string): Promise<GlossaryEntry> {
+  const api = getApi()
+  const result = await api.remove_glossary_alias(seriesId, entryId, alias)
   if (isApiError(result)) throw new Error(result.message)
   return result as GlossaryEntry
 }
@@ -452,8 +473,8 @@ export async function startBatchTranslation(
 }
 
 /**
- * Autonomous agent run over the whole series: translate every unfinished
- * chapter, review + repair each with a tool-using agent, then a volume pass.
+ * Agent review over the translated chapters: safe fixes, review + repair each
+ * with a tool-using agent, then a volume pass. Untranslated chapters are skipped.
  * Progress arrives through onBatchStatus (agent: true, phase).
  */
 export async function startAgentRun(
@@ -464,7 +485,7 @@ export async function startAgentRun(
   const result = await api.start_agent_run(
     seriesId,
     opts.brief ?? '',
-    opts.review ?? 'full',
+    opts.review ?? 'findings',
     opts.volumePass ?? true,
     opts.rereview ?? false,
     opts.safeFixes ?? true,
@@ -665,11 +686,85 @@ export interface ProfileTemplates {
   revisionPromptTemplate: string
   autofixPromptTemplate: string
   prepassPromptTemplate: string
+  /** Prompt preset used when systemPromptTemplate is empty. */
+  systemPromptPreset?: string
 }
 
 export type TaskPromptKind = 'revision' | 'autofix' | 'prepass'
 /** Built-in guidance per task and language: { revision: { en, id }, ... } */
 export type TaskPromptDefaults = Record<TaskPromptKind, { en: string; id: string }>
+
+// ===== Model catalog & ChatGPT plan =====
+
+export async function listProviderModels(provider: string, refresh = false): Promise<ModelCatalog> {
+  const api = getApi()
+  const result = await api.list_provider_models(provider, refresh)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as ModelCatalog
+}
+
+export interface ChatGPTStatus {
+  connected: boolean
+  email: string
+  login: { status: 'idle' | 'pending' | 'done' | 'error'; error?: string; url?: string }
+  manageUsageUrl: string
+}
+
+export async function chatgptStatus(): Promise<ChatGPTStatus> {
+  const api = getApi()
+  const result = await api.chatgpt_status()
+  if (isApiError(result)) throw new Error(result.message)
+  return result as ChatGPTStatus
+}
+
+export async function chatgptLogin(): Promise<{ status: string; url: string }> {
+  const api = getApi()
+  const result = await api.chatgpt_login()
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { status: string; url: string }
+}
+
+export async function chatgptCancelLogin(): Promise<boolean> {
+  const api = getApi()
+  return (await api.chatgpt_cancel_login()) as boolean
+}
+
+export async function chatgptDisconnect(): Promise<boolean> {
+  const api = getApi()
+  const result = await api.chatgpt_disconnect()
+  if (isApiError(result)) throw new Error(result.message)
+  return result as boolean
+}
+
+// ===== Prompt presets =====
+
+export async function listPromptPresets(withText = false): Promise<PromptPreset[]> {
+  const api = getApi()
+  const result = await api.list_prompt_presets(withText)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as PromptPreset[]
+}
+
+export async function duplicatePromptPreset(presetId: string, name = ''): Promise<PromptPreset> {
+  const api = getApi()
+  const result = await api.duplicate_prompt_preset(presetId, name)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as PromptPreset
+}
+
+export async function savePromptPreset(presetId: string, name: string, text: string): Promise<PromptPreset> {
+  const api = getApi()
+  const result = await api.save_prompt_preset(presetId, name, text)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as PromptPreset
+}
+
+export async function deletePromptPreset(presetId: string): Promise<boolean> {
+  const api = getApi()
+  const result = await api.delete_prompt_preset(presetId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as boolean
+}
 
 export async function getProfileTemplates(): Promise<ProfileTemplates> {
   const api = getApi()
@@ -689,6 +784,7 @@ export async function saveProfileTemplates(
   systemPromptTemplate: string,
   instructionsTemplate: string,
   tasks?: { revision?: string; autofix?: string; prepass?: string },
+  systemPromptPreset?: string,
 ): Promise<boolean> {
   const api = getApi()
   const result = await api.save_profile_templates(
@@ -697,6 +793,7 @@ export async function saveProfileTemplates(
     tasks?.revision ?? null,
     tasks?.autofix ?? null,
     tasks?.prepass ?? null,
+    systemPromptPreset ?? null,
   )
   if (isApiError(result)) throw new Error(result.message)
   return result as boolean
@@ -834,6 +931,28 @@ export async function glossaryDeleteEntries(seriesId: string, entryIds: string[]
   const result = await api.glossary_delete_entries(seriesId, JSON.stringify(entryIds))
   if (isApiError(result)) throw new Error(result.message)
   return result as { deleted: number; backup: string }
+}
+
+export interface AgentBackup {
+  id: string
+  createdAt: string
+  label: string
+  chapters: number
+  glossary: number
+}
+
+export async function listAgentBackups(seriesId: string): Promise<AgentBackup[]> {
+  const api = getApi()
+  const result = await api.list_agent_backups(seriesId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as AgentBackup[]
+}
+
+export async function restoreAgentBackup(seriesId: string, backupId: string, restoreGlossary: boolean): Promise<{ chapters: number; glossary: boolean }> {
+  const api = getApi()
+  const result = await api.restore_agent_backup(seriesId, backupId, restoreGlossary)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { chapters: number; glossary: boolean }
 }
 
 export async function qaApplyFixes(seriesId: string, categories: string[]): Promise<{ chapters: number; categories: Record<string, number> }> {

@@ -30,6 +30,14 @@ Detectors (numbers follow start.md Step A):
   plus: duplicate paragraphs, missing placeholders, dialogue coverage, per-segment
   coverage (localises omissions), glossary adherence, romaji SFX, slop phrases,
   possible truncation.
+
+Source-aware (the per-pair start.md files): how a source dialogue line opens
+(「 for Japanese, “ for Chinese, " for Korean/English/Indonesian) drives every
+coverage check, and each source adds its own leftovers — Pinyin tone marks and
+untranslated address terms (shifu, gege) for Chinese, hangul jamo, ŏ/ŭ and
+romanized interjections (aigoo, -ah) for Korean, untranslated English or
+Indonesian sentences for EN→ID / ID→EN. English targets also get glossary
+gender checks and lowercase acronyms.
 """
 
 import re
@@ -44,13 +52,23 @@ from .placeholder import collect_placeholder_filenames, is_placeholder_line
 # ---------------------------------------------------------------------------
 
 CJK_LETTER = re.compile(r'[぀-ゟァ-ヺー-ヿ㐀-䶿一-鿿가-힯]')
+_JAMO = re.compile(r'[ㄱ-ㆎ]')
 _DIALOGUE_BRACKETS = re.compile(r'[「」]')
 _OTHER_BRACKETS = re.compile(r'[『』【】〈〉《》]')
-_JP_PUNCT = re.compile(r'[、。]')
+# Full-width punctuation from any CJK source (、。 Japanese; ，！？：； Chinese).
+_JP_PUNCT = re.compile(r'[、。，！？：；（）]')
+_LONG_DASH = re.compile(r'——')
 _JP_ELLIPSIS = re.compile(r'……|‥')
 _BOX_DASH = re.compile(r'[─━]')
 _LATEX_QUOTES = re.compile(r"``|''")
 MACRON = re.compile(r'[āīūēōĀĪŪĒŌ]')
+# Pinyin tone marks (and ü). Loanwords that keep an accent in English are exempt.
+PINYIN_TONE = re.compile(r"[A-Za-z]*[āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙÜ][A-Za-zāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü]*")
+TONE_LOANWORDS = {"café", "cafés", "résumé", "naïve", "fiancé", "fiancée", "cliché", "clichés", "déjà",
+                  "pokémon", "über", "entrée", "protégé", "rosé", "touché", "sauté", "soufflé", "doppelgänger"}
+# McCune-Reischauer marks a Korean name should not carry (Revised Romanization only).
+KR_DIACRITIC = re.compile(r'[ŏŭŎŬ]')
+_KR_MR_APOSTROPHE = re.compile(r"[KkTtPpCc]h?'[aeiouwy]")
 _HOMOGLYPH = re.compile(r'[A-Za-z][Ѐ-ӿͰ-Ͽ]|[Ѐ-ӿͰ-Ͽ][A-Za-z]')
 _LONG_RUN = re.compile(r'([A-Za-z])\1{4,}')
 _ITALIC_SPACING = re.compile(r'(?:^|\s)\*\s+[^*\n]+?\*|\*[^*\s][^*\n]*?\s+\*(?=\s|$|[.,!?])')
@@ -79,6 +97,44 @@ _FLATTENED = {
     "id": re.compile(r'\b(kakak|kak|abang|adik)\b(?![- ](?:beradik|kelas|tingkat|ipar|sepupu|adik|kandung))', re.I),
 }
 
+# Kept as "(source, target)": which plain-language address words flatten a
+# retained term. Chinese translates its address terms, so it has none.
+_FLATTENED_BY_PAIR = {
+    ("kr", "en"): re.compile(r'\b(big bro(?:ther)?|big sis(?:ter)?|older sister|older brother|senior|Mr\.|Ms\.)', re.I),
+    ("kr", "id"): re.compile(r'\b(kakak|kak|abang|bang|mbak|senior|pak|bu)\b', re.I),
+    ("en", "id"): re.compile(r'\b(kakak|kak|abang|bang|mbak|adik|senior|junior|om|tante|pak|bu)\b', re.I),
+}
+
+# Chinese: Pinyin words that should have been translated.
+_PINYIN_NOUNS = re.compile(r'\b(shifu|shizun|shixiong|shijie|shidi|shimei|gege|jiejie|meimei|didi|gongzi|'
+                           r'xiaojie|daren|qianbei|wangye)\b', re.I)
+_PINYIN_INTERJECTION = re.compile(r'\b(aiya+|aiyo+|aiyaya)\b', re.I)
+_PINYIN_PARTICLE = re.compile(r'\b(ba|ne|la|ma)\s*[!?.~…]*["”]?\s*$')
+_PINYIN_SFX = re.compile(r'\*\s*(peng|hong|kacha|weng)\b', re.I)
+# Korean: romanized interjections / SFX and terms that should have been translated.
+_KR_ROMANIZED = re.compile(r'\b(aigoo+|aigo|heol|daebak|omo|kkk+|jinjja|ajusshi|ahjussi|ajumma|ahjumma|'
+                           r'hoobae|seonsaengnim|sajangnim)\b', re.I)
+# A name with -ah / -ya, not a drawn-out sound (Kyaa-ah-ah, Hick-ah).
+_KR_NAME_ENDING = re.compile(r'(?<![-\w])([A-Z][a-z]{2,})-(?:ah|ya)\b(?!-)')
+# Indonesian source: its onomatopoeia and literal back-translations of genre words.
+_ID_SFX = re.compile(r'\b(deg-degan|cklek|ceklek|bruk|byur|gedebuk|gubrak)\b', re.I)
+_ID_BACKTRANSLATED = re.compile(r'\b(underground prison|Saint Sword)\b', re.I)
+# Function words that give away an untranslated sentence (EN→ID, ID→EN).
+_RESIDUAL_WORDS = {
+    "en": re.compile(r'\b(the|and|with|that|because|would|should|there|which)\b'),
+    "id": re.compile(r'\b(yang|dan|dengan|tidak|adalah|untuk|dari|itu|ini|akan|sudah|karena|kepada)\b'),
+}
+_SOURCE_NAME = {"jp": "Japanese", "cn": "Chinese", "kr": "Korean", "en": "CJK", "id": "CJK"}
+
+# How a line of dialogue opens in each source language.
+_SOURCE_DIALOGUE_OPEN = {
+    "jp": ("「",),
+    "cn": ("“", "「", '"', "『"),
+    "kr": ('"', "“", "「"),
+    "en": ('"', "“"),
+    "id": ('"', "“"),
+}
+
 _ROMAJI_SFX_WORDS = (r'doki[ -]?doki|gacha|suya[ -]?suya|munya[ -]?munya|pekori|fuwa[ -]?fuwa|'
                      r'zawa[ -]?zawa|niko[ -]?niko|kusu[ -]?kusu|poko[ -]?poko|gyuu?|piku|bikku?')
 # "kira-kira" is ordinary Indonesian ("about", "I wonder"), so it is English-only here.
@@ -88,7 +144,8 @@ _ROMAJI_SFX = {
 }
 
 # Indonesian renderings of genre terms that must stay English.
-_GENRE_ID = re.compile(r'\b(penjara bawah tanah|keterampilan|ramuan|jendela sistem|serikat petualang|serikat|rombongan)\b', re.I)
+_GENRE_ID = re.compile(r'\b(penjara bawah tanah|keterampilan|ramuan|jendela sistem|serikat petualang|serikat|rombongan|'
+                       r'inti emas|santo pedang|persediaan)\b', re.I)
 
 _OPENERS = {
     "en": ("As ", "When ", "With that", "Then, "),
@@ -141,6 +198,15 @@ ANDA_LOWER = re.compile(r'\banda\b')
 
 ACRONYMS_ID = ("sks", "tv", "cd", "dvd", "sim", "ktp", "kk", "npwp", "sms", "atm", "osis", "uks")
 ACRONYM_ID_RE = re.compile(r'\b(' + '|'.join(ACRONYMS_ID) + r')\b')
+ACRONYMS_EN = ("tv", "dvd", "cd", "pc", "usb", "atm", "cctv", "gps", "sms")
+ACRONYM_EN_RE = re.compile(r'\b(' + '|'.join(ACRONYMS_EN) + r')\b')
+ACRONYM_RE = {"id": ACRONYM_ID_RE, "en": ACRONYM_EN_RE}
+
+# Glossary notes that lock a character's gender.
+_MALE_NOTE = re.compile(r'\b(male|laki-laki|pria|cowok|boy|man)\b', re.I)
+_FEMALE_NOTE = re.compile(r'\b(female|perempuan|wanita|cewek|girl|woman)\b', re.I)
+_HE = re.compile(r'\b(he|him|his|himself)\b', re.I)
+_SHE = re.compile(r'\b(she|her|hers|herself)\b', re.I)
 
 _HYPHEN_SE = re.compile(r'\bse-[a-z]{3,}\b')
 _TERMINAL = re.compile(r'[.!?…"”’\')\]*~—―\-♪❤]\s*$')
@@ -148,6 +214,17 @@ _TERMINAL = re.compile(r'[.!?…"”’\')\]*~—―\-♪❤]\s*$')
 
 def lang_code(target_language: str) -> str:
     return "id" if (target_language or "").strip().lower().startswith("indonesia") else "en"
+
+
+def source_code(source_language: str) -> str:
+    """'jp', 'cn', 'kr', 'en' or 'id' for the source; unknown sources behave as Japanese."""
+    from .prompt_presets import lang_code as pair_code
+    return {"JP": "jp", "CN": "cn", "KR": "kr", "EN": "en", "ID": "id"}.get(pair_code(source_language), "jp")
+
+
+def is_source_dialogue(line: str, src: str = "jp") -> bool:
+    """Does this raw line open a line of dialogue in that source language?"""
+    return line.strip().startswith(_SOURCE_DIALOGUE_OPEN.get(src, ("「",)))
 
 
 def is_scene_marker(text: str) -> bool:
@@ -169,7 +246,9 @@ def _visible_chars(text: str) -> int:
 
 def _finding(kind: str, severity: str, para: Optional[int], detail: str,
              text: str = "", fix: str = "") -> Dict[str, Any]:
-    f = {"type": kind, "severity": severity, "para": para, "detail": detail, "text": text[:180]}
+    from .qa_i18n import localize
+    f = {"type": kind, "severity": severity, "para": para, "detail": detail,
+         "detailId": localize(detail) or detail, "text": text[:180]}
     if fix:
         f["fix"] = fix
     return f
@@ -196,7 +275,7 @@ STOPWORDS = {
 # Segments — anchors that both sides preserve (scene markers, placeholders)
 # ---------------------------------------------------------------------------
 
-def _source_segments(raw_lines: List[str]) -> List[Dict[str, int]]:
+def _source_segments(raw_lines: List[str], src: str = "jp") -> List[Dict[str, int]]:
     segs = [{"chars": 0, "dialogue": 0}]
     for ln in raw_lines:
         s = ln.strip()
@@ -206,7 +285,7 @@ def _source_segments(raw_lines: List[str]) -> List[Dict[str, int]]:
             segs.append({"chars": 0, "dialogue": 0})
             continue
         segs[-1]["chars"] += _visible_chars(s)
-        if s.startswith("「"):
+        if is_source_dialogue(s, src):
             segs[-1]["dialogue"] += 1
     return segs
 
@@ -223,19 +302,20 @@ def _translated_segments(paras: List[str]) -> List[Dict[str, int]]:
     return segs
 
 
-def dialogue_alignment_gaps(raw_lines: List[str], paras: List[str]) -> List[Dict[str, int]]:
+def dialogue_alignment_gaps(raw_lines: List[str], paras: List[str], src: str = "jp") -> List[Dict[str, int]]:
     """
     Align source and translation on their dialogue lines and measure what lies between.
 
     One dialogue line is one paragraph on both sides, so when the counts match the
-    k-th 「…」 line and the k-th quoted paragraph are the same utterance. Each gap
+    k-th source dialogue line (「…」, “…”, "…" depending on `src`) and the k-th
+    quoted paragraph are the same utterance. Each gap
     (a dialogue line plus the narration after it, up to the next one) can then be
     compared directly. A gap whose translation is far shorter than its source is
     where sentences went missing — even when the chapter as a whole looks complete.
 
     Returns [] when the dialogue counts differ (alignment would be meaningless).
     """
-    src_d = [i for i, ln in enumerate(raw_lines) if ln.strip().startswith("「")]
+    src_d = [i for i, ln in enumerate(raw_lines) if is_source_dialogue(ln, src)]
     tr_d = [i for i, p in enumerate(paras) if is_dialogue(p)]
     if len(src_d) < 4 or len(src_d) != len(tr_d):
         return []
@@ -264,14 +344,22 @@ def check_chapter(
     translated_content: str,
     glossary: Optional[List[Dict[str, Any]]] = None,
     target_language: str = "English",
+    source_language: str = "Japanese",
+    table_entries: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Run every per-chapter detector.
+
+    `table_entries` are the chapter's stored glossary proposals (glossaryUpdates).
+    They are passed in because a chapter whose model wrote no table carries them
+    only there; without them the table is parsed from the translated content.
 
     Returns {"findings": [...], "stats": {...}}. Findings are ordered by severity,
     then paragraph.
     """
     lang = lang_code(target_language)
+    src = source_code(source_language)
+    flattened = _FLATTENED_BY_PAIR.get((src, lang)) if src in ("kr", "en") else (None if src == "cn" else _FLATTENED[lang])
     body = strip_glossary_table(translated_content or "")
     paras = split_paragraphs(body)
     raw = raw_content or ""
@@ -290,13 +378,20 @@ def check_chapter(
         dialogue = is_dialogue(p)
 
         # 1 — residual source
-        if CJK_LETTER.search(p):
-            add(_finding("residual_source", "high", i, "Japanese characters left in the translation", p))
+        if CJK_LETTER.search(p) or (src == "kr" and _JAMO.search(p)):
+            add(_finding("residual_source", "high", i, f"{_SOURCE_NAME[src]} characters left in the translation", p))
+        residual_rx = _RESIDUAL_WORDS.get(src) if src in ("en", "id") and src != lang else None
+        if residual_rx and not marker and len(residual_rx.findall(p.replace("*", ""))) >= 3:
+            add(_finding("residual_source_language", "medium", i,
+                         f"Looks untranslated — {'English' if src == 'en' else 'Indonesian'} function words left in", p))
         if _DIALOGUE_BRACKETS.search(p):
             add(_finding("residual_brackets", "high", i, "「」 left in the text — must be double quotes", p, "marks"))
         if not marker:
             if _JP_PUNCT.search(p):
-                add(_finding("residual_punct", "medium", i, "Japanese punctuation 、。 left in", p))
+                add(_finding("residual_punct", "medium", i, "Full-width punctuation (、。，！？：；) left in", p, "marks"))
+            # —— is the Chinese long dash; from Japanese it is a common, accepted rendering of ――.
+            if src == "cn" and _LONG_DASH.search(p):
+                add(_finding("residual_dash", "low", i, "Chinese long dash —— left in (use one em dash —)", p, "marks"))
             if _JP_ELLIPSIS.search(p):
                 add(_finding("residual_ellipsis", "medium", i, "Japanese ellipsis …… left in", p, "marks"))
             if _BOX_DASH.search(p):
@@ -311,8 +406,16 @@ def check_chapter(
             add(_finding("homoglyph", "medium", i,
                          "A Cyrillic/Greek letter inside a Latin word — looks right, never matches", p))
 
-        # 2 — macron
-        if MACRON.search(p):
+        # 2 — romanization marks
+        if src == "cn":
+            if any(w.lower() not in TONE_LOANWORDS for w in PINYIN_TONE.findall(p)):
+                add(_finding("tone_mark", "medium", i, "Pinyin tone mark or ü — use plain Pinyin (Lín → Lin, Lǚ → Lu)", p, "tone"))
+        elif src == "kr":
+            if KR_DIACRITIC.search(p):
+                add(_finding("kr_diacritic", "medium", i, "ŏ / ŭ in a romanized word — use Revised Romanization (eo, eu)", p, "tone"))
+            if _KR_MR_APOSTROPHE.search(p):
+                add(_finding("kr_apostrophe", "low", i, "McCune-Reischauer apostrophe (k', t', p', ch') — Revised Romanization has none", p))
+        elif MACRON.search(p):
             add(_finding("macron", "medium", i, "Macron in a romanized word — use digraphs (Yuu, Kyouya)", p, "macron"))
 
         # 3 — markup
@@ -328,11 +431,36 @@ def check_chapter(
             add(_finding("redundant_attribution", "low", i,
                          "Standalone attribution paragraph — delete if the speaker is already clear", p))
 
-        # 6 — flattened sibling address (only inside dialogue; narration may describe)
-        if dialogue and _FLATTENED[lang].search(p):
-            add(_finding("flattened_address", "medium", i,
-                         "Sibling address in plain words inside dialogue — check the source "
-                         "(onii-chan, onee-sama, …)", p))
+        # 6 — flattened address (only inside dialogue; narration may describe)
+        if dialogue and flattened is not None and flattened.search(p):
+            if src in ("kr", "en"):
+                add(_finding("flattened_address", "low", i,
+                             "Address in plain words inside dialogue — if the source has a retained term "
+                             "(hyung, oppa, sunbae, -nim, onii-chan …) as address, restore it", p))
+            else:
+                add(_finding("flattened_address", "medium", i,
+                             "Sibling address in plain words inside dialogue — check the source "
+                             "(onii-chan, onee-sama, …)", p))
+
+        # 6/7 — leftovers specific to the source language
+        if src == "cn":
+            if _PINYIN_NOUNS.search(p):
+                add(_finding("pinyin_term", "medium", i,
+                             "Pinyin address term left in — translate it (Master, Senior Brother, Young Master …)", p))
+            if _PINYIN_INTERJECTION.search(p) or _PINYIN_SFX.search(p):
+                add(_finding("pinyin_interjection", "medium", i, "Pinyin interjection or sound effect — adapt it", p))
+            elif dialogue and _PINYIN_PARTICLE.search(p):
+                add(_finding("pinyin_particle", "low", i, "Sentence-final particle (ba / ne / la / ma) left in", p))
+        elif src == "kr":
+            if _KR_ROMANIZED.search(p):
+                add(_finding("kr_romanized", "medium", i,
+                             "Romanized Korean that should be translated or adapted (aigoo, heol, ajusshi, hoobae …)", p))
+            if any(not re.search(r'(.)\1', m.group(1).lower()) for m in _KR_NAME_ENDING.finditer(p)):
+                add(_finding("kr_name_ending", "medium", i, "Korean name ending -ah / -ya left on a name", p))
+        elif src == "id" and lang == "en":
+            if _ID_SFX.search(p) or _ID_BACKTRANSLATED.search(p):
+                add(_finding("id_leftover", "low", i,
+                             "Indonesian sound effect or a literal genre back-translation — adapt it", p))
 
         # 7 — genre terms translated
         if lang == "id" and _GENRE_ID.search(p):
@@ -397,8 +525,8 @@ def check_chapter(
         if not marker and (_SPACE_BEFORE_PUNCT.search(p) or _DOUBLE_SPACE.search(p) or _DOUBLE_HYPHEN.search(p)):
             add(_finding("typography", "low", i, "Space before punctuation, double space, or -- instead of —", p, "typography"))
 
-        # 17 — lowercase acronyms (ID)
-        if lang == "id" and ACRONYM_ID_RE.search(p):
+        # 17 — lowercase acronyms
+        if ACRONYM_RE[lang].search(p):
             add(_finding("acronym_case", "low", i, "Acronym written in lowercase", p, "acronym"))
 
         if _SLOP[lang].search(p):
@@ -484,7 +612,7 @@ def check_chapter(
                              f"Scene marker {k + 1} is “{b}” but the source has “{a}”", b))
 
     # Dialogue coverage (whole chapter)
-    src_dialogue = sum(1 for ln in raw_lines if ln.strip().startswith("「"))
+    src_dialogue = sum(1 for ln in raw_lines if is_source_dialogue(ln, src))
     out_dialogue = sum(1 for p in paras if is_dialogue(p))
     if src_dialogue >= 10 and out_dialogue < src_dialogue * 0.85:
         add(_finding("dialogue_coverage", "high", None,
@@ -496,7 +624,7 @@ def check_chapter(
                     if ln.strip() and not is_placeholder_line(ln.strip()) and not is_scene_marker(ln))
     out_chars = sum(_visible_chars(p) for p in paras if not is_placeholder_line(p) and not is_scene_marker(p))
     length_ratio = out_chars / src_chars if src_chars else 0.0
-    s_segs, t_segs = _source_segments(raw_lines), _translated_segments(paras)
+    s_segs, t_segs = _source_segments(raw_lines, src), _translated_segments(paras)
     if len(s_segs) == len(t_segs) > 1 and length_ratio:
         for s, t in zip(s_segs, t_segs):
             if s["chars"] >= 400 and t["chars"] / s["chars"] < 0.6 * length_ratio:
@@ -510,7 +638,7 @@ def check_chapter(
     # Per-gap coverage between aligned dialogue lines — catches a few dropped
     # sentences that whole-chapter and per-segment ratios average away.
     if length_ratio:
-        for g in dialogue_alignment_gaps(raw_lines, paras):
+        for g in dialogue_alignment_gaps(raw_lines, paras, src):
             if g["src_chars"] >= 200 and g["tr_chars"] / g["src_chars"] < 0.5 * length_ratio:
                 add(_finding("gap_coverage", "medium", g["para_start"],
                              f"Paragraphs {g['para_start']}–{g['para_end']} are much shorter than source lines "
@@ -525,11 +653,15 @@ def check_chapter(
 
     # Glossary adherence
     if glossary:
+        from .term_match import normalize_text, occurs
         lowered = body.lower()
+        raw_norm = normalize_text(raw)
         for entry in glossary:
             src = (entry.get("sourceTerm") or "").strip()
             tgt = (entry.get("translatedTerm") or "").strip()
-            if not src or not tgt or src not in raw:
+            # Whole term only (any spelling): a full name whose given name alone
+            # appears is legitimately rendered by that one word.
+            if not src or not tgt or not occurs(entry, raw_norm, parts=False):
                 continue
             # Single-character terms match inside unrelated words, and lowercase
             # common-word renderings legitimately inflect (cemburu → kecemburuan).
@@ -540,6 +672,67 @@ def check_chapter(
                 add(_finding("glossary_miss", "medium", None,
                              f"Glossary term {src} appears in the source but its locked rendering "
                              f"“{tgt}” never appears in the translation"))
+
+    # Glossary variants — the chapter's own table proposes another rendering for
+    # a locked term, and the text really uses it. Only names and fixed proper
+    # terms: a lowercase common-word rendering legitimately inflects
+    # (menebus → penebusan), and an honorific (Hosono-san) is not a new rendering.
+    if glossary:
+        from .extractor import parse_glossary_from_translation
+        from .glossary_guard import name_tokens
+        from .term_match import SAME, find_duplicate, rendering_key
+        reported = set()
+        proposals = table_entries if table_entries is not None else \
+            parse_glossary_from_translation(translated_content or "").get("entries", [])
+        for e in proposals:
+            used = (e.get("translatedTerm") or "").strip()
+            dup = find_duplicate(e.get("sourceTerm", ""), used, glossary)
+            if not used or not dup or dup[0] != SAME:
+                continue
+            locked = (dup[1].get("translatedTerm") or "").strip()
+            if (not locked[:1].isupper() or rendering_key(used) == rendering_key(locked)
+                    or set(name_tokens(used)) <= set(name_tokens(locked)) or used.lower() in reported):
+                continue
+            reported.add(used.lower())
+            rx = re.compile(r"(?<![\w])" + re.escape(used) + r"(?![\w])", re.I)
+            longer = locked.lower() in used.lower()
+            src_term = dup[1].get("sourceTerm", "")
+            for i in [i for i, p in enumerate(paras) if rx.search(p)][:5]:
+                if longer:
+                    add(_finding("glossary_variant", "low", i,
+                                 f"“{used}” is used for {src_term} — a longer form of the locked “{locked}”; "
+                                 "verify the source has the longer name", paras[i]))
+                else:
+                    add(_finding("glossary_variant", "medium", i,
+                                 f"“{used}” is used for {src_term}, but the glossary locks “{locked}”", paras[i]))
+
+    # 11 — gender locked in the glossary vs the pronouns around the name (EN)
+    if lang == "en" and glossary:
+        chars = []
+        for entry in glossary:
+            notes = entry.get("notes") or ""
+            male, female = bool(_MALE_NOTE.search(notes)), bool(_FEMALE_NOTE.search(notes))
+            words = [w for w in re.findall(r"[A-Z][A-Za-z'\-]{2,}", entry.get("translatedTerm") or "")]
+            if male != female and words:
+                chars.append(("male" if male else "female", words, entry.get("translatedTerm")))
+        for i, p in enumerate(paras):
+            if is_dialogue(p) or is_placeholder_line(p):
+                continue
+            present = [c for c in chars if any(re.search(r"\b" + re.escape(w) + r"\b", p) for w in c[1])]
+            # Only a paragraph about one locked character says anything about that
+            # character — and only when it opens with them as the subject, and the
+            # wrong pronoun follows in that same sentence.
+            if len(present) != 1:
+                continue
+            gender, words, name = present[0]
+            first = re.split(r"(?<=[.!?…])\s+", p.lstrip("*_ "), maxsplit=1)[0]
+            if not any(first.startswith(w) for w in words):
+                continue
+            own, other = (_HE, _SHE) if gender == "male" else (_SHE, _HE)
+            if other.search(first) and len(other.findall(p)) >= 2 and not own.search(p):
+                add(_finding("gender_check", "low", i,
+                             f"{name} is locked as {gender} in the glossary, but this paragraph only uses "
+                             f"{'she/her' if gender == 'male' else 'he/him'} — verify against the source", p))
 
     order = {"high": 0, "medium": 1, "low": 2}
     findings.sort(key=lambda f: (order.get(f["severity"], 3), f["para"] if f["para"] is not None else -1))
@@ -574,12 +767,39 @@ def _vowel_key(word: str) -> str:
     return re.sub(r"(uu|ou|oo|ii|ee|aa)", lambda m: m.group(0)[0], w)
 
 
-def volume_name_variants(texts: List[str]) -> List[Dict[str, Any]]:
-    """Capitalised tokens that differ only in long-vowel spelling or macrons (Yuuko / Yuko / Yūko)."""
+_TONE_STRIP = str.maketrans("āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜü", "aaaaeeeeiiiioooouuuuuuuuu")
+
+
+def _pinyin_key(word: str) -> str:
+    return word.lower().translate(_TONE_STRIP).replace(" ", "")
+
+
+def _korean_key(word: str) -> str:
+    w = word.lower().replace("ŏ", "eo").replace("ŭ", "eu")
+    if w in ("lee", "yi", "rhee", "ri"):
+        return "lee"
+    w = w.replace("jeong", "jung")
+    return w.replace("eo", "o").replace("eu", "u").replace("ae", "e")
+
+
+_CAP_WORD = r"[A-ZÀ-ÞĀ-ʯ][a-zß-ÿĀ-ʯ]{2,}"
+
+
+def volume_name_variants(texts: List[str], source_language: str = "Japanese") -> List[Dict[str, Any]]:
+    """
+    Capitalised names spelled more than one way across the volume:
+        Japanese / other   long vowels and macrons      Yuuko / Yuko / Yūko
+        Chinese            tone marks, joined or split  Lin Dong / Lindong / Lín Dòng
+        Korean             eo/o, eu/u, ae/e, Lee/Yi, Jung/Jeong
+    """
+    src = source_code(source_language)
     caps: Counter = Counter()
     for t in texts:
-        caps.update(re.findall(r"\b[A-ZĀĪŪĒŌ][a-zāīūēō]{2,}\b", t))
+        caps.update(re.findall(r"\b" + _CAP_WORD + r"\b", t))
+        if src == "cn":
+            caps.update(f"{a} {b}" for a, b in re.findall(r"\b(" + _CAP_WORD + r") (" + _CAP_WORD + r")\b", t))
+    key = {"cn": _pinyin_key, "kr": _korean_key}.get(src, _vowel_key)
     groups: Dict[str, Dict[str, int]] = {}
     for w, n in caps.items():
-        groups.setdefault(_vowel_key(w), {})[w] = n
+        groups.setdefault(key(w), {})[w] = n
     return [{"forms": forms} for forms in groups.values() if len(forms) > 1]

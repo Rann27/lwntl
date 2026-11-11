@@ -9,13 +9,38 @@ import type { GlossaryEntry } from '../types'
 import { exportGlossaryFile } from '../api'
 import { useI18n } from '../i18n'
 
+type ImportedEntry = { sourceTerm: string; translatedTerm: string; notes: string; aliases?: string[] }
+
 interface GlossaryTableProps {
   entries: GlossaryEntry[]
   seriesId: string
   onAdd: (sourceTerm: string, translatedTerm: string, notes: string) => void
   onEdit: (entry: GlossaryEntry, sourceTerm: string, translatedTerm: string, notes: string) => void
   onDelete: (entry: GlossaryEntry) => void
-  onImport: (entries: Array<{ sourceTerm: string; translatedTerm: string; notes: string }>) => void
+  onImport: (entries: ImportedEntry[]) => void
+  onAddAlias?: (entry: GlossaryEntry, alias: string) => Promise<void> | void
+  onRemoveAlias?: (entry: GlossaryEntry, alias: string) => Promise<void> | void
+}
+
+// ─── Alias chips ─────────────────────────────────────────────────────────────
+
+function AliasChips({ aliases, onRemove }: { aliases?: string[]; onRemove?: (alias: string) => void }) {
+  if (!aliases || aliases.length === 0) return null
+  return (
+    <div className="flex flex-wrap gap-1" style={{ marginTop: '3px' }}>
+      {aliases.map(a => (
+        <span key={a} className="flex items-center gap-0.5"
+          style={{ fontSize: '10px', fontWeight: 600, padding: '0 4px', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-surface-2)' }}>
+          {a}
+          {onRemove && (
+            <button onClick={() => onRemove(a)} title="×" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--color-text-muted)' }}>
+              <X size={9} />
+            </button>
+          )}
+        </span>
+      ))}
+    </div>
+  )
 }
 
 // ─── Hover Preview Tooltip (fixed-position, avoids overflow clipping) ────────
@@ -52,6 +77,9 @@ function GlossaryTooltip({ entry, pos }: { entry: GlossaryEntry | null; pos: Too
       <div style={{ marginBottom: '4px' }}>
         <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Asli: </span>
         <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text)' }}>{entry.sourceTerm}</span>
+        {entry.aliases && entry.aliases.length > 0 && (
+          <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}> / {entry.aliases.join(' / ')}</span>
+        )}
       </div>
       <div style={{ marginBottom: '4px' }}>
         <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Terjemahan: </span>
@@ -73,7 +101,8 @@ function GlossaryTooltip({ entry, pos }: { entry: GlossaryEntry | null; pos: Too
 // ─── Import/Export helpers ───────────────────────────────────────────────────
 
 function buildJSON(entries: GlossaryEntry[]): string {
-  const data = entries.map(({ sourceTerm, translatedTerm, notes }) => ({ sourceTerm, translatedTerm, notes }))
+  const data = entries.map(({ sourceTerm, translatedTerm, notes, aliases }) =>
+    aliases && aliases.length ? { sourceTerm, translatedTerm, notes, aliases } : { sourceTerm, translatedTerm, notes })
   return JSON.stringify(data, null, 2)
 }
 
@@ -86,7 +115,7 @@ function buildCSV(entries: GlossaryEntry[]): string {
   return header + '\n' + rows.join('\n')
 }
 
-function parseImportedFile(text: string, filename: string): Array<{ sourceTerm: string; translatedTerm: string; notes: string }> | null {
+function parseImportedFile(text: string, filename: string): ImportedEntry[] | null {
   try {
     if (filename.endsWith('.json')) {
       const data = JSON.parse(text)
@@ -95,6 +124,7 @@ function parseImportedFile(text: string, filename: string): Array<{ sourceTerm: 
         sourceTerm:     String(row.sourceTerm || row.source_term || row.source || '').trim(),
         translatedTerm: String(row.translatedTerm || row.translated_term || row.translation || '').trim(),
         notes:          String(row.notes || row.note || '').trim(),
+        aliases:        Array.isArray(row.aliases) ? row.aliases.map((a: unknown) => String(a).trim()).filter(Boolean) : undefined,
       })).filter(r => r.sourceTerm && r.translatedTerm)
     } else {
       // CSV
@@ -121,13 +151,14 @@ function parseImportedFile(text: string, filename: string): Array<{ sourceTerm: 
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onImport }: GlossaryTableProps) {
+export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onImport, onAddAlias, onRemoveAlias }: GlossaryTableProps) {
   const { t } = useI18n()
   const [search, setSearch] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editSource, setEditSource] = useState('')
   const [editTranslated, setEditTranslated] = useState('')
   const [editNotes, setEditNotes] = useState('')
+  const [newAlias, setNewAlias] = useState('')
   const [showExportMenu, setShowExportMenu] = useState(false)
   const [tooltipEntry, setTooltipEntry] = useState<GlossaryEntry | null>(null)
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
@@ -187,6 +218,7 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
     return entries.filter(
       (e) =>
         e.sourceTerm.toLowerCase().includes(q) ||
+        (e.aliases ?? []).some(a => a.toLowerCase().includes(q)) ||
         e.translatedTerm.toLowerCase().includes(q) ||
         e.notes.toLowerCase().includes(q)
     )
@@ -197,6 +229,14 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
     setEditSource(entry.sourceTerm)
     setEditTranslated(entry.translatedTerm)
     setEditNotes(entry.notes)
+    setNewAlias('')
+  }
+
+  const submitAlias = async (entry: GlossaryEntry) => {
+    const alias = newAlias.trim()
+    if (!alias || !onAddAlias) return
+    await onAddAlias(entry, alias)
+    setNewAlias('')
   }
 
   const cancelEdit = () => setEditingId(null)
@@ -360,6 +400,18 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
                   <>
                     <td className="px-2 py-1.5">
                       <input value={editSource} onChange={(e) => setEditSource(e.target.value)} className="neo-input" style={{ padding: '4px 8px', fontSize: '12px' }} />
+                      <AliasChips aliases={entry.aliases} onRemove={onRemoveAlias ? (a) => onRemoveAlias(entry, a) : undefined} />
+                      {onAddAlias && (
+                        <input
+                          value={newAlias}
+                          onChange={(e) => setNewAlias(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitAlias(entry) } }}
+                          placeholder={t.seriesSettings.aliasPlaceholder}
+                          title={t.seriesSettings.aliasHint}
+                          className="neo-input"
+                          style={{ padding: '2px 6px', fontSize: '11px', marginTop: '4px' }}
+                        />
+                      )}
                     </td>
                     <td className="px-2 py-1.5">
                       <input value={editTranslated} onChange={(e) => setEditTranslated(e.target.value)} className="neo-input" style={{ padding: '4px 8px', fontSize: '12px' }} />
@@ -382,6 +434,7 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
                   <>
                     <td className="px-3 py-2" style={{ fontWeight: 600, color: 'var(--color-text)' }}>
                       {entry.sourceTerm}
+                      <AliasChips aliases={entry.aliases} />
                     </td>
                     <td className="px-3 py-2" style={{ color: 'var(--color-text)' }}>{entry.translatedTerm}</td>
                     <td className="px-3 py-2" style={{ color: 'var(--color-text-muted)' }}>{entry.notes || '—'}</td>

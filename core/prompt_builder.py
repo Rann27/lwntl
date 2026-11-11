@@ -15,16 +15,51 @@ _MEANINGFUL_RE = re.compile(r'[0-9A-Za-z぀-ヿ㐀-䶿一-鿿가-힯]')
 def is_blank_prompt(text: str) -> bool:
     return not _MEANINGFUL_RE.search(text or "")
 
-def get_profile_system_prompt_template() -> str:
-    """Get the active profile's system prompt template (empty string if not set)."""
-    from core.storage.templates import get_profile_templates
-    return get_profile_templates().get("systemPromptTemplate", "")
-
-
 def get_profile_instructions_template() -> str:
     """Get the active profile's instructions template (empty string if not set)."""
     from core.storage.templates import get_profile_templates
     return get_profile_templates().get("instructionsTemplate", "")
+
+
+def resolve_system_prompt(series: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Which system prompt a series translates with, and where it comes from.
+
+    Order: the series' own text → the series' preset → the profile template
+    text → the profile preset → the built-in preset for the series' language
+    pair. The last step applies only when nothing is configured at all — no
+    system prompt and no instructions at either level; instructions alone mean
+    the user assembled a prompt of their own. A preset that no longer exists
+    counts as unset.
+
+    Returns {"text", "source", "presetId", "presetName"}; source is one of
+    series, series_preset, profile, profile_preset, auto, none.
+    """
+    from .prompt_presets import match_builtin, preset_name, preset_text
+    from .storage.templates import get_profile_templates
+
+    tpl = get_profile_templates()
+
+    def result(text, source, pid=""):
+        return {"text": text, "source": source, "presetId": pid, "presetName": preset_name(pid) if pid else ""}
+
+    custom = (series.get("systemPrompt") or "").strip()
+    if custom:
+        return result(custom, "series")
+    pid = series.get("systemPromptPreset") or ""
+    if pid and preset_text(pid):
+        return result(preset_text(pid), "series_preset", pid)
+    profile_text = (tpl.get("systemPromptTemplate") or "").strip()
+    if profile_text:
+        return result(profile_text, "profile")
+    pid = tpl.get("systemPromptPreset") or ""
+    if pid and preset_text(pid):
+        return result(preset_text(pid), "profile_preset", pid)
+    if is_blank_prompt(series.get("instructions", "")) and is_blank_prompt(tpl.get("instructionsTemplate", "")):
+        pid = match_builtin(series.get("sourceLanguage", ""), series.get("targetLanguage", ""))
+        if pid:
+            return result(preset_text(pid), "auto", pid)
+    return result("", "none")
 
 
 def resolve_template_vars(template: str, series: Dict[str, Any]) -> str:
@@ -63,10 +98,9 @@ def build_system_prompt(
     Returns:
         str: System prompt
     """
-    custom_prompt = series.get("systemPrompt", "").strip()
-
-    # Resolution order: per-series custom → profile template → nothing
-    base_prompt = custom_prompt or get_profile_system_prompt_template()
+    # Series text → series preset → profile text → profile preset → built-in for
+    # the pair when nothing is configured (see resolve_system_prompt).
+    base_prompt = resolve_system_prompt(series)["text"]
 
     if not base_prompt:
         system_prompt = ""
@@ -125,46 +159,25 @@ def build_system_prompt(
     return system_prompt
 
 
-def _is_subsequence(term: str, text: str) -> bool:
-    """Return True if every character in term appears in text in order (gaps allowed).
-    Handles interleaved furigana: 船ふな坂さか叶馬 still contains 船坂叶馬 as a subsequence.
-    """
-    it = iter(text)
-    return all(c in it for c in term)
-
-
 def filter_glossary_by_content(glossary: List[Dict[str, Any]], raw_content: str) -> List[Dict[str, Any]]:
     """
-    Return only glossary entries whose sourceTerm appears in raw_content.
+    Return only glossary entries that occur in raw_content (see core/term_match).
 
-    Two-level matching to handle furigana-contaminated Japanese text:
-    1. Exact substring  — 船坂叶馬 in "船坂叶馬が歩いた"
-    2. Subsequence      — 船坂叶馬 in "船ふな坂さか叶馬" (furigana interleaved between kanji)
-
-    3. Name part      — 船坂叶馬 (Funasaka Touma) when the chapter only says 叶馬.
-       Dropping the full-name entry here is how a model ends up inventing a
-       second romanization for the given name.
+    An entry counts as present under any of its forms — source term, aliases,
+    without a trailing honorific — with inline furigana, width variants, variant
+    kanji and name separators tolerated, and a full name counts when only one of
+    its parts appears (船坂叶馬 when the chapter only says 叶馬, 小野寺誠 for 誠).
+    Dropping the full-name entry is how a model ends up inventing a second
+    romanization for the given name.
 
     False positives (term included though absent) are acceptable;
     false negatives (term silently dropped) break translation.
-    Single-char terms are kept as exact-only to avoid subsequence noise.
     """
-    from .glossary_guard import partial_name_match
+    from .term_match import filter_entries
 
     if not glossary or not raw_content:
         return glossary
-    result = []
-    for e in glossary:
-        term = (e.get("sourceTerm") or "").strip()
-        if not term:
-            continue
-        if term in raw_content:
-            result.append(e)
-        elif len(term) >= 2 and _is_subsequence(term, raw_content):
-            result.append(e)
-        elif partial_name_match(term, e.get("translatedTerm", ""), raw_content):
-            result.append(e)
-    return result
+    return filter_entries(glossary, raw_content)
 
 
 def build_glossary_table(glossary: List[Dict[str, Any]]) -> str:
@@ -178,7 +191,9 @@ def build_glossary_table(glossary: List[Dict[str, Any]]) -> str:
     table += "|------------|---------------|-------|\n"
 
     for entry in glossary:
-        source = entry.get("sourceTerm", "")
+        # Other spellings of the source sit in the same cell, so the model reads
+        # them as one term with one rendering.
+        source = " / ".join([entry.get("sourceTerm", "")] + list(entry.get("aliases") or []))
         translated = entry.get("translatedTerm", "")
         notes = entry.get("notes", "")
         table += f"| {source} | {translated} | {notes} |\n"
@@ -200,9 +215,17 @@ Start your response immediately with the translated text.
     return user_prompt
 
 
-def build_extraction_prompt(raw_content: str, translated_content: str) -> List[Dict[str, str]]:
+# The fallback extraction used to see only the first 3000 characters of each
+# side, so any term introduced later in the chapter got a guessed rendering
+# ("Hero Summoning" where the text said "Pemanggilan Hero"). It now sees enough
+# of the chapter to copy renderings from the text instead of inventing them.
+EXTRACTION_CHAR_LIMIT = 24000
+
+
+def build_extraction_prompt(raw_content: str, translated_content: str,
+                            target_language: str = "") -> List[Dict[str, str]]:
     """
-    Build messages for glossary extraction
+    Build messages for glossary extraction (used when the model wrote no usable table)
     """
     system_prompt = """You are a specialist in extracting proper nouns and key terminology from Japanese light novel translations.
 
@@ -227,20 +250,24 @@ Extract ALL proper nouns and key terms from the source (Japanese) and translatio
 [
   {
     "sourceTerm": "Japanese term exactly as it appears in source",
-    "translatedTerm": "Translation used in the translated text",
+    "translatedTerm": "the rendering copied EXACTLY from the translated text",
     "notes": "role or context (e.g. main character, school name, ability)"
   }
 ]
 
 If a name has furigana in the source (e.g. 叶馬（とうま）), use the kanji form as sourceTerm.
+translatedTerm is never your own translation: find the term in the translated text and copy the words used
+there. If you cannot find how the translation renders a term, leave that term out.
 Return VALID JSON only. No explanation, no markdown fences."""
+    if target_language:
+        system_prompt += f"\nWrite the notes in {target_language}."
 
-    user_prompt = f"""Source text (Japanese):
-{raw_content[:3000]}
+    user_prompt = f"""Source text:
+{raw_content[:EXTRACTION_CHAR_LIMIT]}
 
 ---
 Translated text:
-{translated_content[:3000]}
+{translated_content[:EXTRACTION_CHAR_LIMIT]}
 
 Extract all proper nouns and key terms. Return JSON array only."""
 

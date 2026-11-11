@@ -193,6 +193,11 @@ DEFAULT_CONFIG = {
     "mimoApiKey": "",
     "mimoThinking": True,
     "mimoReasoningEffort": "medium",
+    # Email of the account signed in with ChatGPT (tokens live in chatgpt_auth.json).
+    "chatgptAccount": "",
+    "chatgptReasoningEffort": "default",
+    "experientialApiKey": "",
+    "uncensoredllmApiKey": "",
     "openaicompatApiKey": "",
     "openaicompatBaseUrl": "",
     "openaicompatUserAgent": "lwntl/1.0 (+openai-compatible)",
@@ -204,7 +209,7 @@ DEFAULT_CONFIG = {
     "glossaryPreFilter": True,
     "theme": "light",
     "uiLanguage": "id",
-    "sourceLanguages": ["Japanese", "Chinese", "Korean"],
+    "sourceLanguages": ["Japanese", "Chinese", "Korean", "English", "Indonesian"],
     "targetLanguages": ["Indonesian", "English"],
 }
 

@@ -1,0 +1,74 @@
+[
+  {
+    "id": "builtin:CN-EN",
+    "pair": "CN-EN",
+    "name": "CN → EN · Diction",
+    "title": "CN → EN LIGHT/WEB NOVEL TRANSLATION — CORE RULES",
+    "sourceLanguage": "Chinese",
+    "targetLanguage": "English",
+    "file": "CN-EN.md"
+  },
+  {
+    "id": "builtin:CN-ID",
+    "pair": "CN-ID",
+    "name": "CN → ID · Diksi",
+    "title": "CN → ID PENERJEMAHAN LIGHT/WEB NOVEL — ATURAN INTI",
+    "sourceLanguage": "Chinese",
+    "targetLanguage": "Indonesian",
+    "file": "CN-ID.md"
+  },
+  {
+    "id": "builtin:EN-ID",
+    "pair": "EN-ID",
+    "name": "EN → ID · Diksi",
+    "title": "EN → ID PENERJEMAHAN LIGHT/WEB NOVEL — ATURAN INTI",
+    "sourceLanguage": "English",
+    "targetLanguage": "Indonesian",
+    "file": "EN-ID.md"
+  },
+  {
+    "id": "builtin:ID-EN",
+    "pair": "ID-EN",
+    "name": "ID → EN · Diction",
+    "title": "ID → EN LIGHT/WEB NOVEL TRANSLATION — CORE RULES",
+    "sourceLanguage": "Indonesian",
+    "targetLanguage": "English",
+    "file": "ID-EN.md"
+  },
+  {
+    "id": "builtin:JP-EN",
+    "pair": "JP-EN",
+    "name": "JP → EN · Diction",
+    "title": "JP → EN LIGHT/WEB NOVEL TRANSLATION — CORE RULES",
+    "sourceLanguage": "Japanese",
+    "targetLanguage": "English",
+    "file": "JP-EN.md"
+  },
+  {
+    "id": "builtin:JP-ID",
+    "pair": "JP-ID",
+    "name": "JP → ID · Diksi",
+    "title": "JP → ID PENERJEMAHAN LIGHT/WEB NOVEL — ATURAN INTI",
+    "sourceLanguage": "Japanese",
+    "targetLanguage": "Indonesian",
+    "file": "JP-ID.md"
+  },
+  {
+    "id": "builtin:KR-EN",
+    "pair": "KR-EN",
+    "name": "KR → EN · Diction",
+    "title": "KR → EN LIGHT/WEB NOVEL TRANSLATION — CORE RULES",
+    "sourceLanguage": "Korean",
+    "targetLanguage": "English",
+    "file": "KR-EN.md"
+  },
+  {
+    "id": "builtin:KR-ID",
+    "pair": "KR-ID",
+    "name": "KR → ID · Diksi",
+    "title": "KR → ID PENERJEMAHAN LIGHT/WEB NOVEL — ATURAN INTI",
+    "sourceLanguage": "Korean",
+    "targetLanguage": "Indonesian",
+    "file": "KR-ID.md"
+  }
+]

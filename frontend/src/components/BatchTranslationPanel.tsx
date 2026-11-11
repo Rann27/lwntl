@@ -33,11 +33,9 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
   const total = batch.total || chapters.length
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0
   const isAgent = !!batch.agent
-  const phaseLabel = batch.phase === 'review'
-    ? t.agent.phaseReview
-    : batch.phase === 'volume'
-      ? t.agent.phaseVolume
-      : isAgent ? t.agent.phaseTranslate : 'Sedang menerjemahkan'
+  const phaseLabel = batch.phase === 'volume'
+    ? t.agent.phaseVolume
+    : isAgent ? t.agent.phaseReview : 'Sedang menerjemahkan'
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center pb-6 pointer-events-none">

@@ -7,14 +7,16 @@
  * and the glossary (chapters are archived to version history first).
  *
  * Other outcomes per card: accept as-is (the issue is not flagged again for this
- * rendering), delete the entry, or skip.
+ * rendering), delete the entry, or skip. A duplicate (the same term in another
+ * spelling, or another term with the same rendering) is merged into the older
+ * entry instead: its spellings become aliases of that entry.
  *
  * Defaults marked "yakin" (a homoglyph cleanup, or a name part taking the word
  * of its full name) can also be applied in bulk.
  */
 
 import { useMemo, useState } from 'react'
-import { Loader2, Check, SkipForward, Trash2, ShieldCheck, ArrowLeft, Zap } from 'lucide-react'
+import { Loader2, Check, SkipForward, Trash2, ShieldCheck, ArrowLeft, Zap, Merge } from 'lucide-react'
 import { glossaryResolve } from '../api'
 import type { GlossaryAuditEntry, GlossaryCandidate } from '../types'
 
@@ -30,13 +32,21 @@ const ORIGIN_LABEL: Record<GlossaryCandidate['origin'], string> = {
   variant: 'Varian di teks',
   name: 'Dari nama lengkap',
   normalized: 'Dibersihkan',
+  duplicate: 'Entri lama',
 }
 
-const IGNORABLE = ['conflict', 'variants_in_text', 'rendering_unused', 'homoglyph']
+const IGNORABLE = ['conflict', 'variants_in_text', 'rendering_unused', 'homoglyph', 'duplicate', 'same_rendering']
+
+const isMerge = (e: GlossaryAuditEntry | undefined) =>
+  !!e?.duplicateOf && (e.resolution?.kind === 'duplicate' || e.resolution?.kind === 'same_rendering')
 
 function problemText(e: GlossaryAuditEntry): string {
   const kind = e.resolution?.kind
   switch (kind) {
+    case 'duplicate':
+      return `Istilah yang sama sudah ada dengan ejaan lain: ${e.duplicateOf?.sourceTerm} = ${e.duplicateOf?.translatedTerm}. Gabungkan — ejaan entri ini menjadi ejaan lain dari entri lama, lalu entri ini dihapus.`
+    case 'same_rendering':
+      return `Terjemahannya sama persis dengan ${e.duplicateOf?.sourceTerm} = ${e.duplicateOf?.translatedTerm}. Gabungkan agar menjadi satu entri dengan dua ejaan sumber, atau pilih "Sudah benar" jika keduanya memang istilah berbeda.`
     case 'homoglyph':
       return 'Terjemahan di glosarium mengandung huruf Sirilik/Yunani yang tampak sama dengan huruf Latin, jadi tidak pernah cocok dengan teks.'
     case 'name_part':
@@ -111,14 +121,28 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
 
   const remove = () => entry && run({ type: 'delete', entryId: entry.id }, `${entry.sourceTerm}: dihapus`)
 
+  const mergeAction = (e: GlossaryAuditEntry, canon: string, off: Set<string>) => ({
+    type: 'merge', entryId: e.id, intoId: e.duplicateOf!.id, canonical: canon, replace: replaceForms(e, canon, off),
+  })
+
+  const merge = () => {
+    if (!entry || !canonical || !entry.duplicateOf) return
+    run(mergeAction(entry, canonical, replaceOff), `${entry.sourceTerm} → digabung ke ${entry.duplicateOf.sourceTerm} (${canonical})`)
+  }
+
   const applyConfident = async () => {
     setBulk({ done: 0, total: confident.length }); setErr('')
     let done = 0
     for (const e of confident) {
       const canon = e.resolution!.preselect!
       try {
-        await glossaryResolve(seriesId, { type: 'canonical', entryId: e.id, canonical: canon, replace: replaceForms(e, canon, new Set()) })
-        setResults(r => [...r, `${e.sourceTerm}: ${e.translatedTerm} → ${canon}`])
+        if (isMerge(e)) {
+          await glossaryResolve(seriesId, mergeAction(e, canon, new Set()))
+          setResults(r => [...r, `${e.sourceTerm} → digabung ke ${e.duplicateOf!.sourceTerm}`])
+        } else {
+          await glossaryResolve(seriesId, { type: 'canonical', entryId: e.id, canonical: canon, replace: replaceForms(e, canon, new Set()) })
+          setResults(r => [...r, `${e.sourceTerm}: ${e.translatedTerm} → ${canon}`])
+        }
         setChanged(true)
       } catch (ex) {
         setErr(`${e.sourceTerm}: ${ex instanceof Error ? ex.message : String(ex)}`)
@@ -154,7 +178,7 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
         </div>
         {confident.length > 0 && (
           <button onClick={applyConfident} disabled={!!bulk || busy || disabled} className="flex items-center gap-1"
-            title="Terapkan otomatis pilihan bawaan yang aman: pembersihan huruf kembar dan bagian nama yang mengikuti nama lengkapnya"
+            title="Terapkan otomatis pilihan bawaan yang aman: pembersihan huruf kembar, bagian nama yang mengikuti nama lengkapnya, dan duplikat yang terjemahannya sudah sama"
             style={{ fontSize: '11px', fontWeight: 800, border: '2px solid #111', background: '#28E272', color: '#111', padding: '3px 8px', cursor: 'pointer', opacity: (bulk || disabled) ? 0.5 : 1 }}>
             {bulk ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
             {bulk ? `${bulk.done}/${bulk.total}` : `TERAPKAN SARAN YAKIN (${confident.length})`}
@@ -172,6 +196,12 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
         </div>
         {entry.notes && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{entry.notes}</p>}
         <p style={{ fontSize: '12px', marginTop: '10px', lineHeight: 1.5, borderLeft: '3px solid #FFB020', paddingLeft: '8px' }}>{problemText(entry)}</p>
+        {entry.duplicateOf && (
+          <p style={{ fontSize: '11px', marginTop: '6px', color: 'var(--color-text-muted)' }}>
+            Entri lama: <strong>{entry.duplicateOf.sourceTerm} = {entry.duplicateOf.translatedTerm}</strong>
+            {entry.duplicateOf.notes ? ` — ${entry.duplicateOf.notes}` : ''}
+          </p>
+        )}
         {entry.conflictEntry && (
           <p style={{ fontSize: '11px', marginTop: '6px', color: 'var(--color-text-muted)' }}>
             Entri terkait: <strong>{entry.conflictEntry.sourceTerm} = {entry.conflictEntry.translatedTerm}</strong>
@@ -225,11 +255,19 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
 
       {/* Actions */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button onClick={applyCanonical} disabled={busy || disabled || !canonical} className="neo-button flex items-center gap-1.5"
-          style={{ fontSize: '12px', backgroundColor: '#28E272', color: '#111', opacity: (busy || disabled || !canonical) ? 0.5 : 1 }}>
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-          {canonical === entry.translatedTerm && replaceable.length === 0 ? 'SIMPAN & LANJUT' : 'TERAPKAN & LANJUT'}
-        </button>
+        {isMerge(entry) ? (
+          <button onClick={merge} disabled={busy || disabled || !canonical} className="neo-button flex items-center gap-1.5"
+            style={{ fontSize: '12px', backgroundColor: '#28E272', color: '#111', opacity: (busy || disabled || !canonical) ? 0.5 : 1 }}>
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Merge size={13} />}
+            GABUNGKAN & LANJUT
+          </button>
+        ) : (
+          <button onClick={applyCanonical} disabled={busy || disabled || !canonical} className="neo-button flex items-center gap-1.5"
+            style={{ fontSize: '12px', backgroundColor: '#28E272', color: '#111', opacity: (busy || disabled || !canonical) ? 0.5 : 1 }}>
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+            {canonical === entry.translatedTerm && replaceable.length === 0 ? 'SIMPAN & LANJUT' : 'TERAPKAN & LANJUT'}
+          </button>
+        )}
         <button onClick={accept} disabled={busy || disabled} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}
           title="Bentuk sekarang sudah benar — masalah ini tidak akan ditandai lagi untuk terjemahan ini">
           <ShieldCheck size={13} /> SUDAH BENAR

@@ -27,10 +27,10 @@ export function useBatchTranslation(seriesId: string) {
 
       if (data.agent) {
         if (data.status === 'done') {
-          const failed = data.failed?.length ? ` Gagal: bab ${data.failed.join(', ')}.` : ''
+          const skipped = data.skipped ? ` ${data.skipped} bab belum diterjemahkan dilewati.` : ''
           addToastRef.current({
-            type: data.failed?.length ? 'error' : 'success',
-            message: `Agent selesai: ${data.completed}/${data.total} bab, ${data.edits ?? 0} perbaikan.${failed}`,
+            type: 'success',
+            message: `Agent selesai: ${data.completed}/${data.total} bab, ${data.edits ?? 0} perbaikan.${skipped}`,
           })
         } else if (data.status === 'cancelled') {
           addToastRef.current({
@@ -94,7 +94,7 @@ export function useBatchTranslation(seriesId: string) {
     }
   }, [seriesId, setBatchForSeries])
 
-  // Agent run: whole series, translate → review → volume pass. Resumable.
+  // Agent run: review the translated chapters → volume pass. Resumable.
   const startAgent = useCallback(async (
     chapterCount: number,
     opts: { brief?: string; review?: AgentReviewMode; volumePass?: boolean; rereview?: boolean; safeFixes?: boolean },

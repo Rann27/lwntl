@@ -251,12 +251,12 @@ class WorkerManager:
         self,
         series_id: str,
         brief: str = "",
-        review: str = "full",
+        review: str = "findings",
         volume_pass: bool = True,
         rereview: bool = False,
         safe_fixes: bool = True,
     ) -> Dict[str, Any]:
-        """Autonomous loop: translate every unfinished chapter, review each, then a volume pass."""
+        """Agent review: safe fixes and a review session per translated chapter, then a volume pass."""
         from .agent import AgentRun
         job = self._reserve(series_id, None, "agent")
         worker = self._get_worker(job["workerId"])

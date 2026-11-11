@@ -33,6 +33,8 @@ import {
   deleteChapter,
   getChapterDeleteInfo,
   addGlossaryEntry,
+  addGlossaryAlias,
+  removeGlossaryAlias,
   updateGlossaryEntry,
   deleteGlossaryEntry,
   saveConfig,
@@ -76,8 +78,8 @@ export function SeriesSettingsPage() {
 
   const [series, setSeries] = useState<Series | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
-  const inconsistencyCount = useMemo(() => countInconsistencies(chapters), [chapters])
   const [glossary, setGlossary] = useState<GlossaryEntry[]>([])
+  const inconsistencyCount = useMemo(() => countInconsistencies(chapters, glossary), [chapters, glossary])
   const [instructions, setInstructions] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
   const [workerStatuses, setWorkerStatuses] = useState<WorkerStatus[]>([])
@@ -194,7 +196,7 @@ export function SeriesSettingsPage() {
   }, [chapters])
 
   // Save config + instructions + systemPrompt
-  const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean, revisionPass: boolean, lookupEnabled: boolean, lookupChapters: number) => {
+  const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean, revisionPass: boolean, lookupEnabled: boolean, lookupChapters: number, systemPromptPreset: string) => {
     if (!seriesId || !series) return
     setSaveLoading(true)
     try {
@@ -204,9 +206,9 @@ export function SeriesSettingsPage() {
       await saveInstructions(seriesId, newInstructions)
       setInstructions(newInstructions)
 
-      await updateSeries(seriesId, series.title, series.sourceLanguage, series.targetLanguage, newSystemPrompt, workerId, iterationLock, autoFixCjk, undefined, revisionPass, lookupEnabled, lookupChapters)
+      await updateSeries(seriesId, series.title, series.sourceLanguage, series.targetLanguage, newSystemPrompt, workerId, iterationLock, autoFixCjk, undefined, revisionPass, lookupEnabled, lookupChapters, systemPromptPreset)
       setSystemPrompt(newSystemPrompt)
-      setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, instructions: newInstructions, workerId, iterationLock, autoFixCjk, revisionPass, lookupEnabled, lookupChapters } : prev)
+      setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, systemPromptPreset, instructions: newInstructions, workerId, iterationLock, autoFixCjk, revisionPass, lookupEnabled, lookupChapters } : prev)
       setWorkerStatuses(await getWorkerStatuses())
 
       toast.success(t.seriesSettings.saveSuccess)
@@ -335,6 +337,26 @@ export function SeriesSettingsPage() {
     }
   }
 
+  const handleAddAlias = async (entry: GlossaryEntry, alias: string) => {
+    if (!seriesId) return
+    try {
+      const updated = await addGlossaryAlias(seriesId, entry.id, alias)
+      setGlossary((prev) => prev.map((e) => (e.id === entry.id ? updated : e)))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.settings.saveFailed)
+    }
+  }
+
+  const handleRemoveAlias = async (entry: GlossaryEntry, alias: string) => {
+    if (!seriesId) return
+    try {
+      const updated = await removeGlossaryAlias(seriesId, entry.id, alias)
+      setGlossary((prev) => prev.map((e) => (e.id === entry.id ? updated : e)))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t.settings.saveFailed)
+    }
+  }
+
   const handleEditGlossary = async (
     entry: GlossaryEntry,
     sourceTerm: string,
@@ -369,14 +391,14 @@ export function SeriesSettingsPage() {
   }
 
   const handleImportGlossary = async (
-    entries: Array<{ sourceTerm: string; translatedTerm: string; notes: string }>
+    entries: Array<{ sourceTerm: string; translatedTerm: string; notes: string; aliases?: string[] }>
   ) => {
     if (!seriesId) return
     let added = 0
     let skipped = 0
     for (const e of entries) {
       try {
-        const entry = await addGlossaryEntry(seriesId, e.sourceTerm, e.translatedTerm, e.notes)
+        const entry = await addGlossaryEntry(seriesId, e.sourceTerm, e.translatedTerm, e.notes, e.aliases)
         setGlossary((prev) => [...prev, entry])
         added++
       } catch {
@@ -501,7 +523,7 @@ export function SeriesSettingsPage() {
               </button>
               <button
                 onClick={() => setShowAgentRun(true)}
-                disabled={isBatchActive || chapters.length === 0}
+                disabled={isBatchActive || !chapters.some(c => c.status === 'done')}
                 title={t.agent.buttonTitle}
                 className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#C9A7FF] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
                 style={{ color: '#111' }}
@@ -743,6 +765,8 @@ export function SeriesSettingsPage() {
             onEdit={handleEditGlossary}
             onDelete={setDeleteGlossaryTarget}
             onImport={handleImportGlossary}
+            onAddAlias={handleAddAlias}
+            onRemoveAlias={handleRemoveAlias}
           />
         </div>
       </main>
@@ -824,8 +848,10 @@ export function SeriesSettingsPage() {
       <AgentRunModal
         open={showAgentRun}
         onClose={() => setShowAgentRun(false)}
+        seriesId={seriesId!}
+        onRestored={() => { if (seriesId) getChapters(seriesId).then(setChapters).catch(() => {}) }}
         chapters={chapters}
-        onStart={(opts) => startAgent(chapters.length, opts)}
+        onStart={(opts) => startAgent(chapters.filter(c => c.status === 'done').length, opts)}
       />
 
       {/* QA Report Modal */}

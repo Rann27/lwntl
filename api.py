@@ -14,6 +14,7 @@ from core.storage.series import (
     get_all_series, create_series, update_series as update_series_db,
     get_series, get_series_delete_info, delete_series,
     save_instructions, add_glossary_entry, update_glossary_entry, delete_glossary_entry,
+    add_glossary_alias, remove_glossary_alias,
     move_series_to_group as move_series_to_group_db,
 )
 from core.storage.groups import (
@@ -133,6 +134,44 @@ class API:
         except Exception as e:
             return {"error": True, "message": f"Gagal memuat katalog OpenRouter: {e}"}
 
+    def list_provider_models(self, provider: str, refresh: bool = False):
+        """A provider's model list fetched from the provider (cached a day; built-in list as fallback)."""
+        try:
+            from core.model_catalog import list_models
+            return list_models(provider, get_config(), bool(refresh))
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    # ChatGPT plan (Sign in with ChatGPT — official token sharing for local open-source apps)
+    def chatgpt_status(self):
+        try:
+            from core.chatgpt_auth import status
+            return status()
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def chatgpt_login(self):
+        """Open the ChatGPT sign-in in the system browser; poll chatgpt_status for the result."""
+        try:
+            from core.chatgpt_auth import start_login
+            return start_login()
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def chatgpt_cancel_login(self):
+        try:
+            from core.chatgpt_auth import cancel_login
+            return cancel_login()
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def chatgpt_disconnect(self):
+        try:
+            from core.chatgpt_auth import disconnect
+            return disconnect()
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
     def describe_request_params(self, provider: str, model: str):
         """What LWNTL will actually send for this provider + model, with the reasons."""
         try:
@@ -216,7 +255,7 @@ class API:
                       target_language: str = None, system_prompt: str = None,
                       worker_id: str = None, iteration_lock=None, auto_fix_cjk=None,
                       image_folder=None, revision_pass=None,
-                      lookup_enabled=None, lookup_chapters=None):
+                      lookup_enabled=None, lookup_chapters=None, system_prompt_preset=None):
         """Update a series"""
         try:
             lock = bool(iteration_lock) if iteration_lock is not None else None
@@ -225,9 +264,10 @@ class API:
             revision = bool(revision_pass) if revision_pass is not None else None
             lookup_on = bool(lookup_enabled) if lookup_enabled is not None else None
             lookup_n = int(lookup_chapters) if lookup_chapters is not None else None
+            preset = str(system_prompt_preset) if system_prompt_preset is not None else None
             return update_series_db(series_id, title, language, target_language, system_prompt,
                                     worker_id, lock, autofix, folder, revision,
-                                    lookup_on, lookup_n)
+                                    lookup_on, lookup_n, preset)
         except Exception as e:
             return {"error": True, "message": str(e)}
     
@@ -235,6 +275,59 @@ class API:
         """Get the active profile's system prompt template."""
         try:
             return {"prompt": get_profile_templates().get("systemPromptTemplate", "")}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    # Prompt presets (built-in per language pair + the user's own)
+    def list_prompt_presets(self, with_text: bool = False):
+        """Built-in and user prompt presets."""
+        try:
+            from core.prompt_presets import list_presets
+            return list_presets(with_text=bool(with_text))
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def get_prompt_preset(self, preset_id: str):
+        """One preset with its text."""
+        try:
+            from core.prompt_presets import get_preset
+            p = get_preset(preset_id)
+            return p if p else {"error": True, "message": "Preset tidak ditemukan"}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def duplicate_prompt_preset(self, preset_id: str, name: str = ""):
+        """Copy a preset (built-in or user) into a new editable user preset."""
+        try:
+            from core.prompt_presets import duplicate_preset
+            return duplicate_preset(preset_id, name or "")
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def save_prompt_preset(self, preset_id: str, name: str, text: str):
+        """Rename / rewrite a user preset."""
+        try:
+            from core.prompt_presets import save_user_preset
+            return save_user_preset(preset_id, name, text)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def delete_prompt_preset(self, preset_id: str):
+        """Delete a user preset."""
+        try:
+            from core.prompt_presets import delete_user_preset
+            return delete_user_preset(preset_id)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def resolve_series_prompt(self, series_id: str):
+        """Which system prompt a series will use and where it comes from (text included)."""
+        try:
+            from core.prompt_builder import resolve_system_prompt
+            series = get_series(series_id)
+            if not series:
+                return {"error": True, "message": "Series tidak ditemukan"}
+            return resolve_system_prompt(series)
         except Exception as e:
             return {"error": True, "message": str(e)}
 
@@ -256,13 +349,15 @@ class API:
     def save_profile_templates(self, system_prompt_template: str, instructions_template: str,
                                revision_prompt_template: str = None,
                                autofix_prompt_template: str = None,
-                               prepass_prompt_template: str = None):
+                               prepass_prompt_template: str = None,
+                               system_prompt_preset: str = None):
         """Save prompt templates for the active profile."""
         try:
             return save_profile_templates(system_prompt_template, instructions_template,
                                           revision_prompt_template=revision_prompt_template,
                                           autofix_prompt_template=autofix_prompt_template,
-                                          prepass_prompt_template=prepass_prompt_template)
+                                          prepass_prompt_template=prepass_prompt_template,
+                                          system_prompt_preset=system_prompt_preset)
         except Exception as e:
             return {"error": True, "message": str(e)}
 
@@ -370,10 +465,25 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
-    def add_glossary_entry(self, series_id: str, source_term: str, translated_term: str, notes: str):
-        """Add a glossary entry"""
+    def add_glossary_entry(self, series_id: str, source_term: str, translated_term: str, notes: str,
+                           aliases=None):
+        """Add a glossary entry (aliases: other source spellings, optional)"""
         try:
-            return add_glossary_entry(series_id, source_term, translated_term, notes)
+            return add_glossary_entry(series_id, source_term, translated_term, notes, aliases)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def add_glossary_alias(self, series_id: str, entry_id: str, alias: str):
+        """Record another source spelling of a glossary entry"""
+        try:
+            return add_glossary_alias(series_id, entry_id, alias)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def remove_glossary_alias(self, series_id: str, entry_id: str, alias: str):
+        """Remove one source spelling from a glossary entry"""
+        try:
+            return remove_glossary_alias(series_id, entry_id, alias)
         except Exception as e:
             return {"error": True, "message": str(e)}
 
@@ -446,18 +556,36 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
-    def start_agent_run(self, series_id: str, brief: str = "", review: str = "full",
+    def start_agent_run(self, series_id: str, brief: str = "", review: str = "findings",
                         volume_pass: bool = True, rereview: bool = False, safe_fixes: bool = True):
-        """Autonomous agent loop over the whole series (translate -> review -> volume pass)."""
+        """Agent review over the translated chapters (safe fixes -> review -> volume pass)."""
         try:
             return self._worker_manager.start_agent_run(
                 series_id,
                 brief=brief or "",
-                review=review or "full",
+                review=review or "findings",
                 volume_pass=bool(volume_pass),
                 rereview=bool(rereview),
                 safe_fixes=bool(safe_fixes),
             )
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def list_agent_backups(self, series_id: str):
+        """Whole-series snapshots taken before each agent run, newest first."""
+        try:
+            from core.agent_backup import list_backups
+            return list_backups(series_id)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def restore_agent_backup(self, series_id: str, backup_id: str, restore_glossary: bool = False):
+        """Put every chapter back as it was before that agent run (current versions archived first)."""
+        try:
+            if self._worker_manager.is_series_running(series_id):
+                return {"error": True, "message": "Series ini sedang diproses — tunggu sampai selesai."}
+            from core.agent_backup import restore_backup
+            return restore_backup(series_id, backup_id, bool(restore_glossary))
         except Exception as e:
             return {"error": True, "message": str(e)}
 
@@ -541,7 +669,7 @@ class API:
             return {"error": True, "message": str(e)}
 
     def glossary_resolve(self, series_id: str, action):
-        """Apply one decision from the glossary review flow (canonical / ignore / delete)."""
+        """Apply one decision from the glossary review flow (canonical / ignore / delete / merge)."""
         try:
             if self._worker_manager.is_series_running(series_id):
                 return {"error": True, "message": "Series ini sedang diproses — tunggu sampai selesai."}

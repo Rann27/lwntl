@@ -1,11 +1,14 @@
 """
-Agent Run — autonomous translate → review → repair loop over a whole series.
+Agent Run — autonomous review → repair loop over a translated series.
+
+Translation is not done here. It belongs to the batch pipeline, where Look Up,
+the revision pass and AutoFix CJK run; the agent is the QA stage after it.
+Chapters without a finished translation are skipped and reported.
 
 Control flow is owned by code, not by the model:
 
-    for each chapter (in import order):
-        translate it if it is not done yet (retrying transient failures)
-        auto-apply its glossary terms so the next chapter sees them
+    for each translated chapter (in import order):
+        apply the safe mechanical fixes (no AI)
         run a review session: an agent with tools reads the checker findings,
             verifies them against the source and repairs the translation
         record the review on the chapter (resume skips reviewed chapters)
@@ -38,13 +41,13 @@ FINDINGS_MAX_STEPS = 12
 VOLUME_MAX_STEPS = 24
 BUDGET_WARNING_AT = 3
 AGENT_MAX_TOKENS = 16000
-TRANSLATE_ATTEMPTS = 3
 # Rough budget for the conversation before old tool results are trimmed.
 HISTORY_CHAR_BUDGET = 150_000
 RULES_CHAR_LIMIT = 24_000
 
 REVIEW_FINDINGS = "findings"   # review only chapters the checker flags (high/medium)
 REVIEW_FULL = "full"           # review every chapter, with a source cross-check
+DEFAULT_REVIEW = REVIEW_FINDINGS
 
 
 class ToolsUnsupported(Exception):
@@ -184,6 +187,12 @@ How to work:
 3. Low findings: fix only when the source confirms a real problem.
 4. Call get_findings again to confirm, then call finish with a short summary.
 
+What the detectors cannot see — watch for it wherever you read the source anyway:
+- a character name that has drifted into an ordinary word (or an unfortunate one) instead of a romanization;
+- he/she, and first vs third person, in short scenes with a single character — they read as correct either way;
+- a rendering that feels odd (a homophone read the wrong way) — search_translation for its other occurrences,
+  because this error repeats in one direction.
+
 Rules for edits:
 - Fix what is wrong; do not restyle what is right. Keep the translator's voice and word choices.
 - Every edit is written in {tgt}, follows the translation rules below and the locked glossary.
@@ -195,12 +204,13 @@ Rules for edits:
 {_rules_reference(series, raw)}"""
 
 
-def _review_hotspots(chapter: Dict[str, Any], limit: int = 3) -> List[str]:
+def _review_hotspots(chapter: Dict[str, Any], limit: int = 3, src: str = "jp") -> List[str]:
     """
     Places worth a source cross-check, chosen by code so the agent does not wander.
 
     Prefers the dialogue-aligned gaps whose translation is shortest relative to its
-    source (where dropped sentences hide), then the chapter ending.
+    source (where dropped sentences hide), then the chapter opening and ending —
+    chapter boundaries are where names, honorifics and style break first.
     """
     from .chapter_check import dialogue_alignment_gaps, split_paragraphs
     from .extractor import strip_glossary_table
@@ -208,7 +218,7 @@ def _review_hotspots(chapter: Dict[str, Any], limit: int = 3) -> List[str]:
     raw_lines = (chapter.get("rawContent") or "").split("\n")
     paras = split_paragraphs(strip_glossary_table(chapter.get("translatedContent") or ""))
     spots: List[str] = []
-    gaps = [g for g in dialogue_alignment_gaps(raw_lines, paras) if g["src_chars"] >= 150]
+    gaps = [g for g in dialogue_alignment_gaps(raw_lines, paras, src) if g["src_chars"] >= 150]
     if gaps:
         overall = sum(g["tr_chars"] for g in gaps) / max(sum(g["src_chars"] for g in gaps), 1)
         gaps = [g for g in gaps if g["tr_chars"] / max(g["src_chars"], 1) < 0.8 * overall]
@@ -219,17 +229,23 @@ def _review_hotspots(chapter: Dict[str, Any], limit: int = 3) -> List[str]:
     if not gaps and paras:
         mid = len(paras) // 2
         spots.append(f"paragraphs {mid}–{min(mid + 8, len(paras) - 1)} (use read_source around_para={mid})")
+    if len(paras) > 16:
+        spots.append(f"paragraphs 0–5 ↔ the first ~20 source lines (chapter opening — check names, honorifics "
+                     "and address forms against the glossary)")
     if paras:
         start = max(0, len(paras) - 8)
         spots.append(f"paragraphs {start}–{len(paras) - 1} ↔ the last ~30 source lines (chapter ending)")
     return spots
 
 
-def _chapter_task(position: int, total: int, chapter: Dict[str, Any], full_review: bool) -> str:
+def _chapter_task(position: int, total: int, chapter: Dict[str, Any], full_review: bool,
+                  source_language: str = "Japanese") -> str:
+    from .chapter_check import source_code
+
     task = (f"Review chapter {position} of {total}: #{chapter.get('chapterNumber', '?')} "
             f"{chapter.get('title', '')}.")
     if full_review:
-        spots = _review_hotspots(chapter)
+        spots = _review_hotspots(chapter, src=source_code(source_language))
         if spots:
             task += ("\nAfter handling the findings, cross-check ONLY these places against the source for omitted "
                      "sentences, wrong speakers and meaning drift, and fix what you find:\n"
@@ -266,7 +282,8 @@ def _single_shot_repair(
     log: Callable[[str], None],
 ) -> Dict[str, Any]:
     st = toolkit._resolve(None)
-    report = check_chapter(st.raw, st.text(), series.get("glossary") or [], toolkit.target_language)
+    report = check_chapter(st.raw, st.text(), series.get("glossary") or [], toolkit.target_language,
+                           toolkit.source_language, st.table_entries)
     targets = [f for f in report["findings"] if f["severity"] in ("high", "medium") and f["para"] is not None]
     if not targets:
         return {"steps": 0, "finished": True, "summary": "No paragraph-level findings.", "edits": [],
@@ -316,17 +333,16 @@ def _single_shot_repair(
 class AgentRun:
     """Drives the whole loop on top of a Translator (reuses its pipeline and event channel)."""
 
-    def __init__(self, translator, series_id: str, brief: str = "", review: str = REVIEW_FULL,
+    def __init__(self, translator, series_id: str, brief: str = "", review: str = DEFAULT_REVIEW,
                  volume_pass: bool = True, rereview: bool = False, safe_fixes: bool = True):
         self.t = translator
         self.series_id = series_id
         self.brief = brief or ""
-        self.review = review if review in (REVIEW_FINDINGS, REVIEW_FULL) else REVIEW_FULL
+        self.review = review if review in (REVIEW_FINDINGS, REVIEW_FULL) else DEFAULT_REVIEW
         self.volume_pass = volume_pass
         self.rereview = rereview
         self.safe_fixes = safe_fixes
         self.tools_supported = getattr(translator.client, "supports_tools", True)
-        self.failures: List[str] = []
         self.total_edits = 0
 
     # -- plumbing --------------------------------------------------------------
@@ -347,32 +363,12 @@ class AgentRun:
 
     # -- steps -----------------------------------------------------------------
 
-    def _ensure_translated(self, chapter_id: str, chapter: Dict[str, Any]) -> bool:
-        if chapter.get("status") == "done" and (chapter.get("translatedContent") or "").strip():
-            return True
-        for attempt in range(1, TRANSLATE_ATTEMPTS + 1):
-            if self._cancelled():
-                return False
-            self.t._translate(self.series_id, chapter_id, None, archive_previous=True)
-            ch = get_chapter(self.series_id, chapter_id) or {}
-            if ch.get("status") == "done":
-                self.t._auto_apply_glossary(self.series_id, chapter_id)
-                return True
-            if self._cancelled():
-                return False
-            wait = 15 * attempt
-            self._log(f"[Agent] Translation attempt {attempt}/{TRANSLATE_ATTEMPTS} failed — retrying in {wait}s")
-            for _ in range(wait):
-                if self._cancelled():
-                    return False
-                time.sleep(1)
-        return False
-
     def _review_chapter(self, chapter_ids: List[str], position: int, chapter: Dict[str, Any]) -> Dict[str, Any]:
         series = get_series(self.series_id) or {}
         raw = chapter.get("rawContent", "") or ""
+        table = (chapter.get("glossaryUpdates") or {}).get("entries") or []
         before = check_chapter(raw, chapter.get("translatedContent", ""), series.get("glossary") or [],
-                               series.get("targetLanguage", "English"))
+                               series.get("targetLanguage", "English"), series.get("sourceLanguage", "Japanese"), table)
         stats_before = before["stats"]
         needs = stats_before["high"] + stats_before["medium"] > 0
 
@@ -389,7 +385,8 @@ class AgentRun:
                 result = run_session(
                     self.t.client, toolkit,
                     _chapter_system_prompt(series, raw, self.brief),
-                    _chapter_task(position, len(chapter_ids), chapter, self.review == REVIEW_FULL),
+                    _chapter_task(position, len(chapter_ids), chapter, self.review == REVIEW_FULL,
+                                  series.get("sourceLanguage", "Japanese")),
                     max_steps, self._cancelled, self._log,
                 )
             except ToolsUnsupported as e:
@@ -402,7 +399,7 @@ class AgentRun:
         after_ch = get_chapter(self.series_id, chapter["id"]) or {}
         series = get_series(self.series_id) or {}
         after = check_chapter(raw, after_ch.get("translatedContent", ""), series.get("glossary") or [],
-                              series.get("targetLanguage", "English"))
+                              series.get("targetLanguage", "English"), series.get("sourceLanguage", "Japanese"), table)
         # The review must not leave the chapter worse than it found it.
         if after["stats"]["high"] > stats_before["high"] and toolkit.edit_log:
             from .storage.chapters import archive_current_translation, update_chapter_translation
@@ -412,7 +409,7 @@ class AgentRun:
                       "— rolled back to the pre-review text (agent version kept in history)")
             result["rolledBack"] = True
             after = check_chapter(raw, pre_review_text, series.get("glossary") or [],
-                                  series.get("targetLanguage", "English"))
+                                  series.get("targetLanguage", "English"), series.get("sourceLanguage", "Japanese"), table)
 
         result["findingsBefore"] = stats_before
         result["findingsAfter"] = after["stats"]
@@ -437,9 +434,25 @@ class AgentRun:
 
     def run(self):
         chapters = get_chapters(self.series_id)
-        chapter_ids = [c["id"] for c in chapters]
+        translated = [c for c in chapters
+                      if c.get("status") == "done" and (c.get("translatedContent") or "").strip()]
+        skipped = len(chapters) - len(translated)
+        chapter_ids = [c["id"] for c in translated]
         total = len(chapter_ids)
         completed = 0
+        if skipped:
+            self._log(f"[Agent] {skipped} chapter(s) not translated yet — skipped (translate them with batch first)")
+        # Whole-series snapshot first: a run that makes things worse is undone in
+        # one step from the Agent Run window. No snapshot, no run.
+        if total:
+            try:
+                from .agent_backup import create_backup
+                b = create_backup(self.series_id, "agent run")
+                self._log(f"[Agent] Backup {b['id']}: {b['chapters']} chapter(s) + glossary saved before the run")
+            except Exception as e:
+                self._log(f"[Agent] Backup failed — run stopped so nothing changes without one: {e}")
+                self._emit(status="cancelled", completed=0, total=total, error=f"Backup gagal: {e}")
+                return
         self._log(f"[Agent] Run started: {total} chapter(s) | review={self.review} | "
                   f"volume pass={'on' if self.volume_pass else 'off'}"
                   + (f" | brief: {self.brief.strip()[:120]}" if self.brief.strip() else ""))
@@ -455,18 +468,6 @@ class AgentRun:
             meta = dict(current=position, completed=completed, total=total, chapterId=chapter_id,
                         chapterNumber=chapter.get("chapterNumber", "?"), chapterTitle=chapter.get("title", ""))
 
-            if chapter.get("status") != "done":
-                self._emit(status="translating", phase="translate", **meta)
-            if not self._ensure_translated(chapter_id, chapter):
-                if self._cancelled():
-                    self._emit(status="cancelled", completed=completed, total=total)
-                    return
-                self.failures.append(str(chapter.get("chapterNumber", "?")))
-                self._log(f"[Agent] Chapter #{chapter.get('chapterNumber')} could not be translated — moving on")
-                completed += 1
-                continue
-
-            chapter = get_chapter(self.series_id, chapter_id) or chapter
             if chapter.get("agentReview") and not self.rereview:
                 completed += 1
                 continue
@@ -527,5 +528,5 @@ class AgentRun:
             self._emit(status="cancelled", completed=completed, total=total)
             return
         self._log(f"[Agent] Run finished: {completed}/{total} chapter(s), {self.total_edits} edit(s)"
-                  + (f", failed: {', '.join(self.failures)}" if self.failures else ""))
-        self._emit(status="done", completed=completed, total=total, edits=self.total_edits, failed=self.failures)
+                  + (f", {skipped} untranslated skipped" if skipped else ""))
+        self._emit(status="done", completed=completed, total=total, edits=self.total_edits, skipped=skipped)

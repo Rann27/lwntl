@@ -10,9 +10,9 @@ From there both renderings are "correct" according to the glossary.
 
 Two defences live here:
 
-1. `partial_name_match` — the glossary pre-filter keeps a full-name entry when
-   only its surname or given name appears in the chapter, so the model sees the
-   locked romanization at the moment it needs it.
+1. Name parts in the pre-filter (term_match.name_parts) — a full-name entry is
+   kept when only its surname or given name appears in the chapter, so the model
+   sees the locked romanization at the moment it needs it.
 
 2. `find_conflict` — before a new entry is added, it is compared with existing
    entries whose source term contains it (or is contained by it). A part of a
@@ -26,7 +26,6 @@ import re
 from typing import Any, Dict, Iterable, List, Optional
 
 _CJK = re.compile(r'[぀-ゟァ-ヺー-ヿ㐀-䶿一-鿿々]')
-_ALL_CJK = re.compile(r'^[぀-ゟァ-ヺー-ヿ㐀-䶿一-鿿々]+$')
 _HONORIFIC = re.compile(r'^(?:ku+n|sa+n|cha+n|sa+ma|senpai|sempai|sensei|dono|tan|chi|nii|nee|ue)$')
 
 
@@ -59,18 +58,13 @@ def looks_like_full_name(translated: str) -> bool:
     return len(caps) >= 2
 
 
-def partial_name_match(source_term: str, translated: str, text: str) -> bool:
+def looks_like_person_name(translated: str) -> bool:
     """
-    True when a CJK full-name entry is absent as a whole but one of its parts
-    (a prefix or suffix of 2+ characters) appears in `text`.
+    A full name with every word capitalised — 'Onodera Makoto', not 'Order of
+    Knights'. One-kanji name parts are only trusted for these.
     """
-    term = (source_term or "").strip()
-    if len(term) < 3 or not _ALL_CJK.match(term) or not looks_like_full_name(translated):
-        return False
-    for k in range(2, len(term)):
-        if term[:k] in text or term[-k:] in text:
-            return True
-    return False
+    words = [w for w in re.findall(r"[A-Za-zÀ-ɏ']+", translated or "") if not _HONORIFIC.match(w.lower())]
+    return len(words) >= 2 and all(w[:1].isupper() for w in words)
 
 
 def find_conflict(
@@ -82,25 +76,34 @@ def find_conflict(
     Return the existing entry this new one contradicts, or None.
 
     Only entries related by containment are compared (one source term inside the
-    other, both 2+ characters), and only when both are rendered as proper
-    nouns (capitalised). The shorter one's words must all
-    appear in the longer one's rendering.
+    other, after term_match normalisation so ・/＝/width variants line up), and
+    only when both are rendered as proper nouns (capitalised). The shorter one's
+    words must all appear in the longer one's rendering.
+
+    A single character inside a longer term is almost always an unrelated word,
+    so it is compared only as the start or end of a full name (誠 in 小野寺誠).
     """
-    src = (source_term or "").strip()
+    from .term_match import normalize
+    src = normalize(source_term)
     new_tokens = name_tokens(translated)
-    if len(src) < 2 or not _CJK.search(src) or not new_tokens:
+    if not src or not _CJK.search(src) or not new_tokens:
         return None
     for e in entries:
-        other = (e.get("sourceTerm") or "").strip()
-        if not other or other == src or len(other) < 2:
+        other = normalize(e.get("sourceTerm") or "")
+        if not other or other == src:
             continue
         if src in other:
+            short_src, long_src = src, other
             short_tokens, long_tokens = new_tokens, name_tokens(e.get("translatedTerm", ""))
             long_rendering, short_rendering = e.get("translatedTerm", ""), translated
         elif other in src:
+            short_src, long_src = other, src
             short_tokens, long_tokens = name_tokens(e.get("translatedTerm", "")), new_tokens
             long_rendering, short_rendering = translated, e.get("translatedTerm", "")
         else:
+            continue
+        if len(short_src) < 2 and not (len(long_src) >= 3 and looks_like_person_name(long_rendering)
+                                       and (long_src.startswith(short_src) or long_src.endswith(short_src))):
             continue
         # Only proper nouns compose predictably. Ordinary compounds do not
         # (魔力 = mana, 魔力炉 = magic furnace), so both sides must be capitalised.

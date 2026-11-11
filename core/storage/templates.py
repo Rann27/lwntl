@@ -2,6 +2,8 @@
 Profile Templates Storage
 Stores per-profile system prompt and instructions templates, plus the editable
 guidance for the helper passes (revision, AutoFix CJK, terminology pre-pass).
+systemPromptPreset points at a prompt preset (core/prompt_presets) used when the
+system prompt text is empty.
 """
 
 import json
@@ -16,6 +18,7 @@ _FIELDS = (
     "revisionPromptTemplate",
     "autofixPromptTemplate",
     "prepassPromptTemplate",
+    "systemPromptPreset",
 )
 
 
@@ -43,6 +46,7 @@ def save_profile_templates(
     revision_prompt_template: Optional[str] = None,
     autofix_prompt_template: Optional[str] = None,
     prepass_prompt_template: Optional[str] = None,
+    system_prompt_preset: Optional[str] = None,
 ) -> bool:
     path = _get_templates_path(profile_name)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -55,6 +59,7 @@ def save_profile_templates(
         "revisionPromptTemplate": current["revisionPromptTemplate"] if revision_prompt_template is None else revision_prompt_template,
         "autofixPromptTemplate": current["autofixPromptTemplate"] if autofix_prompt_template is None else autofix_prompt_template,
         "prepassPromptTemplate": current["prepassPromptTemplate"] if prepass_prompt_template is None else prepass_prompt_template,
+        "systemPromptPreset": current["systemPromptPreset"] if system_prompt_preset is None else system_prompt_preset,
     }
     with open(path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)

@@ -1,6 +1,8 @@
 /**
  * LWNTL Settings Page
- * Full page for API keys, dark mode, and language management
+ * Tabs: General (app language, theme, language lists), Providers & API (one card
+ * per provider in a responsive grid, ChatGPT plan sign-in), Workers (worker
+ * cards with live model lists). The selected tab is remembered per browser.
  */
 
 import { useState, useEffect } from 'react'
@@ -11,7 +13,9 @@ import { saveConfig, testConfig as testConfigApi } from '../api'
 import { useToast } from '../hooks/useToast'
 import { PROVIDERS } from '../types'
 import type { EffortSetting } from '../types'
-import { OpenRouterModelPicker } from '../components/OpenRouterModelPicker'
+import { ModelPicker } from '../components/ModelPicker'
+import { ChatGPTCard, ChatGPTPlanBadge } from '../components/ChatGPTCard'
+import { resetProviderModels } from '../hooks/useProviderModels'
 import { RequestParamsPreview } from '../components/RequestParamsPreview'
 import type { AppConfig, WorkerProfile, DeepSeekApiKeyEntry } from '../types'
 import { useI18n, LANGUAGE_OPTIONS, type Language } from '../i18n'
@@ -32,14 +36,47 @@ const API_KEY_FIELDS: Array<{
   { provider: 'moonshot',     field: 'moonshotApiKey',     label: 'Moonshot AI (Kimi)' },
   { provider: 'deepseek',     field: 'deepseekApiKey',     label: 'DeepSeek', hasThinkingToggle: true },
   { provider: 'mimo',         field: 'mimoApiKey',         label: 'Xiaomi MiMo', hasThinkingToggle: true },
+  { provider: 'experiential', field: 'experientialApiKey', label: 'Experiential Labs' },
+  { provider: 'uncensoredllm', field: 'uncensoredllmApiKey', label: 'UncensoredLLM' },
   { provider: 'openrouter',   field: 'openrouterApiKey',   label: 'OpenRouter' },
   { provider: 'openaicompat', field: 'openaicompatApiKey', label: 'OpenAI Compatible', hasBaseUrl: true },
 ]
+
+type SettingsTab = 'general' | 'providers' | 'workers'
+const TAB_KEY = 'lwntl.settingsTab'
+
+function readTab(): SettingsTab {
+  try {
+    const v = localStorage.getItem(TAB_KEY)
+    if (v === 'general' || v === 'providers' || v === 'workers') return v
+  } catch { /* storage unavailable */ }
+  return 'general'
+}
+
+/** Cards flow into as many columns as the window allows, one column on narrow windows. */
+const gridStyle = (min: number): React.CSSProperties => ({
+  display: 'grid',
+  gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${min}px), 1fr))`,
+  gap: '20px',
+  alignItems: 'start',
+})
+
+const cardStyle: React.CSSProperties = {
+  backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)', minWidth: 0,
+}
 
 export function SettingsPage() {
   const { config, setConfig } = useAppStore()
   const toast = useToast()
   const { t } = useI18n()
+  const [tab, setTabState] = useState<SettingsTab>(readTab)
+  const setTab = (next: SettingsTab) => {
+    setTabState(next)
+    try { localStorage.setItem(TAB_KEY, next) } catch { /* storage unavailable */ }
+  }
+  const tabs: [SettingsTab, string][] = [
+    ['general', t.settings.tabGeneral], ['providers', t.settings.tabProviders], ['workers', t.settings.tabWorkers],
+  ]
 
   const handleSave = async (newConfig: AppConfig) => {
     try {
@@ -55,47 +92,51 @@ export function SettingsPage() {
     <div className="app-layout">
       <Topbar showBack title={t.settings.title} />
 
-      <main className="flex-1 overflow-y-auto flex items-start justify-center p-8" style={{ backgroundColor: 'var(--color-bg)' }}>
-        <div style={{ width: '100%', maxWidth: '600px' }} className="space-y-5">
+      <main className="flex-1 overflow-y-auto" style={{ backgroundColor: 'var(--color-bg)' }}>
+        <div className="flex flex-col gap-5" style={{ width: '100%', maxWidth: '1320px', margin: '0 auto', padding: 'clamp(12px, 3vw, 32px)' }}>
 
-          {/* App Language */}
-          {config && <AppLanguageSection config={config} onSave={handleSave} />}
+          {/* Tabs */}
+          <div className="flex flex-wrap self-start" style={{ ...cardStyle }}>
+            {tabs.map(([key, label], i) => (
+              <button key={key} onClick={() => setTab(key)} style={{
+                padding: '9px 18px', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px',
+                border: 'none', borderLeft: i ? '2.5px solid var(--color-border)' : 'none', cursor: 'pointer',
+                backgroundColor: tab === key ? 'var(--color-primary)' : 'transparent', color: tab === key ? '#111' : 'var(--color-text)',
+              }}>{label}</button>
+            ))}
+          </div>
 
-          {/* Dark Mode */}
-          {config && <ThemeSection config={config} onSave={handleSave} />}
+          {!config && <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>{t.common.loading}</p>}
 
-          {/* API Keys */}
-          <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
-            <h2 className="mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
-              {t.settings.apiKeys}
-            </h2>
-            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
-              {t.settings.apiKeysDesc} <strong>{PROVIDERS[config?.provider || 'zhipuai']?.label}</strong>
-            </p>
+          {config && tab === 'general' && (
+            <div style={gridStyle(380)}>
+              <AppLanguageSection config={config} onSave={handleSave} />
+              <ThemeSection config={config} onSave={handleSave} />
+              <div className="p-6" style={cardStyle}>
+                <h2 className="flex items-center gap-2 mb-5" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+                  <Languages size={20} />
+                  {t.settings.languages}
+                </h2>
+                <LanguageForm config={config} onSave={handleSave} />
+              </div>
+            </div>
+          )}
 
-            {config ? (
+          {config && tab === 'providers' && (
+            <>
+              <div>
+                <h2 className="mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+                  {t.settings.apiKeys}
+                </h2>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                  {t.settings.apiKeysDesc} <strong>{PROVIDERS[config.provider || 'zhipuai']?.label}</strong>
+                </p>
+              </div>
               <ApiKeysForm config={config} onSave={handleSave} />
-            ) : (
-              <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>{t.common.loading}</p>
-            )}
-          </div>
+            </>
+          )}
 
-          {/* Workers */}
-          {config && <WorkerSection config={config} onSave={handleSave} />}
-
-          {/* Language Management */}
-          <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
-            <h2 className="flex items-center gap-2 mb-5" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
-              <Languages size={20} />
-              {t.settings.languages}
-            </h2>
-            {config ? (
-              <LanguageForm config={config} onSave={handleSave} />
-            ) : (
-              <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>{t.common.loading}</p>
-            )}
-          </div>
-
+          {config && tab === 'workers' && <WorkerSection config={config} onSave={handleSave} />}
         </div>
       </main>
     </div>
@@ -171,12 +212,8 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
         Setiap worker adalah slot AI terpisah. Worker tidak terkunci ke satu series — setiap request menggunakan worker dengan slot tersedia (prioritas ke worker pilihan series). Naikkan <strong>Max Concurrent</strong> untuk menjalankan beberapa translasi sekaligus dalam satu worker.
       </p>
 
-      <div className="space-y-3">
+      <div style={gridStyle(340)}>
         {workers.map((worker, index) => {
-          const providerModels = PROVIDERS[worker.provider]?.models || []
-          const modelIsPreset = providerModels.includes(worker.model)
-          const useCustomInput = worker.provider === 'openaicompat' || !modelIsPreset
-          const useOpenRouter = worker.provider === 'openrouter'
           return (
             <div key={worker.id} className="p-3" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
               <div className="flex items-center gap-2 mb-3">
@@ -197,7 +234,7 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
                 </button>
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-2">
                 <select
                   value={worker.provider}
                   onChange={(e) => updateWorker(worker.id, { provider: e.target.value as WorkerProfile['provider'] })}
@@ -209,38 +246,17 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
                     const hasKey = !!(config[apiKeyField] as string)
                     return (
                       <option key={key} value={key} disabled={!hasKey && key !== 'openaicompat'}>
-                        {provider.label}{!hasKey && key !== 'openaicompat' ? ' (no key)' : ''}
+                        {provider.label}{!hasKey && key !== 'openaicompat' ? (key === 'chatgpt' ? ' (belum terhubung)' : ' (no key)') : ''}
                       </option>
                     )
                   })}
                 </select>
 
-                {useOpenRouter ? (
-                  <OpenRouterModelPicker value={worker.model} onChange={(id) => updateWorker(worker.id, { model: id })} />
-                ) : useCustomInput ? (
-                  <input
-                    value={worker.model}
-                    onChange={(e) => updateWorker(worker.id, { model: e.target.value })}
-                    placeholder="model id..."
-                    className="neo-input"
-                    style={{ padding: '6px 10px', fontSize: '13px', backgroundColor: 'var(--color-surface)' }}
-                  />
-                ) : (
-                  <select
-                    value={worker.model}
-                    onChange={(e) => updateWorker(worker.id, { model: e.target.value })}
-                    className="neo-input"
-                    style={{ padding: '6px 10px', fontSize: '13px', backgroundColor: 'var(--color-surface)' }}
-                  >
-                    {providerModels.map(model => (
-                      <option key={model} value={model}>{PROVIDERS[worker.provider]?.displayNames?.[model] || model}</option>
-                    ))}
-                    <option value="">Custom...</option>
-                  </select>
-                )}
+                <ModelPicker provider={worker.provider} value={worker.model} onChange={(id) => updateWorker(worker.id, { model: id })} />
               </div>
 
               <RequestParamsPreview provider={worker.provider} model={worker.model} revision={config} />
+              {worker.provider === 'chatgpt' && <div className="mt-2"><ChatGPTPlanBadge /></div>}
 
               {worker.provider === 'deepseek' && config.deepseekApiKeys?.length > 1 && (
                 <div className="flex items-center gap-2 mt-2">
@@ -487,6 +503,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   const handleSave = async () => {
     setSaving(true)
     await onSave(buildConfig())
+    resetProviderModels()  // new keys → model lists are asked for again
     setSaving(false)
   }
 
@@ -506,13 +523,15 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-4">
+      <div style={gridStyle(360)}>
+      <ChatGPTCard config={config} onSave={onSave} />
       {API_KEY_FIELDS.map(({ provider, field, label, hasBaseUrl, hasThinkingToggle }) => {
         const isActive = provider === config.provider
         const docsUrl = PROVIDERS[provider]?.docsUrl
         const hasKey = !!(keys[field] || '').trim()
         return (
-          <div key={field} className="mb-4">
+          <div key={field} style={{ ...cardStyle, padding: '14px 16px' }}>
             <div className="flex items-center gap-2 mb-1.5">
               <label style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
                 {label} API Key
@@ -784,7 +803,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                           {effortDesc}
                         </p>
                       </div>
-                      <div className="flex gap-1" style={{ flexShrink: 0, marginLeft: '12px' }}>
+                      <div className="flex gap-1 flex-wrap justify-end" style={{ marginLeft: '12px' }}>
                         {EFFORT_OPTIONS.map(opt => (
                           <button
                             key={opt.value}
@@ -814,8 +833,10 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
         )
       })}
 
-      {/* Test + Save */}
-      <div className="flex items-center gap-3 mt-5 mb-3">
+      </div>
+
+      {/* Test + Save — stays in view while scrolling through the provider cards */}
+      <div className="flex items-center gap-3 flex-wrap" style={{ position: 'sticky', bottom: 0, zIndex: 5, padding: '10px 0', backgroundColor: 'var(--color-bg)', borderTop: '2px solid var(--color-separator)' }}>
         <button onClick={handleTest} disabled={testing} className="neo-button flex items-center gap-2" style={{ padding: '8px 16px', fontSize: '12px', opacity: testing ? 0.5 : 1 }}>
           {testing ? <Loader2 size={13} className="animate-spin" /> : <TestTube size={13} />}
           {t.settings.testProvider}
@@ -823,14 +844,13 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
         <button onClick={handleSave} disabled={saving} className="neo-button flex items-center gap-2" style={{ padding: '8px 16px', fontSize: '12px', opacity: saving ? 0.5 : 1 }}>
           {saving ? t.common.saving : t.settings.saveApiKeys}
         </button>
+        {testResult && (
+          <div className="flex items-center gap-2 px-3 py-2" style={{ flex: '1 1 260px', minWidth: 0, border: `2px solid ${testResult === 'success' ? '#28E272' : '#FF3C3C'}`, backgroundColor: testResult === 'success' ? 'rgba(40,226,114,0.08)' : 'rgba(255,60,60,0.08)', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+            {testResult === 'success' ? <CheckCircle size={14} style={{ color: '#28E272', flexShrink: 0 }} /> : <XCircle size={14} style={{ color: '#FF3C3C', flexShrink: 0 }} />}
+            <span style={{ overflowWrap: 'anywhere' }}>{testMsg}</span>
+          </div>
+        )}
       </div>
-
-      {testResult && (
-        <div className="flex items-center gap-2 px-3 py-2" style={{ border: `2px solid ${testResult === 'success' ? '#28E272' : '#FF3C3C'}`, backgroundColor: testResult === 'success' ? 'rgba(40,226,114,0.08)' : 'rgba(255,60,60,0.08)', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
-          {testResult === 'success' ? <CheckCircle size={14} style={{ color: '#28E272' }} /> : <XCircle size={14} style={{ color: '#FF3C3C' }} />}
-          {testMsg}
-        </div>
-      )}
     </div>
   )
 }

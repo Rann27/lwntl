@@ -195,6 +195,40 @@ PROVIDERS = {
         "docsUrl": "https://platform.xiaomimimo.com/docs/en-US/welcome",
         "apiKeyName": "mimoApiKey",
     },
+    "chatgpt": {
+        # Runs on the user's ChatGPT plan through Sign in with ChatGPT (see
+        # core/chatgpt_auth.py) — no API key. Models come from the plan's own
+        # catalog; these are only the offline fallback.
+        "models": ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna"],
+        "displayNames": {
+            "gpt-6.1-sol": "GPT-6.1 Sol",
+            "gpt-6-astra": "GPT-6 Astra",
+            "gpt-6-luna": "GPT-6 Luna",
+        },
+        "baseUrl": "https://api.openai.com/v1",
+        "label": "ChatGPT (paket langganan)",
+        "docsUrl": "https://chatgpt.com/settings/usage",
+        # Set to the signed-in account's email; empty = not connected.
+        "apiKeyName": "chatgptAccount",
+    },
+    "experiential": {
+        # OpenAI-compatible gateway; the model list comes from its /models.
+        "models": ["glm-5.3"],
+        "displayNames": {"glm-5.3": "GLM-5.3"},
+        "baseUrl": "https://api.experientiallabs.ai/v1",
+        "label": "Experiential Labs",
+        "docsUrl": "https://platform.experientiallabs.ai/docs/reference",
+        "apiKeyName": "experientialApiKey",
+    },
+    "uncensoredllm": {
+        # OpenAI-compatible; abliterated open-weight models.
+        "models": ["glm-5.3-uncensored"],
+        "displayNames": {"glm-5.3-uncensored": "GLM-5.3 Uncensored"},
+        "baseUrl": "https://api.uncensoredllm.ai/v1",
+        "label": "UncensoredLLM",
+        "docsUrl": "https://uncensoredllm.ai/docs",
+        "apiKeyName": "uncensoredllmApiKey",
+    },
     "openrouter": {
         # The model list is the live OpenRouter catalog (see core/openrouter.py).
         "models": [],
@@ -363,6 +397,14 @@ def request_profile(config: Dict[str, Any], provider: str, model: str) -> Dict[s
         else:
             extra["chat_template_kwargs"] = {"enable_thinking": False}
 
+    elif provider == "chatgpt":
+        # ChatGPT-plan requests reject temperature and max_output_tokens outright.
+        temperature = False
+        notes.append("Paket ChatGPT tidak menerima temperature dan batas output — keduanya tidak dikirim.")
+        effort = config.get("chatgptReasoningEffort") or "default"
+        if effort != "default":
+            extra["reasoning"] = {"effort": _clamp_effort(effort, ("low", "medium", "high", "xhigh"))}
+
     elif provider == "openrouter":
         from .openrouter import request_profile as _or_profile
         prof = _or_profile(model, config)
@@ -432,6 +474,26 @@ class _AnthropicResponse:
             response.usage.input_tokens,
             response.usage.output_tokens,
         )
+
+
+class _TextResponse:
+    """A finished text reply in the OpenAI response shape (choices[0].message, usage)."""
+    def __init__(self, text: str, input_tokens: int = 0, output_tokens: int = 0):
+        self.choices = [_AnthropicResponseChoice(text)]
+        self.usage = _AnthropicUsage(input_tokens, output_tokens)
+
+
+_CHATGPT_ERRORS = {
+    "subscription_sharing_usage_limit_exceeded":
+        "Batas pemakaian paket ChatGPT tercapai — kelola di https://chatgpt.com/settings/usage",
+    "subscription_sharing_user_not_eligible": "Paket ChatGPT akun ini tidak bisa dipakai di aplikasi lain",
+    "subscription_sharing_usage_unavailable": "Pemakaian paket ChatGPT sedang tidak tersedia — coba lagi nanti",
+    "subscription_sharing_user_unavailable": "Layanan paket ChatGPT sedang tidak tersedia — coba lagi nanti",
+    "subscription_sharing_unsupported_capability": "Permintaan memakai fitur yang tidak didukung paket ChatGPT",
+    "subscription_sharing_route_not_supported": "Endpoint ini tidak didukung untuk paket ChatGPT",
+    "subscription_sharing_invalid_user": "Akses paket ChatGPT dicabut — hubungkan ulang di Settings → Provider",
+    "chatpass_v2_scope_not_authorized": "Izin paket ChatGPT belum diberikan — hubungkan ulang di Settings → Provider",
+}
 
 
 def _anthropic_stream_generator(stream_ctx):
@@ -530,6 +592,12 @@ class LLMClient:
             from .openrouter import HEADERS as _OR_HEADERS
             self._init_openai_compat(config.get("openrouterApiKey", ""), profile["base_url"],
                                      default_headers=dict(_OR_HEADERS))
+        elif p == "chatgpt":
+            from . import chatgpt_auth
+            if not chatgpt_auth.status()["connected"]:
+                raise ValueError("Akun ChatGPT belum terhubung — hubungkan di Settings → Provider")
+            self._client = None
+            self._client_type = "chatgpt"
         elif p == "openaicompat":
             self._init_openai_compat(
                 config.get("openaicompatApiKey", ""),
@@ -692,6 +760,8 @@ class LLMClient:
                 return self._complete_openai(messages, stream, mt, temp)
             elif self._client_type == "anthropic":
                 return self._complete_anthropic(messages, stream, mt, temp)
+            elif self._client_type == "chatgpt":
+                return self._complete_chatgpt(messages, stream)
             raise ValueError(f"Unknown client type: {self._client_type}")
 
         try:
@@ -755,6 +825,131 @@ class LLMClient:
             return _AnthropicResponse(response)
 
     # ------------------------------------------------------------------
+    # ChatGPT plan — public Responses API (store=false, stream=true)
+    # ------------------------------------------------------------------
+
+    def _responses_events(self, body: Dict[str, Any]):
+        """POST /v1/responses as the signed-in ChatGPT user; yield the stream's events."""
+        import httpx
+        from . import chatgpt_auth
+
+        headers = {"Authorization": f"Bearer {chatgpt_auth.access_token()}",
+                   "Content-Type": "application/json", "Accept": "text/event-stream"}
+        timeout = httpx.Timeout(connect=15.0, read=None, write=None, pool=None)
+        with httpx.Client(timeout=timeout) as http:
+            with http.stream("POST", f"{chatgpt_auth.RESOURCE}/responses", headers=headers, json=body) as r:
+                if r.status_code != 200:
+                    raw = r.read().decode("utf-8", errors="replace")
+                    try:
+                        err = json.loads(raw).get("error") or {}
+                    except Exception:
+                        err = {}
+                    code = err.get("code") if isinstance(err, dict) else ""
+                    if r.status_code == 401 or code == "subscription_sharing_invalid_user":
+                        chatgpt_auth.invalidate_session()
+                    raise RuntimeError(_CHATGPT_ERRORS.get(code or "", "")
+                                       or f"ChatGPT {r.status_code}: {(err.get('message') if isinstance(err, dict) else '') or raw[:300]}")
+                for line in r.iter_lines():
+                    if not line.startswith("data:"):
+                        continue
+                    payload = line[5:].strip()
+                    if not payload or payload == "[DONE]":
+                        continue
+                    try:
+                        event = json.loads(payload)
+                    except Exception:
+                        continue
+                    kind = event.get("type", "")
+                    if kind in ("response.failed", "error"):
+                        err = (event.get("response") or {}).get("error") or event.get("error") or event
+                        code = err.get("code", "") if isinstance(err, dict) else ""
+                        if code == "subscription_sharing_invalid_user":
+                            chatgpt_auth.invalidate_session()
+                        raise RuntimeError(_CHATGPT_ERRORS.get(code, "") or
+                                           f"ChatGPT: {err.get('message', code) if isinstance(err, dict) else err}")
+                    yield event
+
+    def _responses_body(self, messages: List[Dict[str, Any]], extra_input: Optional[List[Dict[str, Any]]] = None,
+                        tools: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+        # System messages are rejected here; they travel as `instructions`.
+        instructions = "\n\n".join(m.get("content", "") for m in messages if m.get("role") == "system")
+        items = extra_input if extra_input is not None else [
+            {"role": m["role"], "content": m.get("content", "")} for m in messages if m.get("role") != "system"
+        ]
+        body: Dict[str, Any] = {"model": self.model, "input": items, "store": False, "stream": True}
+        if instructions:
+            body["instructions"] = instructions
+        if tools:
+            body["tools"] = [{"type": "function", "name": t["name"], "description": t.get("description", ""),
+                              "parameters": t.get("parameters", {"type": "object", "properties": {}})} for t in tools]
+        if self._extra_body:
+            body.update(self._extra_body)
+        return body
+
+    def _chatgpt_text_stream(self, body: Dict[str, Any]):
+        self._chatgpt_usage = (0, 0)
+        for event in self._responses_events(body):
+            kind = event.get("type", "")
+            if kind == "response.output_text.delta" and event.get("delta"):
+                yield _AnthropicChunk(event["delta"])
+            elif kind == "response.completed":
+                usage = (event.get("response") or {}).get("usage") or {}
+                self._chatgpt_usage = (usage.get("input_tokens", 0), usage.get("output_tokens", 0))
+
+    def _complete_chatgpt(self, messages, stream):
+        body = self._responses_body(messages)
+        if stream:
+            return self._chatgpt_text_stream(body)
+        text = "".join(c.choices[0].delta.content for c in self._chatgpt_text_stream(body))
+        return _TextResponse(text, *self._chatgpt_usage)
+
+    def _chat_with_tools_chatgpt(self, messages, tools):
+        """One agent turn on the Responses API: function tools, history replayed as input items."""
+        items: List[Dict[str, Any]] = []
+        for m in messages:
+            role = m.get("role")
+            if role == "system":
+                continue
+            if role == "tool":
+                items.append({"type": "function_call_output", "call_id": m.get("tool_call_id", ""),
+                              "output": m.get("content", "")})
+            elif role == "assistant" and m.get("tool_calls"):
+                if m.get("content"):
+                    items.append({"role": "assistant", "content": m["content"]})
+                for tc in m["tool_calls"]:
+                    fn = tc.get("function", {})
+                    items.append({"type": "function_call", "call_id": tc.get("id", ""),
+                                  "name": fn.get("name", ""), "arguments": fn.get("arguments") or "{}"})
+            else:
+                items.append({"role": role, "content": m.get("content", "")})
+
+        final: Dict[str, Any] = {}
+        for event in self._responses_events(self._responses_body(messages, items, tools)):
+            if event.get("type") == "response.completed":
+                final = event.get("response") or {}
+        text_parts: List[str] = []
+        calls: List[Dict[str, Any]] = []
+        for out in final.get("output") or []:
+            if out.get("type") == "message":
+                text_parts.extend(c.get("text", "") for c in out.get("content") or [] if c.get("type") == "output_text")
+            elif out.get("type") == "function_call":
+                try:
+                    args = json.loads(out.get("arguments") or "{}")
+                except Exception:
+                    args = {}
+                calls.append({"id": out.get("call_id", ""), "name": out.get("name", ""), "arguments": args})
+        content = "".join(text_parts)
+        assistant: Dict[str, Any] = {"role": "assistant", "content": content}
+        if calls:
+            assistant["tool_calls"] = [
+                {"id": c["id"], "type": "function",
+                 "function": {"name": c["name"], "arguments": json.dumps(c["arguments"], ensure_ascii=False)}}
+                for c in calls
+            ]
+        return {"content": content, "tool_calls": calls, "assistant_message": assistant,
+                "finish_reason": final.get("status", "")}
+
+    # ------------------------------------------------------------------
     # Tool calling (agent sessions)
     # ------------------------------------------------------------------
 
@@ -783,6 +978,8 @@ class LLMClient:
         def _dispatch():
             if self._client_type == "anthropic":
                 return self._chat_with_tools_anthropic(messages, tools, mt, temp)
+            if self._client_type == "chatgpt":
+                return self._chat_with_tools_chatgpt(messages, tools)
             kwargs = self._sampling(dict(
                 model=self.model,
                 messages=messages,

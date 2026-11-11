@@ -28,7 +28,8 @@ from .chapter_check import (
     split_paragraphs, volume_name_variants,
 )
 from .extractor import strip_glossary_table
-from .qa_fix import apply_safe_fixes, SAFE_CATEGORIES, ID_ONLY
+from .qa_i18n import localize
+from .qa_fix import apply_safe_fixes, available_categories, SAFE_CATEGORIES, ID_ONLY
 from .storage.chapters import (
     get_chapters, get_chapter, update_chapter_translation, archive_current_translation,
 )
@@ -55,9 +56,19 @@ def _words(text: str) -> List[str]:
     return re.findall(r"[a-z]+(?:-[a-z]+)*", text.lower())
 
 
+# (US, UK) stems; a prefix match covers inflections (colored, colours).
+US_UK = [
+    ("color", "colour"), ("realiz", "realis"), ("travele", "travelle"), ("gray", "grey"), ("toward", "towards"),
+    ("defense", "defence"), ("center", "centre"), ("favor", "favour"), ("honor", "honour"), ("apologiz", "apologis"),
+    ("organiz", "organis"), ("analyz", "analys"), ("recogniz", "recognis"), ("neighbor", "neighbour"),
+    ("behavior", "behaviour"), ("armor", "armour"), ("theater", "theatre"), ("meter", "metre"),
+]
+
+
 def scan_series(series_id: str, include_low: bool = True) -> Dict[str, Any]:
     series = get_series(series_id) or {}
     target = series.get("targetLanguage", "English")
+    source = series.get("sourceLanguage", "Japanese")
     lang = lang_code(target)
     glossary = series.get("glossary") or []
     chapters = _done_chapters(series_id)
@@ -65,7 +76,8 @@ def scan_series(series_id: str, include_low: bool = True) -> Dict[str, Any]:
     chapter_reports: List[Dict[str, Any]] = []
     bodies: List[str] = []
     for pos, ch in enumerate(chapters, 1):
-        rep = check_chapter(ch.get("rawContent", ""), ch.get("translatedContent", ""), glossary, target)
+        rep = check_chapter(ch.get("rawContent", ""), ch.get("translatedContent", ""), glossary, target, source,
+                            (ch.get("glossaryUpdates") or {}).get("entries") or [])
         body = _body(ch)
         bodies.append(body)
         findings = rep["findings"] if include_low else [f for f in rep["findings"] if f["severity"] != "low"]
@@ -83,7 +95,7 @@ def scan_series(series_id: str, include_low: bool = True) -> Dict[str, Any]:
     # Name variants, with where each form appears and which one the glossary locks.
     glossary_forms = {w for e in glossary for w in re.findall(r"[A-Za-zāīūēōĀĪŪĒŌ]+", e.get("translatedTerm") or "")}
     variants = []
-    for g in volume_name_variants(bodies):
+    for g in volume_name_variants(bodies, source):
         forms = []
         for form, count in sorted(g["forms"].items(), key=lambda kv: -kv[1]):
             where = [r["chapterNumber"] for r, b in zip(chapter_reports, bodies)
@@ -104,6 +116,18 @@ def scan_series(series_id: str, include_low: bool = True) -> Dict[str, Any]:
                 spelling.append({"standard": good, "nonStandard": bad, "nonStandardCount": n_bad,
                                  "standardCount": n_good})
         volume["spelling"] = spelling
+
+    # Spelling consistency (EN) — US and UK forms mixed inside one volume. Which
+    # standard is chosen matters less than using one.
+    if lang == "en":
+        text = "\n".join(bodies).lower()
+        mixed = []
+        for us, uk in US_UK:
+            n_us = len(re.findall(r"\b" + us + r"[a-z]*\b", text))
+            n_uk = len(re.findall(r"\b" + uk + r"[a-z]*\b", text))
+            if n_us and n_uk:
+                mixed.append({"us": us, "uk": uk, "usCount": n_us, "ukCount": n_uk})
+        volume["spellingMixed"] = mixed
 
     # Quote style majority.
     styles = Counter(r["stats"]["quoteStyle"] for r in chapter_reports)
@@ -136,11 +160,11 @@ def scan_series(series_id: str, include_low: bool = True) -> Dict[str, Any]:
             if rel < 0.75 or rel > 1.4:
                 outliers.append({"chapter": r["chapterNumber"], "ratio": s["lengthRatio"],
                                  "relative": round(rel, 2), "kind": "short" if rel < 1 else "long"})
+                detail = (f"Translation is {round(rel * 100)}% of the volume's usual length for this much source — "
+                          + ("content may be missing" if rel < 1 else "content may be duplicated or invented"))
                 r["findings"].insert(0, {
                     "type": "length_outlier", "severity": "high" if rel < 0.75 else "medium", "para": None,
-                    "detail": (f"Translation is {round(rel * 100)}% of the volume's usual length for this much source — "
-                               + ("content may be missing" if rel < 1 else "content may be duplicated or invented")),
-                    "text": "",
+                    "detail": detail, "detailId": localize(detail) or detail, "text": "",
                 })
                 r["stats"]["high" if rel < 0.75 else "medium"] += 1
     volume["length"] = {"median": round(median, 3), "outliers": outliers}
@@ -238,11 +262,12 @@ def preview_safe_fixes(series_id: str, categories: List[str]) -> Dict[str, Any]:
     """Dry run: what each category would change, per chapter, with a few samples."""
     series = get_series(series_id) or {}
     target = series.get("targetLanguage", "English")
+    source = series.get("sourceLanguage", "Japanese")
     per_category = Counter()
     chapters = []
     samples: Dict[str, List[Dict[str, Any]]] = {}
     for ch in _done_chapters(series_id):
-        _, changes = apply_safe_fixes(ch.get("translatedContent", ""), categories, target)
+        _, changes = apply_safe_fixes(ch.get("translatedContent", ""), categories, target, source)
         if not changes:
             continue
         counts = Counter(c["category"] for c in changes)
@@ -253,7 +278,7 @@ def preview_safe_fixes(series_id: str, categories: List[str]) -> Dict[str, Any]:
             bucket = samples.setdefault(c["category"], [])
             if len(bucket) < 6:
                 bucket.append({"chapter": str(ch.get("chapterNumber", "?")), **c})
-    available = [c for c in SAFE_CATEGORIES if lang_code(target) == "id" or c not in ID_ONLY]
+    available = available_categories(target, source)
     return {"categories": dict(per_category), "chapters": chapters, "samples": samples, "available": available}
 
 
@@ -268,7 +293,8 @@ def apply_safe_fixes_to_series(series_id: str, categories: List[str],
     for ch in _done_chapters(series_id):
         if wanted and ch["id"] not in wanted:
             continue
-        new_text, changes = apply_safe_fixes(ch.get("translatedContent", ""), categories, target)
+        new_text, changes = apply_safe_fixes(ch.get("translatedContent", ""), categories, target,
+                                             series.get("sourceLanguage", "Japanese"))
         if not changes:
             continue
         archive_current_translation(series_id, ch["id"])
@@ -285,7 +311,8 @@ def apply_safe_fixes_to_chapter(series_id: str, chapter_id: str, categories: Lis
     if not ch:
         return 0
     new_text, changes = apply_safe_fixes(ch.get("translatedContent", ""), categories,
-                                         series.get("targetLanguage", "English"))
+                                         series.get("targetLanguage", "English"),
+                                         series.get("sourceLanguage", "Japanese"))
     if changes:
         archive_current_translation(series_id, chapter_id)
         update_chapter_translation(series_id, chapter_id, new_text)

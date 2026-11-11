@@ -4,10 +4,13 @@
  */
 
 import { useState, useEffect } from 'react'
-import { X, FileCode2, Save, Info } from 'lucide-react'
+import { X, FileCode2, Save, Info, Library } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
-import { getProfileTemplates, saveProfileTemplates, getDefaultTaskPrompts } from '../api'
+import { getProfileTemplates, saveProfileTemplates, getDefaultTaskPrompts, listPromptPresets } from '../api'
 import type { TaskPromptDefaults, TaskPromptKind } from '../api'
+import type { PromptPreset } from '../types'
+import { PromptPresetLibrary } from './PromptPresetLibrary'
+import { approxTokens, presetLabel } from '../utils/promptPresets'
 
 interface Props {
   open: boolean
@@ -85,6 +88,9 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
   const profiles = useAppStore((s) => s.profiles)
 
   const [systemPrompt, setSystemPrompt] = useState('')
+  const [systemPreset, setSystemPreset] = useState('')
+  const [presets, setPresets] = useState<PromptPreset[]>([])
+  const [libraryOpen, setLibraryOpen] = useState(false)
   const [instructions, setInstructions] = useState('')
   const [tasks, setTasks] = useState<Record<TaskPromptKind, string>>({ revision: '', autofix: '', prepass: '' })
   const [defaults, setDefaults] = useState<TaskPromptDefaults | null>(null)
@@ -101,6 +107,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
     getProfileTemplates()
       .then((t) => {
         setSystemPrompt(t.systemPromptTemplate)
+        setSystemPreset(t.systemPromptPreset ?? '')
         setInstructions(t.instructionsTemplate)
         setTasks({
           revision: t.revisionPromptTemplate || '',
@@ -108,6 +115,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
           prepass: t.prepassPromptTemplate || '',
         })
         getDefaultTaskPrompts().then(setDefaults).catch(() => setDefaults(null))
+        listPromptPresets(true).then(setPresets).catch(() => setPresets([]))
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
@@ -118,7 +126,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
     setError('')
     setSaved(false)
     try {
-      await saveProfileTemplates(systemPrompt, instructions, tasks)
+      await saveProfileTemplates(systemPrompt, instructions, tasks, systemPreset)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e: any) {
@@ -129,6 +137,8 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
   }
 
   if (!open) return null
+
+  const chosenPreset = presets.find(p => p.id === systemPreset)
 
   return (
     <div
@@ -193,6 +203,34 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
                     — digunakan jika series tidak punya custom system prompt
                   </span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Preset profil</span>
+                  <select value={systemPreset} onChange={(e) => setSystemPreset(e.target.value)}
+                    style={{ flex: 1, fontSize: '12px', padding: '5px 8px', border: '2px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', cursor: 'pointer' }}>
+                    <option value="">— Tanpa preset (otomatis per pasangan bahasa bila semua kosong) —</option>
+                    <optgroup label="Preset bawaan (hanya baca)">
+                      {presets.filter(p => p.builtin).map(p => <option key={p.id} value={p.id}>{presetLabel(p)}</option>)}
+                    </optgroup>
+                    {presets.some(p => !p.builtin) && (
+                      <optgroup label="Preset milikku">
+                        {presets.filter(p => !p.builtin).map(p => <option key={p.id} value={p.id}>{presetLabel(p)}</option>)}
+                      </optgroup>
+                    )}
+                  </select>
+                  <button type="button" onClick={() => setLibraryOpen(true)} className="flex items-center gap-1"
+                    style={{ fontSize: '11px', fontWeight: 800, border: '2px solid #111', background: '#00F7FF', color: '#111', padding: '4px 10px', cursor: 'pointer' }}>
+                    <Library size={12} /> PRESET
+                  </button>
+                </div>
+                {chosenPreset && (
+                  <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                    {systemPrompt.trim()
+                      ? <span style={{ color: '#FFB020', fontWeight: 700 }}>Teks template di bawah diutamakan — kosongkan agar preset "{chosenPreset.name}" yang dipakai.</span>
+                      : <span>Dipakai: preset "{chosenPreset.name}" (≈{approxTokens(chosenPreset.text ?? '').toLocaleString()} token).</span>}
+                    <button type="button" onClick={() => setSystemPrompt(chosenPreset.text ?? '')} style={smallButton}>Salin preset ke teks</button>
+                  </div>
+                )}
+                <PromptPresetLibrary open={libraryOpen} onClose={() => setLibraryOpen(false)} onChanged={setPresets} initialId={systemPreset} />
                 <textarea
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}

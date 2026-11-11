@@ -4,12 +4,16 @@
  */
 
 import { useEffect, useState } from 'react'
-import { AlertCircle, ExternalLink, Info, RotateCcw, Save } from 'lucide-react'
-import { getProfileTemplates, describeRequestParams } from '../api'
+import { AlertCircle, Copy, ExternalLink, Info, Library, RotateCcw, Save } from 'lucide-react'
+import { getProfileTemplates, describeRequestParams, listPromptPresets, duplicatePromptPreset } from '../api'
 import type { RequestParams } from '../api'
 import { useI18n } from '../i18n'
 import { PROVIDERS } from '../types'
-import type { AppConfig, Series, WorkerStatus } from '../types'
+import type { AppConfig, PromptPreset, Series, WorkerStatus } from '../types'
+import { PromptPresetLibrary } from './PromptPresetLibrary'
+import { ChatGPTPlanBadge } from './ChatGPTCard'
+import { approxTokens, presetLabel, resolvePrompt } from '../utils/promptPresets'
+import type { ResolvedPrompt } from '../utils/promptPresets'
 
 interface PromptModelPanelProps {
   config: AppConfig | null
@@ -18,9 +22,28 @@ interface PromptModelPanelProps {
   onInstructionsChange: (val: string) => void
   systemPrompt: string
   onSystemPromptChange: (val: string) => void
-  onSave: (config: AppConfig, instructions: string, systemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean, revisionPass: boolean, lookupEnabled: boolean, lookupChapters: number) => void
+  onSave: (config: AppConfig, instructions: string, systemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean, revisionPass: boolean, lookupEnabled: boolean, lookupChapters: number, systemPromptPreset: string) => void
   workerStatuses?: WorkerStatus[]
   loading?: boolean
+}
+
+const SOURCE_BADGE: Record<ResolvedPrompt['source'], { label: string; bg: string; fg: string }> = {
+  series: { label: 'Teks series', bg: '#111', fg: '#FFEF33' },
+  series_preset: { label: 'Preset series', bg: '#00F7FF', fg: '#111' },
+  profile: { label: 'Template profil', bg: '#28E272', fg: '#111' },
+  profile_preset: { label: 'Preset profil', bg: '#28E272', fg: '#111' },
+  auto: { label: 'Otomatis', bg: '#C9A7FF', fg: '#111' },
+  none: { label: 'Kosong', bg: '#FF8A8A', fg: '#111' },
+}
+
+function describe(r: ResolvedPrompt): string {
+  switch (r.source) {
+    case 'profile': return 'template profil'
+    case 'profile_preset': return `preset profil: ${r.preset?.name}`
+    case 'auto': return `otomatis: ${r.preset?.name}`
+    case 'none': return 'tanpa system prompt'
+    default: return ''
+  }
 }
 
 const TEMPLATE_VARS = [
@@ -86,8 +109,24 @@ export function PromptModelPanel({
   const [dirty, setDirty] = useState(false)
   const [defaultPrompt, setDefaultPrompt] = useState('')
   const [defaultInstructions, setDefaultInstructions] = useState('')
+  const [profilePreset, setProfilePreset] = useState('')
   const [loadingDefault, setLoadingDefault] = useState(false)
+  const [presets, setPresets] = useState<PromptPreset[]>([])
+  const [preset, setPreset] = useState(series?.systemPromptPreset ?? '')
+  // "Own text" is a choice of its own: it stays selected while the text is
+  // still empty, so picking it and then typing does not flip back to a preset.
+  const [customMode, setCustomMode] = useState(!!systemPrompt.trim())
+  const [libraryOpen, setLibraryOpen] = useState(false)
   const { t } = useI18n()
+
+  useEffect(() => {
+    setPreset(series?.systemPromptPreset ?? '')
+    setCustomMode(!!(series?.systemPrompt ?? '').trim())
+  }, [series?.id])
+
+  useEffect(() => {
+    listPromptPresets(true).then(setPresets).catch(() => setPresets([]))
+  }, [])
 
   useEffect(() => {
     if (!config) return
@@ -109,14 +148,46 @@ export function PromptModelPanel({
       .then((tpl) => {
         setDefaultPrompt(tpl.systemPromptTemplate)
         setDefaultInstructions(tpl.instructionsTemplate)
+        setProfilePreset(tpl.systemPromptPreset ?? '')
       })
-      .catch(() => { setDefaultPrompt(''); setDefaultInstructions('') })
+      .catch(() => { setDefaultPrompt(''); setDefaultInstructions(''); setProfilePreset('') })
       .finally(() => setLoadingDefault(false))
   }, [])
 
-  const displayPrompt = systemPrompt.trim() || defaultPrompt
-  const isCustomPrompt = systemPrompt.trim().length > 0
-  const showPromptBadge = isCustomPrompt || defaultPrompt.length > 0
+  const promptInputs = {
+    profileText: defaultPrompt, profilePreset,
+    seriesInstructions: instructions, profileInstructions: defaultInstructions,
+    sourceLanguage: series?.sourceLanguage ?? '', targetLanguage: series?.targetLanguage ?? '', presets,
+  }
+  const resolved = resolvePrompt({ ...promptInputs, seriesText: customMode ? systemPrompt : '', seriesPreset: customMode ? '' : preset })
+  const inherited = resolvePrompt({ ...promptInputs, seriesText: '', seriesPreset: '' })
+  const promptChoice = customMode ? '__custom' : preset
+  const builtinPresets = presets.filter(p => p.builtin)
+  const userPresets = presets.filter(p => !p.builtin)
+
+  const choosePrompt = (value: string) => {
+    if (value === '__custom') {
+      // Start from what is in effect now, so "own text" means editing it.
+      if (!systemPrompt.trim()) onSystemPromptChange(resolved.text)
+      setCustomMode(true)
+    } else {
+      setCustomMode(false)
+      setPreset(value)
+      onSystemPromptChange('')
+    }
+    setDirty(true)
+  }
+
+  const duplicateAndUse = async () => {
+    if (!resolved.preset) return
+    const copy = await duplicatePromptPreset(resolved.preset.id)
+    setPresets(await listPromptPresets(true))
+    setCustomMode(false)
+    setPreset(copy.id)
+    onSystemPromptChange('')
+    setDirty(true)
+    setLibraryOpen(true)
+  }
 
   // Instructions are optional — an all-in-one system prompt needs no second
   // section. A placeholder-only value ("-", ".") counts as empty, matching how
@@ -168,6 +239,7 @@ export function PromptModelPanel({
       revisionPass,
       lookupEnabled,
       lookupChapters,
+      customMode ? '' : preset,
     )
     setDirty(false)
   }
@@ -238,6 +310,7 @@ export function PromptModelPanel({
             )}
           </div>
         )}
+        {selectedWorker?.provider === 'chatgpt' && <ChatGPTPlanBadge />}
 
         <div style={{ height: '2px', backgroundColor: 'var(--color-separator)' }} />
 
@@ -246,32 +319,61 @@ export function PromptModelPanel({
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
               {t.seriesSettings.systemPrompt}
             </label>
-            {showPromptBadge && (
-              <div className="flex items-center gap-2">
-                <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomPrompt ? '#FFEF33' : '#fff', background: isCustomPrompt ? '#111' : '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>
-                  {isCustomPrompt ? t.seriesSettings.custom : t.seriesSettings.default}
-                </span>
-                {isCustomPrompt && (
-                  <button
-                    type="button"
-                    onClick={() => { onSystemPromptChange(''); setDirty(true) }}
-                    className="flex items-center gap-1"
-                    style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', border: 'none', background: 'transparent', cursor: 'pointer', textTransform: 'uppercase' }}
-                    title="Reset ke default template"
-                  >
-                    <RotateCcw size={10} /> Reset
-                  </button>
-                )}
-              </div>
-            )}
+            <span style={{ fontSize: '10px', fontWeight: 700, color: SOURCE_BADGE[resolved.source].fg, background: SOURCE_BADGE[resolved.source].bg, padding: '2px 6px', textTransform: 'uppercase' }}>
+              {SOURCE_BADGE[resolved.source].label}
+            </span>
+          </div>
+          <div className="flex gap-2 mb-2">
+            <select
+              value={promptChoice}
+              onChange={(e) => choosePrompt(e.target.value)}
+              className="neo-input"
+              style={{ flex: 1, cursor: 'pointer', fontSize: '12px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+            >
+              <option value="">Ikuti profil — {describe(inherited)}</option>
+              <option value="__custom">Teks khusus series ini</option>
+              <optgroup label="Preset bawaan (hanya baca)">
+                {builtinPresets.map(p => <option key={p.id} value={p.id}>{presetLabel(p)}</option>)}
+              </optgroup>
+              {userPresets.length > 0 && (
+                <optgroup label="Preset milikku">
+                  {userPresets.map(p => <option key={p.id} value={p.id}>{presetLabel(p)}</option>)}
+                </optgroup>
+              )}
+            </select>
+            <button type="button" onClick={() => setLibraryOpen(true)} className="neo-button flex items-center gap-1"
+              style={{ fontSize: '11px', padding: '4px 10px', backgroundColor: '#00F7FF', color: '#111' }} title="Lihat, duplikat, dan edit preset">
+              <Library size={12} /> PRESET
+            </button>
           </div>
           <textarea
-            value={displayPrompt}
+            value={customMode ? systemPrompt : resolved.text}
+            readOnly={!customMode}
             onChange={(e) => { onSystemPromptChange(e.target.value); setDirty(true) }}
             placeholder={loadingDefault ? t.common.loading : 'System prompt...'}
             className="neo-textarea"
-            style={{ minHeight: '200px', fontSize: '12px', fontFamily: "'Inter', monospace", backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+            style={{ minHeight: '200px', fontSize: '12px', fontFamily: "'Inter', monospace", backgroundColor: customMode ? 'var(--color-surface)' : 'var(--color-surface-2)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           />
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+            <span>≈{approxTokens(customMode ? systemPrompt : resolved.text).toLocaleString()} token</span>
+            {!customMode && resolved.text && (
+              <>
+                <span>· hanya baca —</span>
+                <button type="button" onClick={() => choosePrompt('__custom')}
+                  style={{ fontSize: '10px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '1px 6px', cursor: 'pointer', textTransform: 'uppercase' }}>
+                  Salin jadi teks series
+                </button>
+                {resolved.preset && (
+                  <button type="button" onClick={duplicateAndUse} className="flex items-center gap-1"
+                    style={{ fontSize: '10px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '1px 6px', cursor: 'pointer', textTransform: 'uppercase' }}>
+                    <Copy size={10} /> Duplikat preset & pakai
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+          <PromptPresetLibrary open={libraryOpen} onClose={() => setLibraryOpen(false)} onChanged={setPresets}
+            initialId={resolved.preset?.id ?? preset} />
           <div className="mt-2 p-2.5" style={{ backgroundColor: 'var(--color-surface-2)', border: '2px solid var(--color-separator)', fontSize: '11px' }}>
             <div className="flex items-center gap-1 mb-1.5" style={{ fontWeight: 700, color: 'var(--color-text-muted)' }}>
               <Info size={11} /> {t.seriesSettings.templateVars}

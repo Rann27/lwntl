@@ -6,11 +6,13 @@ Handles series.json CRUD operations and cascade delete
 import json
 import re
 import shutil
+import unicodedata
 import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .config import get_profile_data_dir
+from ..term_match import SAME, find_duplicate, normalize
 
 # Source languages whose glossary source terms must be written in the original
 # CJK script — a Latin-only source term is almost always an extraction mistake
@@ -26,7 +28,8 @@ def _is_cjk_source(language: Optional[str]) -> bool:
 
 
 def _has_cjk_char(text: str) -> bool:
-    return bool(_CJK_CHAR_RE.search(text or ""))
+    # NFKC first: half-width katakana (ｱﾘｽ) is Japanese too.
+    return bool(_CJK_CHAR_RE.search(unicodedata.normalize("NFKC", text or "")))
 
 
 def _validate_source_term(series: Dict[str, Any], source_term: str) -> None:
@@ -49,6 +52,7 @@ def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
     series.setdefault("revisionPass", False)
     series.setdefault("lookupEnabled", False)
     series.setdefault("lookupChapters", 1)
+    series.setdefault("systemPromptPreset", "")
     return series
 
 
@@ -179,7 +183,7 @@ def update_series(series_id: str, title: str, language: str,
                   worker_id: str = None, iteration_lock: bool = None,
                   auto_fix_cjk: bool = None, image_folder: str = None,
                   revision_pass: bool = None, lookup_enabled: bool = None,
-                  lookup_chapters: int = None) -> Dict[str, Any]:
+                  lookup_chapters: int = None, system_prompt_preset: str = None) -> Dict[str, Any]:
     """
     Update a series
     
@@ -218,6 +222,8 @@ def update_series(series_id: str, title: str, language: str,
         series["lookupEnabled"] = lookup_enabled
     if lookup_chapters is not None:
         series["lookupChapters"] = max(0, min(int(lookup_chapters), 10))
+    if system_prompt_preset is not None:
+        series["systemPromptPreset"] = system_prompt_preset
     series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
     
     # Write updated series.json
@@ -304,7 +310,32 @@ def save_instructions(series_id: str, instructions: str) -> bool:
     return True
 
 
-def add_glossary_entry(series_id: str, source_term: str, translated_term: str, notes: str) -> Dict[str, Any]:
+def _duplicate_error(source_term: str, hit: Dict[str, Any]) -> ValueError:
+    existing = hit.get("sourceTerm", "")
+    if existing.strip() == source_term.strip():
+        return ValueError(f"Source term '{source_term}' already exists in glossary")
+    return ValueError(f"Source term '{source_term}' already exists in glossary as '{existing}'")
+
+
+def _clean_aliases(series: Dict[str, Any], source_term: str, aliases: Optional[List[str]]) -> List[str]:
+    """Distinct, valid alias spellings that differ from the source term."""
+    out: List[str] = []
+    seen = {normalize(source_term)}
+    for a in aliases or []:
+        a = (a or "").strip() if isinstance(a, str) else ""
+        if not a or normalize(a) in seen:
+            continue
+        try:
+            _validate_source_term(series, a)
+        except ValueError:
+            continue
+        seen.add(normalize(a))
+        out.append(a)
+    return out
+
+
+def add_glossary_entry(series_id: str, source_term: str, translated_term: str, notes: str,
+                       aliases: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Add a glossary entry to a series
     
@@ -313,6 +344,7 @@ def add_glossary_entry(series_id: str, source_term: str, translated_term: str, n
         source_term: Original term (kanji/hanzi/hangul)
         translated_term: Translated term
         notes: Optional notes
+        aliases: Other source spellings of the same term (kana form, variant kanji)
         
     Returns:
         dict: The created glossary entry
@@ -327,10 +359,12 @@ def add_glossary_entry(series_id: str, source_term: str, translated_term: str, n
 
     _validate_source_term(series, source_term)
 
-    src_normalized = source_term.strip().lower()
-    for existing in series.get("glossary", []):
-        if existing.get("sourceTerm", "").strip().lower() == src_normalized:
-            raise ValueError(f"Source term '{source_term}' already exists in glossary")
+    # Same term under another spelling (width, variant kanji, separators, furigana,
+    # an existing alias). Honorifics stay distinct here: someone adding 魔王様 next
+    # to 魔王 by hand may want both.
+    dup = find_duplicate(source_term, translated_term, series.get("glossary", []), honorifics=False)
+    if dup and dup[0] == SAME:
+        raise _duplicate_error(source_term, dup[1])
 
     entry_id = str(uuid.uuid4())
     now = datetime.utcnow().isoformat() + 'Z'
@@ -342,6 +376,9 @@ def add_glossary_entry(series_id: str, source_term: str, translated_term: str, n
         "notes": notes,
         "updatedAt": now
     }
+    clean = _clean_aliases(series, source_term, aliases)
+    if clean:
+        entry["aliases"] = clean
 
     series["glossary"].append(entry)
     series["updatedAt"] = now
@@ -378,10 +415,10 @@ def update_glossary_entry(series_id: str, entry_id: str, source_term: str, trans
 
     _validate_source_term(series, source_term)
 
-    src_normalized = source_term.strip().lower()
-    for existing in series.get("glossary", []):
-        if existing.get("id") != entry_id and existing.get("sourceTerm", "").strip().lower() == src_normalized:
-            raise ValueError(f"Source term '{source_term}' already exists in glossary")
+    dup = find_duplicate(source_term, translated_term, series.get("glossary", []),
+                         exclude_id=entry_id, honorifics=False)
+    if dup and dup[0] == SAME:
+        raise _duplicate_error(source_term, dup[1])
 
     entry_found = False
     now = datetime.utcnow().isoformat() + 'Z'
@@ -405,6 +442,63 @@ def update_glossary_entry(series_id: str, entry_id: str, source_term: str, trans
     with open(series_path, 'w', encoding='utf-8') as f:
         json.dump(series, f, indent=2, ensure_ascii=False)
     
+    return entry
+
+
+def add_glossary_alias(series_id: str, entry_id: str, alias: str) -> Dict[str, Any]:
+    """
+    Record another source spelling of an entry (まおう for 魔王, a variant kanji).
+    The pre-filter then finds the entry under that spelling too, and auto-apply
+    never adds it as a separate term.
+    """
+    series = get_series(series_id)
+    if series is None:
+        raise FileNotFoundError(f"Series {series_id} not found")
+    alias = (alias or "").strip()
+    if not alias:
+        raise ValueError("Alias is empty")
+    _validate_source_term(series, alias)
+
+    entry = next((e for e in series.get("glossary", []) if e.get("id") == entry_id), None)
+    if entry is None:
+        raise FileNotFoundError(f"Glossary entry {entry_id} not found in series {series_id}")
+    own = {normalize(s) for s in [entry.get("sourceTerm", "")] + list(entry.get("aliases") or [])}
+    if normalize(alias) in own:
+        return entry
+    dup = find_duplicate(alias, "", series.get("glossary", []), exclude_id=entry_id, honorifics=False)
+    if dup and dup[0] == SAME:
+        raise ValueError(f"'{alias}' already belongs to '{dup[1].get('sourceTerm')}'")
+
+    now = datetime.utcnow().isoformat() + 'Z'
+    entry.setdefault("aliases", []).append(alias)
+    entry["updatedAt"] = now
+    series["updatedAt"] = now
+    series_path = get_series_path(series_id)
+    with open(series_path, 'w', encoding='utf-8') as f:
+        json.dump(series, f, indent=2, ensure_ascii=False)
+    return entry
+
+
+def remove_glossary_alias(series_id: str, entry_id: str, alias: str) -> Dict[str, Any]:
+    """Drop one alias spelling from an entry."""
+    series = get_series(series_id)
+    if series is None:
+        raise FileNotFoundError(f"Series {series_id} not found")
+    entry = next((e for e in series.get("glossary", []) if e.get("id") == entry_id), None)
+    if entry is None:
+        raise FileNotFoundError(f"Glossary entry {entry_id} not found in series {series_id}")
+    remaining = [a for a in entry.get("aliases") or [] if a != alias]
+    if remaining:
+        entry["aliases"] = remaining
+    else:
+        entry.pop("aliases", None)
+
+    now = datetime.utcnow().isoformat() + 'Z'
+    entry["updatedAt"] = now
+    series["updatedAt"] = now
+    series_path = get_series_path(series_id)
+    with open(series_path, 'w', encoding='utf-8') as f:
+        json.dump(series, f, indent=2, ensure_ascii=False)
     return entry
 
 

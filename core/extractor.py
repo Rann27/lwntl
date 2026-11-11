@@ -150,7 +150,10 @@ def parse_glossary_from_translation(translated_content: str) -> Dict[str, Any]:
             break
 
     # ── Step 4: parse the chosen table block ─────────────────────────────────
+    from .term_match import entry_forms
+
     entries: List[Dict[str, Any]] = []
+    seen_forms = set()
     header_skipped = False
 
     for row in chosen_block:
@@ -179,6 +182,12 @@ def parse_glossary_from_translation(translated_content: str) -> Dict[str, Any]:
         notes = cells[2].strip() if len(cells) > 2 else ""
 
         if source and translated:
+            # A row repeating an earlier one under another spelling is dropped;
+            # the first row wins.
+            forms = set(entry_forms({"sourceTerm": source}))
+            if forms & seen_forms:
+                continue
+            seen_forms |= forms
             entries.append({
                 "id": f"parsed-{len(entries)}",
                 "sourceTerm": source,
@@ -216,7 +225,8 @@ def _collect_streamed_content(stream) -> str:
 def extract_glossary_terms(
     llm_client: LLMClient,
     raw_content: str,
-    translated_content: str
+    translated_content: str,
+    target_language: str = "",
 ) -> Dict[str, Any]:
     """
     Extract glossary terms from original and translated content
@@ -234,7 +244,7 @@ def extract_glossary_terms(
     """
     try:
         # Build extraction prompt
-        messages = build_extraction_prompt(raw_content, translated_content)
+        messages = build_extraction_prompt(raw_content, translated_content, target_language)
 
         # Use stream=True so thinking tokens (reasoning_content) don't fill the budget.
         # We collect only delta.content chunks — the actual answer after thinking.

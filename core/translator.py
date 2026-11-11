@@ -16,7 +16,7 @@ from .storage.chapters import (
     archive_current_translation, update_chapter_fields,
 )
 from .prompt_builder import build_system_prompt, build_user_prompt
-from .extractor import extract_glossary_terms, parse_glossary_from_translation
+from .extractor import extract_glossary_terms, parse_glossary_from_translation, strip_glossary_table
 from .context_window import build_context_window, generate_chapter_summary
 from .placeholder import wrap_placeholders, unwrap_placeholders, reinsert_missing_placeholders
 
@@ -25,7 +25,8 @@ from .placeholder import wrap_placeholders, unwrap_placeholders, reinsert_missin
 # match the raw chapter text, so the glossary pre-filter drops it and the term is
 # effectively invisible to the model.
 _CJK_SOURCE_LANGS = ("japanese", "chinese", "korean")
-_CJK_CHAR_RE = re.compile(r'[぀-ゟ゠-ヿ一-鿿가-힯㐀-䶿]')
+# ｦ-ﾟ: half-width katakana (ｱﾘｽ) is Japanese too.
+_CJK_CHAR_RE = re.compile(r'[぀-ゟ゠-ヿ一-鿿가-힯㐀-䶿ｦ-ﾟ]')
 # Share of parsed source terms that may lack CJK before the table is considered
 # unusable. Healthy chapters sit near zero; a corrupted table sits near 1.0.
 _MAX_LATIN_SOURCE_RATIO = 0.5
@@ -51,6 +52,46 @@ def _latin_source_ratio(entries: List[Dict[str, Any]]) -> float:
         return 0.0
     bad = sum(1 for e in entries if not _CJK_CHAR_RE.search(e.get("sourceTerm") or ""))
     return bad / len(entries)
+
+
+def _verify_extracted(entries: List[Dict[str, Any]], glossary: List[Dict[str, Any]],
+                      body: str) -> List[Dict[str, Any]]:
+    """
+    Keep only fallback-extracted terms whose rendering the text actually uses.
+
+    The fallback extraction is a second model call that reads source and
+    translation and may answer from its own idea of a term instead of from the
+    text ("Hero Summoning" where the chapter says "Pemanggilan Hero"). Such a
+    row reports a false inconsistency for a known term and would lock a word the
+    translation never used for a new one.
+
+    A known term is kept only when its rendering differs from the glossary AND
+    occurs in the text — that is a real deviation the QA scan should point at
+    (auto-apply never adds a known term). Matching the glossary, it adds nothing.
+    """
+    from .glossary_guard import name_tokens
+    from .term_match import SAME, find_duplicate, rendering_key
+
+    low = body.lower()
+    kept = []
+    for e in entries:
+        src, tgt = (e.get("sourceTerm") or "").strip(), (e.get("translatedTerm") or "").strip()
+        if not src or not tgt:
+            continue
+        dup = find_duplicate(src, tgt, glossary)
+        if dup and dup[0] == SAME:
+            locked = dup[1].get("translatedTerm", "")
+            # Hosono-san over Hosono is an honorific, not a different rendering.
+            if (rendering_key(tgt) == rendering_key(locked) or tgt.lower() not in low
+                    or set(name_tokens(tgt)) <= set(name_tokens(locked))):
+                continue
+        else:
+            words = [w for w in re.findall(r"[A-Za-zÀ-ɏ'\-]{3,}", tgt) if w[:1].isupper()]
+            # A full name is mostly used by one of its words (Funasaka Touma → Touma).
+            if tgt.lower() not in low and not any(re.search(r"\b" + re.escape(w) + r"\b", body) for w in words):
+                continue
+        kept.append({**e, "origin": "extracted"})
+    return kept
 
 
 class Translator:
@@ -199,11 +240,17 @@ class Translator:
     def _auto_apply_glossary(self, series_id: str, chapter_id: str):
         """
         After a chapter is translated, auto-apply its extracted glossary terms
-        to the series glossary — skipping any term whose sourceTerm already exists
-        (case-insensitive). This gives the next chapter in the batch up-to-date context.
+        to the series glossary. This gives the next chapter in the batch
+        up-to-date context.
+
+        A proposed term that is already in the glossary under any spelling
+        (term_match.find_duplicate) is never added again. One with a new source
+        spelling but exactly the rendering of an existing name or proper term
+        is recorded as an alias of that entry instead of a second row.
         """
-        from .storage.series import get_series, add_glossary_entry
+        from .storage.series import get_series, add_glossary_entry, add_glossary_alias
         from .glossary_guard import find_conflict
+        from .term_match import ALIAS, find_duplicate, rendering_key
         try:
             chapter = get_chapter(series_id, chapter_id)
             if not chapter or chapter.get("status") != "done":
@@ -214,8 +261,7 @@ class Translator:
                 return
 
             series = get_series(series_id)
-            current = series.get("glossary", []) if series else []
-            existing = {e.get("sourceTerm", "").lower().strip() for e in current}
+            current = list(series.get("glossary", [])) if series else []
 
             source_lang = (series.get("sourceLanguage") or "") if series else ""
             cjk_source = _is_cjk_source(source_lang)
@@ -230,11 +276,31 @@ class Translator:
             raws = [c.get("rawContent") or "" for c in _all_chapters(series_id)]
             one_offs = 0
 
-            added = 0
+            added = aliased = 0
             for entry in new_entries:
                 src = (entry.get("sourceTerm") or "").strip()
                 translated = entry.get("translatedTerm", "")
-                if not src or src.lower() in existing:
+                if not src:
+                    continue
+                dup = find_duplicate(src, translated, current)
+                if dup:
+                    kind, hit = dup
+                    if kind == ALIAS:
+                        if (cjk_source and not _CJK_CHAR_RE.search(src)) or not hit.get("id"):
+                            continue
+                        try:
+                            add_glossary_alias(series_id, hit["id"], src)
+                            hit.setdefault("aliases", []).append(src)
+                            aliased += 1
+                            self._log(f"[Glossary] '{src}' recorded as another spelling of "
+                                      f"'{hit.get('sourceTerm')}' = {hit.get('translatedTerm')}")
+                        except ValueError as e:
+                            print(f"[Glossary] Alias '{src}' not recorded: {e}")
+                    elif rendering_key(translated) != rendering_key(hit.get("translatedTerm", "")):
+                        # The glossary already had this term and the chapter used
+                        # something else — the glossary wins; the chapter needs a look.
+                        self._log(f"[Glossary] Kept '{hit.get('sourceTerm')} = {hit.get('translatedTerm')}': "
+                                  f"this chapter's table proposed '{src} = {translated}' — check the chapter")
                     continue
                 if cjk_source and not _CJK_CHAR_RE.search(src):
                     print(f"[Glossary] Skipped '{src}': sourceTerm has no CJK (Latin leak for {source_lang} source)")
@@ -252,18 +318,20 @@ class Translator:
                     self._log(f"[Glossary] Skipped '{src} = {translated}': contradicts "
                               f"'{conflict.get('sourceTerm')} = {conflict.get('translatedTerm')}'")
                     continue
-                add_glossary_entry(
-                    series_id,
-                    src,
-                    translated,
-                    entry.get("notes", ""),
-                )
-                existing.add(src.lower())
-                current.append({"sourceTerm": src, "translatedTerm": translated})
+                try:
+                    current.append(add_glossary_entry(
+                        series_id,
+                        src,
+                        translated,
+                        entry.get("notes", ""),
+                    ))
+                except ValueError as e:
+                    print(f"[Glossary] Skipped '{src}': {e}")
+                    continue
                 added += 1
 
-            if added:
-                print(f"[Glossary] Auto-applied {added} new term(s) from chapter {chapter_id}")
+            if added or aliased:
+                print(f"[Glossary] Auto-applied {added} new term(s), {aliased} alias(es) from chapter {chapter_id}")
             if one_offs:
                 self._log(f"[Glossary] Not locked: {one_offs} term(s) that appear in only one chapter of the volume")
         except Exception as e:
@@ -614,8 +682,15 @@ class Translator:
                 if not parsed_entries:
                     self._log("[Glossary] No table found in translation - falling back to LLM extraction...")
                     glossary_updates = extract_glossary_terms(
-                        self.client, raw_content, full_translation
+                        self.client, raw_content, full_translation, series.get("targetLanguage", "")
                     )
+                    got = glossary_updates.get("entries") or []
+                    verified = _verify_extracted(got, series.get("glossary") or [],
+                                                 strip_glossary_table(full_translation))
+                    if len(verified) < len(got):
+                        self._log(f"[Glossary] Fallback extraction: kept {len(verified)} of {len(got)} term(s) "
+                                  "(dropped renderings the text does not use, and known terms that match the glossary)")
+                    glossary_updates["entries"] = verified
                 elif needs_reextract:
                     pct = int(_latin_source_ratio(parsed_entries) * 100)
                     self._log(

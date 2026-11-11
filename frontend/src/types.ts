@@ -13,7 +13,7 @@ export type EffortSetting = 'default' | 'none' | 'minimal' | 'low' | 'medium' | 
 
 // Config
 export interface AppConfig {
-  provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'mimo' | 'openrouter' | 'openaicompat'
+  provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'mimo' | 'chatgpt' | 'experiential' | 'uncensoredllm' | 'openrouter' | 'openaicompat'
   model: string
   workers: WorkerProfile[]
   customModels: Record<string, string> // provider -> custom model name
@@ -47,6 +47,11 @@ export interface AppConfig {
   mimoApiKey: string
   mimoThinking: boolean
   mimoReasoningEffort: 'low' | 'medium' | 'high'
+  /** Email of the account connected with Sign in with ChatGPT ('' = not connected). */
+  chatgptAccount: string
+  chatgptReasoningEffort: EffortSetting
+  experientialApiKey: string
+  uncensoredllmApiKey: string
   openaicompatApiKey: string
   openaicompatBaseUrl: string
   openaicompatUserAgent: string
@@ -107,6 +112,8 @@ export interface Series {
   lookupEnabled: boolean
   lookupChapters: number
   systemPrompt: string
+  /** Prompt preset used when systemPrompt is empty ("builtin:JP-ID", "user:…", or ""). */
+  systemPromptPreset?: string
   instructions: string
   glossary: GlossaryEntry[]
   memory: MemoryEntry[]
@@ -183,6 +190,8 @@ export interface GlossaryEntry {
   translatedTerm: string
   notes: string
   updatedAt: string
+  /** Other source spellings of the same term (kana form, variant kanji). */
+  aliases?: string[]
 }
 
 // Provider Registry
@@ -319,6 +328,34 @@ export const PROVIDERS: Record<string, {
     docsUrl: 'https://platform.xiaomimimo.com/docs/en-US/welcome',
     apiKeyName: 'mimoApiKey',
   },
+  chatgpt: {
+    models: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-luna'],
+    displayNames: {
+      'gpt-6.1-sol': 'GPT-6.1 Sol',
+      'gpt-6-astra': 'GPT-6 Astra',
+      'gpt-6-luna': 'GPT-6 Luna',
+    },
+    baseUrl: 'https://api.openai.com/v1',
+    label: 'ChatGPT (paket langganan)',
+    docsUrl: 'https://chatgpt.com/settings/usage',
+    apiKeyName: 'chatgptAccount',
+  },
+  experiential: {
+    models: ['glm-5.3'],
+    displayNames: { 'glm-5.3': 'GLM-5.3' },
+    baseUrl: 'https://api.experientiallabs.ai/v1',
+    label: 'Experiential Labs',
+    docsUrl: 'https://platform.experientiallabs.ai/docs/reference',
+    apiKeyName: 'experientialApiKey',
+  },
+  uncensoredllm: {
+    models: ['glm-5.3-uncensored'],
+    displayNames: { 'glm-5.3-uncensored': 'GLM-5.3 Uncensored' },
+    baseUrl: 'https://api.uncensoredllm.ai/v1',
+    label: 'UncensoredLLM',
+    docsUrl: 'https://uncensoredllm.ai/docs',
+    apiKeyName: 'uncensoredllmApiKey',
+  },
   openrouter: {
     models: [],
     displayNames: {},
@@ -334,6 +371,24 @@ export const PROVIDERS: Record<string, {
     docsUrl: '',
     apiKeyName: 'openaicompatApiKey',
   },
+}
+
+/** One model as the provider describes it (fields beyond id/name depend on the provider). */
+export interface ModelInfo {
+  id: string
+  name: string
+  contextLength?: number
+  maxOutput?: number
+  created?: number | string
+  description?: string
+}
+
+export interface ModelCatalog {
+  models: ModelInfo[]
+  /** live = just fetched; cache = fetched within a day; static = LWNTL's built-in list */
+  source: 'live' | 'cache' | 'static'
+  fetchedAt: number | null
+  error: string
 }
 
 // Translation Events
@@ -389,11 +444,12 @@ export interface BatchStatusEvent {
   chapterId?: string
   chapterNumber?: string
   chapterTitle?: string
-  /** Set on events from an agent run (translate → review → volume pass). */
+  /** Set on events from an agent run (review → volume pass). */
   agent?: boolean
-  phase?: 'translate' | 'review' | 'volume'
+  phase?: 'review' | 'volume'
   edits?: number
-  failed?: string[]
+  /** Agent run: chapters skipped because they are not translated yet. */
+  skipped?: number
   error?: string
 }
 
@@ -414,6 +470,8 @@ export interface QaFinding {
   severity: QaSeverity
   para: number | null
   detail: string
+  /** The same message in Indonesian (shown when the UI runs in Indonesian). */
+  detailId?: string
   text: string
   fix?: string
   /** The paragraph with its safe fix applied (chapter review only). */
@@ -464,6 +522,8 @@ export interface QaReport {
   volume: {
     nameVariants: { forms: QaNameForm[] }[]
     spelling?: { standard: string; nonStandard: string; nonStandardCount: number; standardCount: number }[]
+    /** English targets: US and UK spellings mixed in one volume. */
+    spellingMixed?: { us: string; uk: string; usCount: number; ukCount: number }[]
     quoteStyle: { majority: string; deviating: string[] }
     openers: { average: number; outliers: { chapter: string; ratio: number }[] }
     length: { median: number; outliers: { chapter: string; ratio: number; relative: number; kind: string }[] }
@@ -477,12 +537,12 @@ export interface QaReport {
 export interface GlossaryCandidate {
   form: string
   count: number
-  origin: 'glossary' | 'variant' | 'name' | 'normalized'
+  origin: 'glossary' | 'variant' | 'name' | 'normalized' | 'duplicate'
   note: string
 }
 
 export interface GlossaryResolution {
-  kind: 'homoglyph' | 'name_part' | 'variants' | 'conflict' | 'unused'
+  kind: 'homoglyph' | 'name_part' | 'variants' | 'conflict' | 'unused' | 'duplicate' | 'same_rendering'
   candidates: GlossaryCandidate[]
   preselect: string | null
   confident: boolean
@@ -502,6 +562,9 @@ export interface GlossaryAuditEntry {
   variants: { form: string; count: number; chapters: string[] }[]
   conflictWith: string
   conflictEntry: { id: string; sourceTerm: string; translatedTerm: string; notes?: string } | null
+  aliases?: string[]
+  /** Older entry this one duplicates (same term in another spelling, or the same rendering). */
+  duplicateOf?: { id: string; sourceTerm: string; translatedTerm: string; notes?: string } | null
   suggestion: 'check' | 'remove' | 'keep'
   resolution?: GlossaryResolution
 }
@@ -574,7 +637,21 @@ export interface ApiError {
 }
 
 // Default languages (used when config doesn't have them yet)
-export const DEFAULT_SOURCE_LANGUAGES = ['Japanese', 'Chinese', 'Korean']
+export const DEFAULT_SOURCE_LANGUAGES = ['Japanese', 'Chinese', 'Korean', 'English', 'Indonesian']
+
+/** A system prompt preset: built-in per language pair (read-only) or the user's own. */
+export interface PromptPreset {
+  id: string
+  name: string
+  title?: string
+  sourceLanguage: string
+  targetLanguage: string
+  builtin: boolean
+  /** For a user preset: the preset it was duplicated from. */
+  basedOn: string
+  updatedAt?: string
+  text?: string
+}
 export const DEFAULT_TARGET_LANGUAGES = ['Indonesian', 'English']
 
 // Chapter number sort helpers

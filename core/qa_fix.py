@@ -8,12 +8,14 @@ dead wordplay) is left to the reviewer or the repair agent.
 Categories:
     typography      double spaces, space before , ; : ! ? and a single period, -- → —
     marks           「」 → double quotes, …… → …, ─/━ runs → —, LaTeX `` '' → quotes
-    macron          ā ī ū ē ō → aa ii uu ee ou (Tōkyō/Ōsaka/Kyōto → standard spelling)
+    macron          ā ī ū ē ō → aa ii uu ee ou (Tōkyō/Ōsaka/Kyōto → standard spelling)   [JP and other sources]
+    tone            Pinyin tone marks → plain Pinyin (Lín → Lin, Lǚ → Lu)               [CN source]
+                    ŏ / ŭ → eo / eu (Revised Romanization)                            [KR source]
     bold            **text** → text (only italics are allowed)
     italic_spacing  "* text *" → "*text*"
     quotes          curly double quotes → straight, when straight is the chapter's style
     ejaan           non-standard Indonesian spelling → standard (nafas → napas)   [ID only]
-    acronym         lowercase acronyms → uppercase (tv → TV)                       [ID only]
+    acronym         lowercase acronyms → uppercase (tv → TV)
 
 Placeholder lines, scene-marker lines and the trailing glossary table are never touched.
 """
@@ -22,16 +24,35 @@ import re
 from typing import Any, Dict, List, Tuple
 
 from .chapter_check import (
-    ACRONYM_ID_RE, ANDA_LOWER, EJAAN_ID_RE, is_scene_marker, lang_code, split_paragraphs,
+    ACRONYM_RE, ANDA_LOWER, EJAAN_ID_RE, PINYIN_TONE, TONE_LOANWORDS, is_scene_marker, lang_code,
+    source_code, split_paragraphs,
 )
 from .extractor import strip_glossary_table
 from .placeholder import is_placeholder_line
 
-SAFE_CATEGORIES = ("typography", "marks", "macron", "homoglyph", "bold", "italic_spacing", "quotes", "ejaan", "acronym")
+SAFE_CATEGORIES = ("typography", "marks", "macron", "tone", "homoglyph", "bold", "italic_spacing", "quotes",
+                   "ejaan", "acronym")
 # Applied automatically by the agent run before review. Lexical categories
 # (ejaan, acronym) and quote-style normalisation stay opt-in.
-DEFAULT_CATEGORIES = ("typography", "marks", "macron", "homoglyph", "bold", "italic_spacing")
-ID_ONLY = ("ejaan", "acronym")
+DEFAULT_CATEGORIES = ("typography", "marks", "macron", "tone", "homoglyph", "bold", "italic_spacing")
+ID_ONLY = ("ejaan",)
+# Romanization marks follow the source: ō is "ou" in Japanese, "o" in Pinyin.
+TONE_SOURCES = ("cn", "kr")
+
+
+def available_categories(target_language: str, source_language: str = "Japanese") -> List[str]:
+    """Safe-fix categories that apply to this language pair."""
+    lang, src = lang_code(target_language), source_code(source_language)
+    out = []
+    for c in SAFE_CATEGORIES:
+        if c in ID_ONLY and lang != "id":
+            continue
+        if c == "macron" and src in TONE_SOURCES:
+            continue
+        if c == "tone" and src not in TONE_SOURCES:
+            continue
+        out.append(c)
+    return out
 
 _MACRON_PLACES = {
     "Tōkyō": "Tokyo", "Ōsaka": "Osaka", "Kyōto": "Kyoto", "Kyūshū": "Kyushu", "Hokkaidō": "Hokkaido",
@@ -50,11 +71,18 @@ def _fix_typography(p: str) -> str:
     return p
 
 
+_FULLWIDTH = [(r'[，、]\s*', ', '), (r'。\s*', '. '), (r'！', '!'), (r'？', '?'), (r'：\s*', ': '),
+              (r'；\s*', '; '), (r'（', '('), (r'）', ')')]
+
+
 def _fix_marks(p: str, curly: bool) -> str:
     open_q, close_q = ('“', '”') if curly else ('"', '"')
     p = p.replace('「', open_q).replace('」', close_q)
     p = re.sub(r'……+|‥', '…', p)
-    p = re.sub(r'[─━]+', '—', p)
+    p = re.sub(r'[─━]+|——', '—', p)
+    for rx, repl in _FULLWIDTH:
+        p = re.sub(rx, repl, p)
+    p = re.sub(r' +([”"\)])', r'\1', p).rstrip()
     p = p.replace('``', open_q).replace("''", close_q)
     return p
 
@@ -85,6 +113,17 @@ def _fix_homoglyph(p: str) -> str:
     return _HOMOGLYPH_WORD.sub(word, p)
 
 
+_TONE_MAP = str.maketrans("āáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜüĀÁǍÀĒÉĚÈĪÍǏÌŌÓǑÒŪÚǓÙÜ",
+                          "aaaaeeeeiiiioooouuuuuuuuuAAAAEEEEIIIIOOOOUUUUU")
+
+
+def _fix_tone(p: str) -> str:
+    """Plain Pinyin / Revised Romanization; English loanwords keep their accent."""
+    p = p.replace("ŏ", "eo").replace("ŭ", "eu").replace("Ŏ", "Eo").replace("Ŭ", "Eu")
+    return PINYIN_TONE.sub(lambda m: m.group(0) if m.group(0).lower() in TONE_LOANWORDS
+                           else m.group(0).translate(_TONE_MAP), p)
+
+
 def _fix_bold(p: str) -> str:
     return re.sub(r'\*\*(.+?)\*\*', r'\1', p).replace("**", "")
 
@@ -111,8 +150,8 @@ def _fix_ejaan(p: str) -> str:
     return ANDA_LOWER.sub("Anda", p)
 
 
-def _fix_acronym(p: str) -> str:
-    return ACRONYM_ID_RE.sub(lambda m: m.group(1).upper(), p)
+def _fix_acronym(p: str, lang: str) -> str:
+    return ACRONYM_RE[lang].sub(lambda m: m.group(1).upper(), p)
 
 
 def _chapter_quote_style(paras: List[str]) -> Tuple[int, int]:
@@ -125,15 +164,18 @@ def apply_safe_fixes(
     translated_content: str,
     categories: List[str],
     target_language: str = "English",
+    source_language: str = "Japanese",
 ) -> Tuple[str, List[Dict[str, Any]]]:
     """
     Apply the chosen categories to one chapter.
 
     Returns (new_content, changes). `changes` lists {category, para, before, after}
     per paragraph and category; an empty list means the text is unchanged.
+    Categories that do not apply to the language pair are skipped.
     """
     lang = lang_code(target_language)
-    cats = [c for c in categories if c in SAFE_CATEGORIES and (lang == "id" or c not in ID_ONLY)]
+    allowed = set(available_categories(target_language, source_language))
+    cats = [c for c in categories if c in allowed]
     full = translated_content or ""
     body = strip_glossary_table(full)
     if body and full.startswith(body) and len(body) < len(full):
@@ -148,12 +190,13 @@ def apply_safe_fixes(
         "typography": _fix_typography,
         "marks": lambda p: _fix_marks(p, use_curly),
         "macron": _fix_macron,
+        "tone": _fix_tone,
         "homoglyph": _fix_homoglyph,
         "bold": _fix_bold,
         "italic_spacing": _fix_italic_spacing,
         "quotes": _fix_quotes if straight >= curly else (lambda p: p),
         "ejaan": _fix_ejaan,
-        "acronym": _fix_acronym,
+        "acronym": lambda p: _fix_acronym(p, lang),
     }
 
     changes: List[Dict[str, Any]] = []

@@ -52,6 +52,7 @@ class _ChapterState:
         self.title = chapter.get("title", "")
         self.raw = chapter.get("rawContent", "") or ""
         self.raw_lines = self.raw.split("\n")
+        self.table_entries = (chapter.get("glossaryUpdates") or {}).get("entries") or []
         full = chapter.get("translatedContent", "") or ""
         body = strip_glossary_table(full)
         if body and full.startswith(body) and len(body) < len(full):
@@ -112,6 +113,7 @@ class AgentToolkit:
         self.glossary_added: List[str] = []
         series = get_series(series_id) or {}
         self.target_language = series.get("targetLanguage", "English")
+        self.source_language = series.get("sourceLanguage", "Japanese")
 
     # ------------------------------------------------------------------ helpers
 
@@ -199,7 +201,8 @@ class AgentToolkit:
     def get_findings(self, chapter: Any = None) -> str:
         st = self._resolve(chapter)
         series = get_series(self.series_id) or {}
-        report = check_chapter(st.raw, st.text(), series.get("glossary") or [], self.target_language)
+        report = check_chapter(st.raw, st.text(), series.get("glossary") or [], self.target_language,
+                               self.source_language, st.table_entries)
         if not report["findings"]:
             return f"No findings. Stats: {json.dumps(report['stats'])}"
         lines = [f"Stats: {json.dumps(report['stats'])}"]
@@ -254,7 +257,7 @@ class AgentToolkit:
         texts = []
         for i in range(1, len(self.chapter_ids) + 1):
             texts.append("\n\n".join(self._resolve(i).paras))
-        groups = volume_name_variants(texts)
+        groups = volume_name_variants(texts, self.source_language)
         if not groups:
             return "No long-vowel spelling variants found."
         return "\n".join(json.dumps(g["forms"], ensure_ascii=False) for g in groups[:40])
@@ -281,9 +284,16 @@ class AgentToolkit:
         if _CJK_LETTER.search(tgt):
             raise ValueError("translated_term must not contain Japanese characters")
         series = get_series(self.series_id) or {}
-        for e in series.get("glossary") or []:
-            if (e.get("sourceTerm") or "").strip().lower() == src.lower():
-                return f"Already in glossary: {e.get('sourceTerm')} === {e.get('translatedTerm')} (not changed)"
+        from .term_match import ALIAS, find_duplicate
+        dup = find_duplicate(src, tgt, series.get("glossary") or [])
+        if dup:
+            kind, e = dup
+            if kind == ALIAS and e.get("id"):
+                from .storage.series import add_glossary_alias
+                add_glossary_alias(self.series_id, e["id"], src)
+                self._log(f"[Agent] Glossary alias {src} → {e.get('sourceTerm')} = {e.get('translatedTerm')}")
+                return f"Recorded {src} as another spelling of {e.get('sourceTerm')} === {e.get('translatedTerm')}"
+            return f"Already in glossary: {e.get('sourceTerm')} === {e.get('translatedTerm')} (not changed)"
         from .glossary_guard import find_conflict
         conflict = find_conflict(src, tgt, series.get("glossary") or [])
         if conflict:

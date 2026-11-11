@@ -19,7 +19,7 @@ glossary table excluded.
 from typing import Any, Callable, Dict, List, Optional
 
 from .agent_tools import _ChapterState
-from .chapter_check import check_chapter, dialogue_alignment_gaps, lang_code
+from .chapter_check import check_chapter, dialogue_alignment_gaps, lang_code, source_code
 from .placeholder import is_placeholder_line
 from .prompt_builder import filter_glossary_by_content, build_glossary_table
 from .qa_fix import apply_safe_fixes
@@ -31,7 +31,7 @@ _WINDOW_AFTER = 14
 _MAX_SPAN = 40
 
 
-def _source_map(st: _ChapterState) -> List[List[int]]:
+def _source_map(st: _ChapterState, src: str = "jp") -> List[List[int]]:
     """
     [start, end] source line range per paragraph.
 
@@ -40,7 +40,7 @@ def _source_map(st: _ChapterState) -> List[List[int]]:
     """
     n = len(st.paras)
     out: List[Optional[List[int]]] = [None] * n
-    for g in dialogue_alignment_gaps(st.raw_lines, st.paras):
+    for g in dialogue_alignment_gaps(st.raw_lines, st.paras, src):
         for p in range(g["para_start"], min(g["para_end"], n - 1) + 1):
             start = g["src_start"]
             end = min(g["src_end"], start + _MAX_SPAN)
@@ -64,7 +64,8 @@ def _load(series_id: str, chapter_id: str):
 def chapter_detail(series_id: str, chapter_id: str) -> Dict[str, Any]:
     series, chapter, st = _load(series_id, chapter_id)
     target = series.get("targetLanguage", "English")
-    report = check_chapter(st.raw, st.text(), series.get("glossary") or [], target)
+    source = series.get("sourceLanguage", "Japanese")
+    report = check_chapter(st.raw, st.text(), series.get("glossary") or [], target, source, st.table_entries)
 
     findings = []
     for f in report["findings"]:
@@ -72,7 +73,7 @@ def chapter_detail(series_id: str, chapter_id: str) -> Dict[str, Any]:
         if f.get("fix") and f.get("para") is not None and 0 <= f["para"] < len(st.paras):
             # Preview the safe fix on this paragraph alone; style-dependent fixes
             # (quote style) still see the whole chapter.
-            fixed, changes = apply_safe_fixes(st.text(), [f["fix"]], target)
+            fixed, changes = apply_safe_fixes(st.text(), [f["fix"]], target, source)
             mine = [c for c in changes if c["para"] == f["para"]]
             if mine:
                 fixed_paras = _ChapterState({**chapter, "translatedContent": fixed}).paras
@@ -139,9 +140,10 @@ def suggest_fix(client, series_id: str, chapter_id: str, index: int,
     if not 0 <= i < len(st.paras):
         raise ValueError("Paragraf tidak ditemukan")
     target = series.get("targetLanguage", "English")
-    report = check_chapter(st.raw, st.text(), series.get("glossary") or [], target)
+    source = series.get("sourceLanguage", "Japanese")
+    report = check_chapter(st.raw, st.text(), series.get("glossary") or [], target, source, st.table_entries)
     problems = [f for f in report["findings"] if f.get("para") == i]
-    a, b = _source_map(st)[i]
+    a, b = _source_map(st, source_code(source))[i]
     source = "\n".join(st.raw_lines[a:b + 1])
     glossary = filter_glossary_by_content(series.get("glossary") or [], source)
 

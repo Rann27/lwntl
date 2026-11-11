@@ -77,9 +77,12 @@ On first launch, the onboarding screen will prompt you to add an API key. You ca
 | Moonshot (Kimi) | Kimi K2.5, Moonshot v1 128k/32k/8k | |
 | DeepSeek | DeepSeek-R1, DeepSeek-V3, DeepSeek-V2.5 | Thinking + Reasoning Effort |
 | Xiaomi MiMo | MiMo-7B-RL | Thinking + Reasoning Effort |
+| ChatGPT (plan) | Models of your ChatGPT plan | No API key — *Continue with ChatGPT* (OpenAI's official Sign in with ChatGPT for local open-source apps) |
+| Experiential Labs | Gateway catalog | OpenAI-compatible gateway |
+| UncensoredLLM | Abliterated open-weight models | OpenAI-compatible |
 | OpenAI Compatible | Any OpenAI-compatible endpoint | Custom base URL + model |
 
-All providers support a **Custom Model** option — enter any model ID not listed above.
+Model lists are fetched from each provider (its `/models` endpoint, the Gemini and Anthropic model APIs, the OpenRouter catalog, or the ChatGPT plan catalog) and cached for a day; the ⟳ button next to a worker's model refetches. Without a key, or when a provider does not answer, the built-in list is shown. Every provider also accepts a **Custom** model ID.
 
 ---
 
@@ -182,8 +185,22 @@ Workers are independent translation slots. Each worker can be assigned a separat
 
 ### System Prompt & Instructions
 
-- **System Prompt** — the global translation instruction template. Supports variables: `{source_language}`, `{target_language}`, `{title}`. Defaults to a sensible translation prompt if left empty.
+- **System Prompt** — the global translation instruction template. Supports variables: `{source_language}`, `{target_language}`, `{title}`.
 - **Instruction Prompt** — per-series additional instructions (e.g., "keep honorifics -san, -kun intact"). Appended to the system prompt at translation time.
+
+#### Prompt presets
+
+LWNTL ships a built-in system prompt for each language pair: JP→EN, JP→ID, CN→EN, CN→ID, KR→EN, KR→ID, EN→ID and ID→EN. Built-ins are read-only and are updated with the app. To change one, open **PRESET** (series panel or Prompt Templates), pick it and press **DUPLIKAT** — the copy is yours to edit, shared by every profile.
+
+A series or a profile can point at any preset instead of holding its own text. The prompt actually used is resolved in this order:
+
+1. the series' own text
+2. the series' preset
+3. the profile template text
+4. the profile preset
+5. the built-in for the series' language pair — only when nothing above *and* no instructions are set
+
+The built-ins are generated from a Cowork prompt package with `python tools/build_presets.py "<package folder>"`; re-run it when the package changes.
 
 ---
 

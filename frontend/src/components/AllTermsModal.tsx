@@ -11,6 +11,10 @@ interface TermRow {
   inGlossary: boolean
   isMain: boolean       // source + translation both match glossary = canonical
   isInconsistent: boolean
+  /** Differs from the glossary only in the chapter's table — the text itself follows the glossary. */
+  tableOnly: boolean
+  /** Came from the fallback AI extraction (the model wrote no table), not from the model's own table. */
+  extracted: boolean
 }
 
 interface Props {
@@ -20,23 +24,44 @@ interface Props {
   seriesGlossary: GlossaryEntry[]
 }
 
-/** Returns count of source terms that have 2+ distinct translations across all chapters */
-export function countInconsistencies(chapters: Chapter[]): number {
+// An honorific does not make a different rendering: Hosono-san is Hosono.
+const HONORIFIC_TAIL = /[-\s](san|kun|chan|sama|senpai|sensei|dono|nee|nii|tan|nim|ssi)\b/gi
+
+function renderingKey(t: string): string {
+  return (t ?? '').toLowerCase().replace(HONORIFIC_TAIL, '').replace(/\s+/g, ' ').trim()
+}
+
+/** The chapter's translated text without its trailing glossary table. */
+function chapterText(ch: Chapter): string {
+  return (ch.translatedContent ?? '').split('\n').filter(l => !l.trim().startsWith('|')).join('\n').toLowerCase()
+}
+
+/**
+ * Source terms rendered more than one way IN THE TEXT. A table row whose rendering
+ * never appears in its chapter is the table's (or the fallback extraction's)
+ * mistake, not the translation's, so it does not count; neither does an honorific.
+ */
+export function inconsistentTermKeys(chapters: Chapter[], glossary: GlossaryEntry[] = []): Set<string> {
   const termMap = new Map<string, Set<string>>()
+  const glossaryMap = new Map(glossary.map(e => [e.sourceTerm.trim().toLowerCase(), renderingKey(e.translatedTerm)]))
   for (const ch of chapters) {
+    const text = chapterText(ch)
     for (const e of ch.glossaryUpdates?.entries ?? []) {
       const key = (e.sourceTerm ?? '').trim().toLowerCase()
-      if (!key) continue
-      if (!termMap.has(key)) termMap.set(key, new Set())
-      const t = (e.translatedTerm ?? '').trim().toLowerCase()
-      if (t) termMap.get(key)!.add(t)
+      const t = (e.translatedTerm ?? '').trim()
+      if (!key || !t || !text.includes(t.toLowerCase())) continue
+      if (!termMap.has(key)) termMap.set(key, new Set(glossaryMap.has(key) ? [glossaryMap.get(key)!] : []))
+      termMap.get(key)!.add(renderingKey(t))
     }
   }
-  let count = 0
-  for (const [, translations] of termMap) {
-    if (translations.size > 1) count++
-  }
-  return count
+  const keys = new Set<string>()
+  for (const [k, renderings] of termMap) if (renderings.size > 1) keys.add(k)
+  return keys
+}
+
+/** Returns count of source terms rendered 2+ ways in the translated text */
+export function countInconsistencies(chapters: Chapter[], glossary: GlossaryEntry[] = []): number {
+  return inconsistentTermKeys(chapters, glossary).size
 }
 
 function CopyCell({ text, style, bold }: { text: string; style?: React.CSSProperties; bold?: boolean }) {
@@ -93,33 +118,16 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
 
-  // Map: source (lower) → canonical translated term (lower) from series glossary
+  // Map: source (lower) → canonical rendering key from the series glossary
   const glossaryMap = useMemo(() => {
     const m = new Map<string, string>()
     for (const e of seriesGlossary) {
-      m.set(e.sourceTerm.trim().toLowerCase(), (e.translatedTerm ?? '').trim().toLowerCase())
+      m.set(e.sourceTerm.trim().toLowerCase(), renderingKey(e.translatedTerm ?? ''))
     }
     return m
   }, [seriesGlossary])
 
-  // Set of source terms that have 2+ distinct translations
-  const inconsistentKeys = useMemo(() => {
-    const termMap = new Map<string, Set<string>>()
-    for (const ch of chapters) {
-      for (const e of ch.glossaryUpdates?.entries ?? []) {
-        const key = (e.sourceTerm ?? '').trim().toLowerCase()
-        if (!key) continue
-        if (!termMap.has(key)) termMap.set(key, new Set())
-        const t = (e.translatedTerm ?? '').trim().toLowerCase()
-        if (t) termMap.get(key)!.add(t)
-      }
-    }
-    const keys = new Set<string>()
-    for (const [k, translations] of termMap) {
-      if (translations.size > 1) keys.add(k)
-    }
-    return keys
-  }, [chapters])
+  const inconsistentKeys = useMemo(() => inconsistentTermKeys(chapters, seriesGlossary), [chapters, seriesGlossary])
 
   const allRows = useMemo<TermRow[]>(() => {
     const rows: TermRow[] = []
@@ -129,12 +137,14 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
       const label = ch.title
         ? `Ch ${ch.chapterNumber} — ${ch.title}`
         : `Chapter ${ch.chapterNumber}`
+      const text = chapterText(ch)
       for (const e of entries) {
         const srcKey = (e.sourceTerm ?? '').trim().toLowerCase()
-        const tKey = (e.translatedTerm ?? '').trim().toLowerCase()
+        const tKey = renderingKey(e.translatedTerm ?? '')
         const glossaryTranslation = glossaryMap.get(srcKey)
         const inGlossary = glossaryMap.has(srcKey)
         const isMain = inGlossary && glossaryTranslation === tKey
+        const tableOnly = inGlossary && !isMain && !text.includes((e.translatedTerm ?? '').trim().toLowerCase())
         rows.push({
           sourceTerm: e.sourceTerm,
           translatedTerm: e.translatedTerm,
@@ -144,6 +154,8 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
           inGlossary,
           isMain,
           isInconsistent: inconsistentKeys.has(srcKey),
+          tableOnly,
+          extracted: (e as { origin?: string }).origin === 'extracted',
         })
       }
     }
@@ -430,6 +442,10 @@ function statusBadge(row: TermRow): { label: string; style: React.CSSProperties 
   if (row.isMain) return {
     label: '★ MAIN',
     style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid #1565C0', backgroundColor: '#e8f0fe', color: '#1565C0' },
+  }
+  if (row.tableOnly) return {
+    label: 'HANYA TABEL',
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid #bbb', backgroundColor: 'transparent', color: '#888' },
   }
   if (row.inGlossary) return {
     label: 'MISMATCH',

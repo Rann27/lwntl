@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { X, Loader2, Sparkles, Save, Trash2, Wand2 } from 'lucide-react'
 import { qaChapterDetail, qaUpdateParagraph, qaSuggestFix } from '../api'
 import type { QaChapterDetail, QaFinding, QaSeverity } from '../types'
+import { useI18n } from '../i18n'
 
 interface Props {
   open: boolean
@@ -29,6 +30,8 @@ interface Props {
 const SEV_COLOR: Record<QaSeverity, string> = { high: '#FF3C3C', medium: '#FFB020', low: '#8A8A8A' }
 
 export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClose }: Props) {
+  const { language } = useI18n()
+  const say = (f: QaFinding) => (language === 'id' ? (f.detailId ?? f.detail) : f.detail)
   const [detail, setDetail] = useState<QaChapterDetail | null>(null)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
@@ -145,7 +148,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                   {chapterLevel.map((f, i) => (
                     <div key={`c${i}`} style={{ fontSize: '11px', padding: '5px 6px', borderLeft: `3px solid ${SEV_COLOR[f.severity]}`, marginBottom: '4px', background: 'var(--color-surface-2)' }}>
                       <code style={{ fontWeight: 700 }}>{f.type}</code>
-                      <div style={{ color: 'var(--color-text-muted)' }}>{f.detail}</div>
+                      <div style={{ color: 'var(--color-text-muted)' }}>{say(f)}</div>
                     </div>
                   ))}
                 </>
@@ -164,7 +167,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                   <span style={{ fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>¶{f.para} </span>
                   <code style={{ fontWeight: 700 }}>{f.type}</code>
                   {f.fix && <span style={{ marginLeft: 4, fontSize: '9px', fontWeight: 800, color: '#28E272' }}>AUTO</span>}
-                  <div style={{ color: 'var(--color-text-muted)' }}>{f.detail}</div>
+                  <div style={{ color: 'var(--color-text-muted)' }}>{say(f)}</div>
                 </button>
               ))}
             </div>
@@ -193,7 +196,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                         {selFindings.map((f, k) => (
                           <p key={k} style={{ fontSize: '12px', marginBottom: '4px' }}>
                             <span style={{ color: SEV_COLOR[f.severity], fontWeight: 800 }}>● </span>
-                            <code style={{ fontWeight: 700 }}>{f.type}</code> — {f.detail}
+                            <code style={{ fontWeight: 700 }}>{f.type}</code> — {say(f)}
                           </p>
                         ))}
 

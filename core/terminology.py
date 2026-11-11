@@ -37,7 +37,8 @@ from typing import Any, Callable, Dict, List, Optional
 DEFAULT_BATCH_TOKENS = 60_000
 MAX_OUTPUT_TOKENS = 4096
 
-_CJK_CHAR_RE = re.compile(r'[぀-ゟ゠-ヿ一-鿿가-힯㐀-䶿]')
+# ｦ-ﾟ: half-width katakana (ｱﾘｽ) is Japanese too.
+_CJK_CHAR_RE = re.compile(r'[぀-ゟ゠-ヿ一-鿿가-힯㐀-䶿ｦ-ﾟ]')
 _CJK_SOURCE_LANGS = ("japanese", "chinese", "korean")
 
 
@@ -180,10 +181,9 @@ def run_terminology_prepass(
     target_lang = series.get("targetLanguage", "English")
     cjk_source = _is_cjk_source(source_lang)
 
-    existing = {
-        (e.get("sourceTerm") or "").strip().lower()
-        for e in (series.get("glossary") or [])
-    }
+    from .term_match import find_duplicate
+
+    glossary = list(series.get("glossary") or [])
     existing_terms = [
         (e.get("sourceTerm") or "").strip()
         for e in (series.get("glossary") or [])
@@ -199,6 +199,7 @@ def run_terminology_prepass(
 
     merged: Dict[str, Dict[str, str]] = {}
     skipped = 0
+    duplicates = 0
 
     for i, batch in enumerate(batches, start=1):
         messages = _build_messages(batch, source_lang, target_lang, existing_terms)
@@ -213,7 +214,10 @@ def run_terminology_prepass(
         for entry in entries:
             src = entry["sourceTerm"]
             key = src.lower()
-            if key in existing or key in merged:
+            # Already in the glossary or proposed by an earlier batch, under any
+            # spelling (furigana, width, variant kanji, separators, honorifics).
+            if key in merged or find_duplicate(src, "", glossary + list(merged.values())):
+                duplicates += 1
                 continue
             # For a CJK source a Latin-only source term means the model put the
             # translation in the wrong column — it could never match the raw text.
@@ -231,6 +235,8 @@ def run_terminology_prepass(
 
     if skipped:
         _emit(f"[Pre-pass] Discarded {skipped} malformed entr(ies)")
+    if duplicates:
+        _emit(f"[Pre-pass] Dropped {duplicates} term(s) already in the glossary or proposed twice")
 
     result = sorted(merged.values(), key=lambda e: e["sourceTerm"])
     _emit(f"[Pre-pass] {len(result)} term(s) proposed")

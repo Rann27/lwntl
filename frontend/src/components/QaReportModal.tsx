@@ -14,6 +14,7 @@ import { X, Loader2, ShieldCheck, ChevronDown, ChevronRight, Wand2, RefreshCw, E
 import { qaScanSeries, qaPreviewFixes, qaApplyFixes, qaPreviewRename, qaApplyRename, glossaryAudit, glossaryDeleteEntries } from '../api'
 import type { RenamePreview } from '../api'
 import { GlossaryReviewFlow } from './GlossaryReviewFlow'
+import { useI18n } from '../i18n'
 import { ChapterReviewModal } from './ChapterReviewModal'
 import type { QaReport, QaFixPreview, QaSeverity, QaChapterReport, GlossaryAudit, GlossaryAuditEntry } from '../types'
 
@@ -31,16 +32,17 @@ const SEV_COLOR: Record<QaSeverity, string> = { high: '#FF3C3C', medium: '#FFB02
 
 const FIX_LABELS: Record<string, { label: string; desc: string }> = {
   typography: { label: 'Tipografi', desc: 'Spasi ganda, spasi sebelum tanda baca, -- → —' },
-  marks: { label: 'Tanda Jepang', desc: '「」 → petik, …… → …, ─ → —, `` \'\' → petik' },
+  marks: { label: 'Tanda sumber', desc: '「」 → petik, …… → …, ─ / —— → —, ，。！？ → , . ! ?, `` \'\' → petik' },
   macron: { label: 'Macron', desc: 'ā ī ū ē ō → aa ii uu ee ou (Tōkyō → Tokyo)' },
+  tone: { label: 'Tanda nada', desc: 'Pinyin polos (Lín → Lin, Lǚ → Lu); Korea ŏ / ŭ → eo / eu' },
   homoglyph: { label: 'Huruf kembar', desc: 'Huruf Sirilik/Yunani yang menyamar di kata Latin (Toyоashihara → Toyoashihara)' },
   bold: { label: 'Bold', desc: '**teks** → teks (hanya miring yang boleh)' },
   italic_spacing: { label: 'Spasi miring', desc: '* teks * → *teks*' },
   quotes: { label: 'Gaya petik', desc: 'Petik melengkung → lurus, jika bab mayoritas lurus' },
   ejaan: { label: 'Ejaan baku', desc: 'nafas → napas, sekedar → sekadar, anda → Anda, …' },
-  acronym: { label: 'Akronim', desc: 'tv → TV, ktp → KTP, …' },
+  acronym: { label: 'Akronim', desc: 'tv → TV, ktp → KTP, usb → USB, …' },
 }
-const DEFAULT_FIXES = ['typography', 'marks', 'macron', 'homoglyph', 'bold', 'italic_spacing']
+const DEFAULT_FIXES = ['typography', 'marks', 'macron', 'tone', 'homoglyph', 'bold', 'italic_spacing']
 
 const box: React.CSSProperties = { border: '2px solid var(--color-border)', padding: '10px 12px', backgroundColor: 'var(--color-surface)' }
 const h: React.CSSProperties = { fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }
@@ -155,6 +157,8 @@ const FLAG_LABELS: Record<string, string> = {
   variants_in_text: 'ada varian di teks',
   conflict: 'konflik',
   homoglyph: 'huruf kembar',
+  duplicate: 'duplikat',
+  same_rendering: 'terjemahan sama',
 }
 const SUGGEST_COLOR: Record<string, string> = { check: '#FFB020', remove: '#FF3C3C', keep: '#28E272' }
 const SUGGEST_LABEL: Record<string, string> = { check: 'Periksa', remove: 'Saran hapus', keep: 'Simpan' }
@@ -316,6 +320,7 @@ const miniBtn: React.CSSProperties = {
 }
 
 export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: Props) {
+  const { language } = useI18n()
   const [tab, setTab] = useState<Tab>('chapters')
   const [report, setReport] = useState<QaReport | null>(null)
   const [loading, setLoading] = useState(false)
@@ -379,6 +384,28 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
       onApplied?.()
       await scan()
       await runPreview(fixCats)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setApplying(false)
+    }
+  }
+
+  // Every safe-fix category the scan found anywhere — all of them are mechanical.
+  const autoFixCats = report
+    ? [...new Set(report.chapters.flatMap(c => c.findings.map(f => f.fix).filter((x): x is string => !!x)))]
+    : []
+  const autoFixCount = report ? report.chapters.reduce((n, c) => n + c.findings.filter(f => f.fix).length, 0) : 0
+
+  const fixAll = async () => {
+    if (!autoFixCats.length) return
+    setApplying(true); setAppliedMsg(''); setError('')
+    try {
+      const res = await qaApplyFixes(seriesId, autoFixCats)
+      const total = Object.values(res.categories).reduce((a, b) => a + b, 0)
+      setAppliedMsg(`${total} perbaikan otomatis diterapkan di ${res.chapters} bab. Versi sebelumnya tersimpan di riwayat bab.`)
+      onApplied?.()
+      await scan()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -454,6 +481,17 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                 ))}
                 <span style={{ marginLeft: 'auto', color: 'var(--color-text-muted)' }}>{report.chapterCount} bab terjemahan dipindai</span>
               </div>
+              {autoFixCount > 0 && (
+                <div className="flex items-center gap-2 flex-wrap" style={{ border: '2px solid #28E272', padding: '6px 10px', fontSize: '12px' }}>
+                  <Wand2 size={14} style={{ color: '#28E272' }} />
+                  <span><strong>{autoFixCount}</strong> temuan bisa diperbaiki otomatis tanpa AI ({autoFixCats.map(c => FIX_LABELS[c]?.label ?? c).join(', ')}).</span>
+                  <button onClick={fixAll} disabled={applying || disabled} className="neo-button flex items-center gap-1.5"
+                    style={{ marginLeft: 'auto', fontSize: '11px', padding: '4px 10px', backgroundColor: '#28E272', color: '#111', opacity: (applying || disabled) ? 0.5 : 1 }}>
+                    {applying ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} PERBAIKI SEMUA AUTO-FIX
+                  </button>
+                </div>
+              )}
+              {appliedMsg && tab === 'chapters' && <p style={{ fontSize: '12px', color: '#28E272', fontWeight: 700 }}>{appliedMsg}</p>}
               {visibleChapters.length === 0 && (
                 <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', padding: '24px 0', textAlign: 'center' }}>Tidak ada temuan untuk filter ini.</p>
               )}
@@ -476,7 +514,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                             <code style={{ fontSize: '11px', fontWeight: 700 }}>{f.type}</code>
                             {f.para !== null && <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>¶{f.para}</span>}
                             {f.fix && <span style={{ fontSize: '9px', fontWeight: 800, padding: '0 5px', border: '1px solid #28E272', color: '#28E272', textTransform: 'uppercase' }}>auto-fix</span>}
-                            <span style={{ color: 'var(--color-text-muted)' }}>{f.detail}</span>
+                            <span style={{ color: 'var(--color-text-muted)' }}>{language === 'id' ? (f.detailId ?? f.detail) : f.detail}</span>
                           </div>
                           {f.text && <div style={{ marginTop: '3px', marginLeft: '16px', fontSize: '11px', fontStyle: 'italic', color: 'var(--color-text-subtle)', whiteSpace: 'pre-wrap' }}>“{f.text}”</div>}
                         </div>
@@ -538,6 +576,19 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                       <p key={i} style={{ fontSize: '12px' }}>
                         <span style={{ color: '#FF3C3C' }}>{s.nonStandard}</span> ×{s.nonStandardCount} → <strong>{s.standard}</strong>
                         <span style={{ color: 'var(--color-text-muted)' }}> (bentuk baku dipakai ×{s.standardCount})</span>
+                      </p>
+                    ))}
+                </div>
+              )}
+
+              {v.spellingMixed && (
+                <div style={box}>
+                  <div style={h}>Ejaan US / UK bercampur ({v.spellingMixed.length})</div>
+                  {v.spellingMixed.length === 0 ? <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Konsisten.</p> :
+                    v.spellingMixed.map((s, i) => (
+                      <p key={i} style={{ fontSize: '12px' }}>
+                        <strong>{s.us}…</strong> ×{s.usCount} <span style={{ color: 'var(--color-text-muted)' }}>vs</span> <strong>{s.uk}…</strong> ×{s.ukCount}
+                        <span style={{ color: 'var(--color-text-muted)' }}> — pilih satu standar untuk seluruh volume</span>
                       </p>
                     ))}
                 </div>
