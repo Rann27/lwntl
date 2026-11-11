@@ -195,10 +195,16 @@ def build_context_window(
     system_context = build_system_prompt(series)
     system_tokens = estimate_tokens(system_context)
     
+    # === Layer 4: Look Up (real text of the last N chapters) ===
+    from .lookup import build_lookup_context
+    lookup_context, lookup_ids = build_lookup_context(series, chapters, current_chapter)
+    lookup_tokens = estimate_tokens(lookup_context)
+
     # === Layer 2: Rolling Context (summaries of previous chapters) ===
     rolling_context, rolling_tokens = _build_rolling_context(
         chapters,
-        current_chapter.get("createdAt", "")
+        current_chapter.get("createdAt", ""),
+        exclude_ids=lookup_ids,
     )
     
     # === Layer 3: Memory Context (compacted long-term memory) ===
@@ -210,8 +216,8 @@ def build_context_window(
     current_tokens = estimate_tokens(current_content)
     
     # === Calculate total ===
-    total_tokens = system_tokens + rolling_tokens + memory_tokens + current_tokens
-    
+    total_tokens = system_tokens + rolling_tokens + memory_tokens + lookup_tokens + current_tokens
+
     # === Check cache ===
     import time
     cache_key = f"{series_id}:{current_chapter_id}"
@@ -237,12 +243,13 @@ def build_context_window(
             llm_client=llm_client,
             window_eval=window_eval
         )
-        total_tokens = system_tokens + rolling_tokens + memory_tokens + current_tokens
-    
+        total_tokens = system_tokens + rolling_tokens + memory_tokens + lookup_tokens + current_tokens
+
     result = {
         "system_context": system_context,
         "rolling_context": rolling_context,
         "memory_context": memory_context,
+        "lookup_context": lookup_context,
         "current_content": current_content,
         "total_tokens": total_tokens,
         "compacted": compacted,
@@ -250,6 +257,7 @@ def build_context_window(
             "system": system_tokens,
             "rolling": rolling_tokens,
             "memory": memory_tokens,
+            "lookup": lookup_tokens,
             "current": current_tokens,
             "available": available_tokens,
             "max": _max_ctx,
@@ -376,7 +384,8 @@ def _build_system_context(series: Dict[str, Any]) -> str:
 def _build_rolling_context(
     chapters: List[Dict[str, Any]],
     current_chapter_created: str,
-    max_summaries: int = 10
+    max_summaries: int = 10,
+    exclude_ids: Optional[List[str]] = None,
 ) -> tuple:
     """
     Build Layer 2: Rolling context from recent chapter summaries.
@@ -385,10 +394,14 @@ def _build_rolling_context(
         tuple: (context_text, estimated_tokens)
     """
     # Get chapters created BEFORE current that have summaries
+    # Chapters already carried in full by Look Up are skipped — summarising a
+    # chapter whose text is right there would only repeat it, worse.
+    skip = set(exclude_ids or [])
     previous = [
         ch for ch in chapters
         if ch.get("createdAt", "") < current_chapter_created
         and ch.get("summary", "").strip()
+        and ch.get("id") not in skip
     ]
 
     if not previous:

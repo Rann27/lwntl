@@ -60,3 +60,8 @@ diag_*.py
 
 # ── Word temp files ───────────────────────────────────────────────────
 ~$*
+
+# Pasted reference workspaces and personal prompts (user files)
+Karamawari 1 EN/
+Heikou Sekai ID/
+system_prompt_*.txt

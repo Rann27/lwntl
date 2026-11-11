@@ -8,26 +8,42 @@ export interface DeepSeekApiKeyEntry {
   key: string
 }
 
+/** 'default' = send nothing, let the model use its own default */
+export type EffortSetting = 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+
 // Config
 export interface AppConfig {
-  provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'mimo' | 'openaicompat'
+  provider: 'zhipuai' | 'qwen' | 'openai' | 'gemini' | 'anthropic' | 'xai' | 'moonshot' | 'deepseek' | 'mimo' | 'openrouter' | 'openaicompat'
   model: string
   workers: WorkerProfile[]
   customModels: Record<string, string> // provider -> custom model name
   zhipuaiApiKey: string
   zhipuaiThinking: boolean
+  zhipuaiReasoningEffort: EffortSetting
   qwenApiKey: string
   openaiApiKey: string
   geminiApiKey: string
   geminiSafetyFilter: boolean
   anthropicApiKey: string
   xaiApiKey: string
-  xaiReasoningEffort: 'low' | 'medium' | 'high'
+  xaiReasoningEffort: 'low' | 'medium' | 'high' | 'xhigh'
   moonshotApiKey: string
+  moonshotRegion: 'international' | 'china'
+  moonshotReasoningEffort: EffortSetting
+  moonshotThinking: boolean
+  qwenThinking: boolean
+  openaiReasoningEffort: EffortSetting
+  geminiReasoningEffort: EffortSetting
+  anthropicEffort: EffortSetting
+  openrouterApiKey: string
+  /** 'default' sends nothing; 'off' disables reasoning where the model allows it */
+  openrouterReasoning: EffortSetting | 'off'
+  openrouterSort: '' | 'price' | 'throughput' | 'latency'
+  openrouterDenyDataCollection: boolean
   deepseekApiKey: string
   deepseekApiKeys: DeepSeekApiKeyEntry[]
   deepseekThinking: boolean
-  deepseekReasoningEffort: 'high' | 'max'
+  deepseekReasoningEffort: 'low' | 'high' | 'max'
   mimoApiKey: string
   mimoThinking: boolean
   mimoReasoningEffort: 'low' | 'medium' | 'high'
@@ -87,6 +103,9 @@ export interface Series {
   iterationLock: boolean
   autoFixCjk: boolean
   imageFolder: string
+  revisionPass: boolean
+  lookupEnabled: boolean
+  lookupChapters: number
   systemPrompt: string
   instructions: string
   glossary: GlossaryEntry[]
@@ -145,6 +164,7 @@ export interface Chapter {
   translationLog: TranslationLog | null
   translationHistory: TranslationVersion[]
   images?: ChapterImage[]
+  agentReview?: AgentReview | null
   createdAt: string
   updatedAt: string
 }
@@ -166,6 +186,7 @@ export interface GlossaryEntry {
 }
 
 // Provider Registry
+// Generated from core/llm_client.py PROVIDERS — keep the two in sync.
 export const PROVIDERS: Record<string, {
   models: string[]
   displayNames: Record<string, string>
@@ -175,68 +196,55 @@ export const PROVIDERS: Record<string, {
   apiKeyName: keyof AppConfig
 }> = {
   zhipuai: {
-    models: ['glm-5', 'glm-4.7', 'glm-4.7-flashx', 'glm-4.7-flash', 'custom'],
+    models: ['glm-5.3', 'glm-5.3-flashx', 'glm-5.3-flash', 'glm-5.2', 'glm-5.1', 'glm-4.7-flash', 'custom'],
     displayNames: {
-      'glm-5': 'GLM-5',
-      'glm-4.7': 'GLM-4.7',
-      'glm-4.7-flashx': 'GLM-4.7-FlashX',
+      'glm-5.3': 'GLM-5.3',
+      'glm-5.3-flashx': 'GLM-5.3-FlashX',
+      'glm-5.3-flash': 'GLM-5.3-Flash',
+      'glm-5.2': 'GLM-5.2',
+      'glm-5.1': 'GLM-5.1',
       'glm-4.7-flash': 'GLM-4.7-Flash (Free)',
-      'custom': '+ Custom Model',
+      custom: '+ Custom Model',
     },
     label: 'ZhipuAI (Z.AI)',
-    docsUrl: 'https://bigmodel.cn/dev/api/normal-model/glm-4',
+    docsUrl: 'https://docs.z.ai/guides/overview/pricing',
     apiKeyName: 'zhipuaiApiKey',
   },
   qwen: {
-    models: [
-      'qwen3.5-plus', 'qwen3.5-flash', 'qwen3.6-plus',
-      'qwen3.6-plus-2026-04-02', 'qwen3.5-122b-a10b',
-      'qwen3.5-plus-2026-02-15', 'qwen3.5-flash-2026-02-23',
-      'deepseek-v3.2', 'custom',
-    ],
+    models: ['qwen3.8-max', 'qwen3.8-flash', 'qwen3.7-plus', 'qwen3.7-flash', 'custom'],
     displayNames: {
-      'qwen3.5-plus': 'Qwen3.5-Plus',
-      'qwen3.5-flash': 'Qwen3.5-Flash',
-      'qwen3.6-plus': 'Qwen3.6-Plus',
-      'qwen3.6-plus-2026-04-02': 'Qwen3.6-Plus (2026-04-02)',
-      'qwen3.5-122b-a10b': 'Qwen3.5-122B-A10B',
-      'qwen3.5-plus-2026-02-15': 'Qwen3.5-Plus (2026-02-15)',
-      'qwen3.5-flash-2026-02-23': 'Qwen3.5-Flash (2026-02-23)',
-      'deepseek-v3.2': 'DeepSeek V3.2 (via Qwen)',
-      'custom': '+ Custom Model',
+      'qwen3.8-max': 'Qwen3.8-Max',
+      'qwen3.8-flash': 'Qwen3.8-Flash',
+      'qwen3.7-plus': 'Qwen3.7-Plus',
+      'qwen3.7-flash': 'Qwen3.7-Flash',
+      custom: '+ Custom Model',
     },
     baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
-    label: 'Alibaba Cloud (Qwen/DS)',
-    docsUrl: 'https://www.alibabacloud.com/help/en/model-studio/getting-started/models',
+    label: 'Alibaba Cloud (Qwen)',
+    docsUrl: 'https://www.alibabacloud.com/help/en/model-studio/models',
     apiKeyName: 'qwenApiKey',
   },
   openai: {
-    models: ['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.4-nano', 'gpt-5.4-pro', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'custom'],
+    models: ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-luna', 'custom'],
     displayNames: {
-      'gpt-5.4': 'GPT-5.4',
-      'gpt-5.4-mini': 'GPT-5.4-mini',
-      'gpt-5.4-nano': 'GPT-5.4-nano',
-      'gpt-5.4-pro': 'GPT-5.4-pro',
-      'gpt-4.1': 'GPT-4.1',
-      'gpt-4.1-mini': 'GPT-4.1-mini',
-      'gpt-4o': 'GPT-4o',
-      'gpt-4o-mini': 'GPT-4o-mini',
-      'custom': '+ Custom Model',
+      'gpt-6.1-sol': 'GPT-6.1 Sol',
+      'gpt-6-astra': 'GPT-6 Astra',
+      'gpt-6-luna': 'GPT-6 Luna',
+      custom: '+ Custom Model',
     },
     label: 'OpenAI',
-    docsUrl: 'https://platform.openai.com/docs/models',
+    docsUrl: 'https://developers.openai.com/api/docs/models',
     apiKeyName: 'openaiApiKey',
   },
   gemini: {
-    models: ['gemini-3.1-pro-preview', 'gemini-3.1-flash-lite-preview', 'gemini-3-flash-preview', 'gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'custom'],
+    models: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.1-pro-preview', 'custom'],
     displayNames: {
+      'gemini-3.8-flash': 'Gemini 3.8 Flash',
+      'gemini-3.6-flash': 'Gemini 3.6 Flash',
+      'gemini-3.5-flash-lite': 'Gemini 3.5 Flash Lite',
+      'gemini-3.1-flash-lite': 'Gemini 3.1 Flash Lite',
       'gemini-3.1-pro-preview': 'Gemini 3.1 Pro (Preview)',
-      'gemini-3.1-flash-lite-preview': 'Gemini 3.1 Flash Lite (Preview)',
-      'gemini-3-flash-preview': 'Gemini 3 Flash (Preview)',
-      'gemini-2.5-pro': 'Gemini 2.5 Pro',
-      'gemini-2.5-flash': 'Gemini 2.5 Flash',
-      'gemini-2.0-flash': 'Gemini 2.0 Flash',
-      'custom': '+ Custom Model',
+      custom: '+ Custom Model',
     },
     baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
     label: 'Google Gemini',
@@ -244,34 +252,28 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'geminiApiKey',
   },
   anthropic: {
-    models: ['claude-opus-4-6', 'claude-sonnet-4-6', 'claude-haiku-4-5', 'custom'],
+    models: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1', 'custom'],
     displayNames: {
-      'claude-opus-4-6': 'Claude Opus 4.6',
-      'claude-sonnet-4-6': 'Claude Sonnet 4.6',
-      'claude-haiku-4-5': 'Claude Haiku 4.5',
-      'custom': '+ Custom Model',
+      'claude-opus-5-5': 'Claude Opus 5.5',
+      'claude-sonnet-5-5': 'Claude Sonnet 5.5',
+      'claude-haiku-5-5': 'Claude Haiku 5.5',
+      'claude-fable-5-1': 'Claude Fable 5.1',
+      custom: '+ Custom Model',
     },
     label: 'Anthropic (Claude)',
-    docsUrl: 'https://docs.anthropic.com/en/docs/about-claude/models',
+    docsUrl: 'https://platform.claude.com/docs/en/about-claude/models/overview',
     apiKeyName: 'anthropicApiKey',
   },
   xai: {
-    models: [
-      'grok-4.5', 'grok-4.3',
-      'grok-4.20-0309-reasoning', 'grok-4.20-0309-non-reasoning', 'grok-4.20-multi-agent-0309',
-      'grok-build-0.1', 'grok-4.1-fast', 'grok-3', 'grok-3-mini', 'custom',
-    ],
+    models: ['grok-4.7', 'grok-4.6', 'grok-4.5', 'grok-4.3', 'grok-4.20-0309-reasoning', 'grok-4.20-0309-non-reasoning', 'custom'],
     displayNames: {
-      'grok-4.5': 'Grok 4.5 (Coding)',
+      'grok-4.7': 'Grok 4.7',
+      'grok-4.6': 'Grok 4.6',
+      'grok-4.5': 'Grok 4.5',
       'grok-4.3': 'Grok 4.3',
-      'grok-4.20-0309-reasoning': 'Grok 4.20 Reasoning (0309)',
-      'grok-4.20-0309-non-reasoning': 'Grok 4.20 Non-Reasoning (0309)',
-      'grok-4.20-multi-agent-0309': 'Grok 4.20 Multi-Agent (0309)',
-      'grok-build-0.1': 'Grok Build 0.1',
-      'grok-4.1-fast': 'Grok 4.1 Fast',
-      'grok-3': 'Grok 3',
-      'grok-3-mini': 'Grok 3 Mini',
-      'custom': '+ Custom Model',
+      'grok-4.20-0309-reasoning': 'Grok 4.20 (reasoning)',
+      'grok-4.20-0309-non-reasoning': 'Grok 4.20 (non-reasoning)',
+      custom: '+ Custom Model',
     },
     baseUrl: 'https://api.x.ai/v1',
     label: 'xAI (Grok)',
@@ -279,24 +281,25 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'xaiApiKey',
   },
   moonshot: {
-    models: ['kimi-k2.5', 'moonshot-v1-128k', 'moonshot-v1-32k', 'moonshot-v1-8k', 'custom'],
+    models: ['kimi-k3', 'kimi-k2.6', 'kimi-k2.7-code', 'custom'],
     displayNames: {
-      'kimi-k2.5': 'Kimi K2.5',
-      'moonshot-v1-128k': 'Moonshot v1 128k',
-      'moonshot-v1-32k': 'Moonshot v1 32k',
-      'moonshot-v1-8k': 'Moonshot v1 8k',
-      'custom': '+ Custom Model',
+      'kimi-k3': 'Kimi K3',
+      'kimi-k2.6': 'Kimi K2.6',
+      'kimi-k2.7-code': 'Kimi K2.7 Code',
+      custom: '+ Custom Model',
     },
-    baseUrl: 'https://api.moonshot.cn/v1',
+    baseUrl: 'https://api.moonshot.ai/v1',
     label: 'Moonshot AI (Kimi)',
-    docsUrl: 'https://platform.moonshot.cn/docs/api/chat',
+    docsUrl: 'https://platform.kimi.ai/docs/api/models-overview',
     apiKeyName: 'moonshotApiKey',
   },
   deepseek: {
-    models: ['deepseek-v4-flash', 'deepseek-v4-pro'],
+    models: ['deepseek-flash', 'deepseek-v4-pro'],
     displayNames: {
-      'deepseek-v4-flash': 'DeepSeek V4 Flash',
+      'deepseek-flash': 'DeepSeek V4.1 Flash',
       'deepseek-v4-pro': 'DeepSeek V4 Pro',
+      'deepseek-v4-flash': 'DeepSeek V4 Flash (legacy → V4.1)',
+      'deepseek-v4-flash-vision-exp': 'DeepSeek V4 Flash Vision (legacy → V4.1)',
     },
     baseUrl: 'https://api.deepseek.com',
     label: 'DeepSeek',
@@ -304,8 +307,10 @@ export const PROVIDERS: Record<string, {
     apiKeyName: 'deepseekApiKey',
   },
   mimo: {
-    models: ['mimo-v2.5-pro', 'mimo-v2.5'],
+    models: ['mimo-v2.6-pro', 'mimo-v2.6-flash', 'mimo-v2.5-pro', 'mimo-v2.5'],
     displayNames: {
+      'mimo-v2.6-pro': 'MiMo V2.6 Pro',
+      'mimo-v2.6-flash': 'MiMo V2.6 Flash',
       'mimo-v2.5-pro': 'MiMo V2.5 Pro',
       'mimo-v2.5': 'MiMo V2.5',
     },
@@ -314,9 +319,17 @@ export const PROVIDERS: Record<string, {
     docsUrl: 'https://platform.xiaomimimo.com/docs/en-US/welcome',
     apiKeyName: 'mimoApiKey',
   },
+  openrouter: {
+    models: [],
+    displayNames: {},
+    baseUrl: 'https://openrouter.ai/api/v1',
+    label: 'OpenRouter',
+    docsUrl: 'https://openrouter.ai/models',
+    apiKeyName: 'openrouterApiKey',
+  },
   openaicompat: {
-    models: [] as string[],
-    displayNames: {} as Record<string, string>,
+    models: [],
+    displayNames: {},
     label: 'OpenAI Compatible',
     docsUrl: '',
     apiKeyName: 'openaicompatApiKey',
@@ -376,6 +389,149 @@ export interface BatchStatusEvent {
   chapterId?: string
   chapterNumber?: string
   chapterTitle?: string
+  /** Set on events from an agent run (translate → review → volume pass). */
+  agent?: boolean
+  phase?: 'translate' | 'review' | 'volume'
+  edits?: number
+  failed?: string[]
+  error?: string
+}
+
+export type AgentReviewMode = 'full' | 'findings'
+
+export interface AgentFindingStats {
+  paragraphs: number
+  high: number
+  medium: number
+  low: number
+}
+
+// ===== QA report (core/qa_scan.py) =====
+export type QaSeverity = 'high' | 'medium' | 'low'
+
+export interface QaFinding {
+  type: string
+  severity: QaSeverity
+  para: number | null
+  detail: string
+  text: string
+  fix?: string
+  /** The paragraph with its safe fix applied (chapter review only). */
+  fixPreview?: string
+}
+
+export interface QaChapterDetail {
+  chapterId: string
+  chapterNumber: string
+  title: string
+  paragraphs: string[]
+  source: string[]
+  /** [start, end] source line range per paragraph */
+  sourceMap: [number, number][]
+  findings: QaFinding[]
+  stats: AgentFindingStats
+}
+
+export interface QaChapterReport {
+  chapterId: string
+  position: number
+  chapterNumber: string
+  title: string
+  stats: AgentFindingStats & {
+    lengthRatio: number
+    openerRatio: number
+    quoteStyle: string
+    sourceChars: number
+    translatedChars: number
+  }
+  findings: QaFinding[]
+}
+
+export interface QaNameForm {
+  form: string
+  count: number
+  chapters: string[]
+  glossary: boolean
+  macron: boolean
+}
+
+export interface QaReport {
+  seriesId: string
+  targetLanguage: string
+  chapterCount: number
+  totals: { high: number; medium: number; low: number }
+  chapters: QaChapterReport[]
+  volume: {
+    nameVariants: { forms: QaNameForm[] }[]
+    spelling?: { standard: string; nonStandard: string; nonStandardCount: number; standardCount: number }[]
+    quoteStyle: { majority: string; deviating: string[] }
+    openers: { average: number; outliers: { chapter: string; ratio: number }[] }
+    length: { median: number; outliers: { chapter: string; ratio: number; relative: number; kind: string }[] }
+    pronouns?: { chapter: string; kau?: number; kamu?: number; Anda?: number }[]
+    diction: { chapter: string; per1000: number; top: [string, number][] }[]
+    frequency: { words: [string, number][]; bigrams: [string, number][]; trigrams: [string, number][] }
+    glossary: { sourceTerm: string; translatedTerm: string; issue: string; suggestOld?: string; suggestNew?: string }[]
+  }
+}
+
+export interface GlossaryCandidate {
+  form: string
+  count: number
+  origin: 'glossary' | 'variant' | 'name' | 'normalized'
+  note: string
+}
+
+export interface GlossaryResolution {
+  kind: 'homoglyph' | 'name_part' | 'variants' | 'conflict' | 'unused'
+  candidates: GlossaryCandidate[]
+  preselect: string | null
+  confident: boolean
+  reason: string
+}
+
+export interface GlossaryAuditEntry {
+  id: string
+  sourceTerm: string
+  translatedTerm: string
+  notes: string
+  srcChapters: number
+  srcCount: number
+  usedCount: number
+  character: boolean
+  flags: string[]
+  variants: { form: string; count: number; chapters: string[] }[]
+  conflictWith: string
+  conflictEntry: { id: string; sourceTerm: string; translatedTerm: string; notes?: string } | null
+  suggestion: 'check' | 'remove' | 'keep'
+  resolution?: GlossaryResolution
+}
+
+export interface GlossaryAudit {
+  entries: GlossaryAuditEntry[]
+  summary: { check: number; remove: number; keep: number }
+  total: number
+  chapters: number
+}
+
+export interface QaFixPreview {
+  categories: Record<string, number>
+  chapters: { chapterId: string; chapterNumber: string; changes: Record<string, number> }[]
+  samples: Record<string, { chapter: string; category: string; para: number; before: string; after: string }[]>
+  available: string[]
+}
+
+export interface AgentReview {
+  reviewedAt: string
+  model?: string
+  steps?: number
+  summary?: string
+  skipped?: boolean
+  reason?: string
+  mode?: string
+  findingsBefore?: AgentFindingStats
+  findingsAfter?: AgentFindingStats
+  edits?: { chapter: string; op: string; para: number; reason: string; before?: string; after?: string }[]
+  glossaryAdded?: string[]
 }
 
 // Context Info

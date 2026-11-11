@@ -13,7 +13,7 @@ from .storage.series import get_series
 from .storage.chapters import (
     update_chapter_status, update_chapter_translation,
     update_chapter_summary, update_translation_log, get_chapter,
-    archive_current_translation,
+    archive_current_translation, update_chapter_fields,
 )
 from .prompt_builder import build_system_prompt, build_user_prompt
 from .extractor import extract_glossary_terms, parse_glossary_from_translation
@@ -203,6 +203,7 @@ class Translator:
         (case-insensitive). This gives the next chapter in the batch up-to-date context.
         """
         from .storage.series import get_series, add_glossary_entry
+        from .glossary_guard import find_conflict
         try:
             chapter = get_chapter(series_id, chapter_id)
             if not chapter or chapter.get("status") != "done":
@@ -219,6 +220,16 @@ class Translator:
             source_lang = (series.get("sourceLanguage") or "") if series else ""
             cjk_source = _is_cjk_source(source_lang)
 
+            # Lock only what recurs. A term that appears in a single chapter of the
+            # imported volume gains nothing from being locked (that chapter is
+            # already done) and buries the entries that matter. Characters are
+            # always kept — a name mentioned once still needs a fixed spelling.
+            from .glossary_audit import count_source, is_character
+            from .glossary_guard import looks_like_full_name
+            from .storage.chapters import get_chapters as _all_chapters
+            raws = [c.get("rawContent") or "" for c in _all_chapters(series_id)]
+            one_offs = 0
+
             added = 0
             for entry in new_entries:
                 src = (entry.get("sourceTerm") or "").strip()
@@ -231,6 +242,16 @@ class Translator:
                 if _CJK_CHAR_RE.search(translated):
                     print(f"[Glossary] Skipped '{src}': translatedTerm contains CJK (model bias)")
                     continue
+                if not is_character(entry):
+                    seen = count_source(src, raws, name_parts=looks_like_full_name(translated))
+                    if seen["chapters"] < 2:
+                        one_offs += 1
+                        continue
+                conflict = find_conflict(src, translated, current)
+                if conflict:
+                    self._log(f"[Glossary] Skipped '{src} = {translated}': contradicts "
+                              f"'{conflict.get('sourceTerm')} = {conflict.get('translatedTerm')}'")
+                    continue
                 add_glossary_entry(
                     series_id,
                     src,
@@ -238,10 +259,13 @@ class Translator:
                     entry.get("notes", ""),
                 )
                 existing.add(src.lower())
+                current.append({"sourceTerm": src, "translatedTerm": translated})
                 added += 1
 
             if added:
                 print(f"[Glossary] Auto-applied {added} new term(s) from chapter {chapter_id}")
+            if one_offs:
+                self._log(f"[Glossary] Not locked: {one_offs} term(s) that appear in only one chapter of the volume")
         except Exception as e:
             print(f"[Glossary] Auto-apply error: {e}")
     
@@ -332,6 +356,7 @@ class Translator:
                     memory_context=context.get("memory_context", ""),
                     raw_content=raw_content,
                     pre_filter=self._glossary_pre_filter,
+                    lookup_context=context.get("lookup_context", ""),
                 )
                 # Use the raw content from context (in case of future pre-processing)
                 user_prompt = build_user_prompt(
@@ -487,6 +512,24 @@ class Translator:
                 self._log(f"[Translator] WARNING: Translation suspiciously short ({trans_len} chars vs {raw_len} chars raw). Possible thinking-mode output.")
                 # Still continue — might be valid short translation
 
+            # Revision pass — optional per-series second look at the finished draft.
+            # Runs BEFORE AutoFix CJK on purpose: this pass is shown the Japanese
+            # source (to guard against meaning drift) and could echo a character
+            # from it, so AutoFix has to be the last thing that touches the text.
+            if series.get("revisionPass", False):
+                self._send_status("revising")
+                try:
+                    from .reviser import revise_translation
+                    full_translation = revise_translation(
+                        self.client,
+                        raw_content,
+                        full_translation,
+                        series,
+                        log=self._log,
+                    )
+                except Exception as e:
+                    self._log(f"[Revision] Failed (non-fatal, keeping draft): {e}")
+
             # AutoFix CJK — optional per-series post-processing. Repairs untranslated
             # CJK leakage line-by-line BEFORE the translation is saved, so the summary,
             # glossary extraction, and exports are all built from clean text.
@@ -525,6 +568,8 @@ class Translator:
             # Translation complete!
             update_chapter_status(series_id, chapter_id, "done")
             update_chapter_translation(series_id, chapter_id, full_translation)
+            # A fresh translation has not been through an agent review yet.
+            update_chapter_fields(series_id, chapter_id, agentReview=None)
             update_translation_log(series_id, chapter_id, self._iteration, self._total_tokens)
             
             # Generate chapter summary for rolling context (Layer 2)

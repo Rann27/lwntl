@@ -13,6 +13,11 @@ import type {
   SeriesDeleteInfo,
   ProfilesState,
   ApiError,
+  AgentReviewMode,
+  QaReport,
+  QaFixPreview,
+  GlossaryAudit,
+  QaChapterDetail,
 } from './types'
 
 // Type guard for API errors
@@ -135,9 +140,12 @@ export async function updateSeries(
   iterationLock?: boolean,
   autoFixCjk?: boolean,
   imageFolder?: string,
+  revisionPass?: boolean,
+  lookupEnabled?: boolean,
+  lookupChapters?: number,
 ): Promise<Series> {
   const api = getApi()
-  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null, workerId ?? null, iterationLock ?? null, autoFixCjk ?? null, imageFolder ?? null)
+  const result = await api.update_series(seriesId, title, language, targetLanguage || null, systemPrompt || null, workerId ?? null, iterationLock ?? null, autoFixCjk ?? null, imageFolder ?? null, revisionPass ?? null, lookupEnabled ?? null, lookupChapters ?? null)
   if (isApiError(result)) throw new Error(result.message)
   return result as Series
 }
@@ -443,6 +451,28 @@ export async function startBatchTranslation(
   return result as { status: string; total: number }
 }
 
+/**
+ * Autonomous agent run over the whole series: translate every unfinished
+ * chapter, review + repair each with a tool-using agent, then a volume pass.
+ * Progress arrives through onBatchStatus (agent: true, phase).
+ */
+export async function startAgentRun(
+  seriesId: string,
+  opts: { brief?: string; review?: AgentReviewMode; volumePass?: boolean; rereview?: boolean; safeFixes?: boolean } = {},
+): Promise<{ status: string }> {
+  const api = getApi()
+  const result = await api.start_agent_run(
+    seriesId,
+    opts.brief ?? '',
+    opts.review ?? 'full',
+    opts.volumePass ?? true,
+    opts.rereview ?? false,
+    opts.safeFixes ?? true,
+  )
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { status: string }
+}
+
 export async function getContextInfo(
   seriesId: string,
   chapterId: string
@@ -632,7 +662,14 @@ export async function switchProfile(name: string): Promise<ProfilesState> {
 export interface ProfileTemplates {
   systemPromptTemplate: string
   instructionsTemplate: string
+  revisionPromptTemplate: string
+  autofixPromptTemplate: string
+  prepassPromptTemplate: string
 }
+
+export type TaskPromptKind = 'revision' | 'autofix' | 'prepass'
+/** Built-in guidance per task and language: { revision: { en, id }, ... } */
+export type TaskPromptDefaults = Record<TaskPromptKind, { en: string; id: string }>
 
 export async function getProfileTemplates(): Promise<ProfileTemplates> {
   const api = getApi()
@@ -641,9 +678,167 @@ export async function getProfileTemplates(): Promise<ProfileTemplates> {
   return result as ProfileTemplates
 }
 
-export async function saveProfileTemplates(systemPromptTemplate: string, instructionsTemplate: string): Promise<boolean> {
+export async function getDefaultTaskPrompts(): Promise<TaskPromptDefaults> {
   const api = getApi()
-  const result = await api.save_profile_templates(systemPromptTemplate, instructionsTemplate)
+  const result = await api.get_default_task_prompts()
+  if (isApiError(result)) throw new Error(result.message)
+  return result as TaskPromptDefaults
+}
+
+export async function saveProfileTemplates(
+  systemPromptTemplate: string,
+  instructionsTemplate: string,
+  tasks?: { revision?: string; autofix?: string; prepass?: string },
+): Promise<boolean> {
+  const api = getApi()
+  const result = await api.save_profile_templates(
+    systemPromptTemplate,
+    instructionsTemplate,
+    tasks?.revision ?? null,
+    tasks?.autofix ?? null,
+    tasks?.prepass ?? null,
+  )
   if (isApiError(result)) throw new Error(result.message)
   return result as boolean
+}
+
+// ===== Model parameters =====
+
+export interface OpenRouterModel {
+  id: string
+  name: string
+  created: number
+  context: number | null
+  maxOutput: number | null
+  priceIn: number | null
+  priceOut: number | null
+  priceCacheRead: number | null
+  tools: boolean
+  temperature: boolean
+  reasoning: boolean
+  reasoningMandatory: boolean
+  efforts: string[]
+  defaultEffort: string
+  budgetReasoning: boolean
+  expires: string | null
+}
+
+let openRouterCache: Promise<{ models: OpenRouterModel[]; fetchedAt: number }> | null = null
+
+/** OpenRouter catalog (cached per session; `force` refetches from the network). */
+export function getOpenRouterModels(force = false): Promise<{ models: OpenRouterModel[]; fetchedAt: number }> {
+  if (!openRouterCache || force) {
+    openRouterCache = (async () => {
+      const api = getApi()
+      const result = await api.get_openrouter_models(force)
+      if (isApiError(result)) { openRouterCache = null; throw new Error(result.message) }
+      return result as { models: OpenRouterModel[]; fetchedAt: number }
+    })()
+  }
+  return openRouterCache
+}
+
+export interface RequestParams {
+  temperature: boolean
+  maxTokensKey: string
+  extra: Record<string, unknown>
+  notes: string[]
+}
+
+/** What LWNTL will actually send for this provider + model (uses the saved config). */
+export async function describeRequestParams(provider: string, model: string): Promise<RequestParams> {
+  const api = getApi()
+  const result = await api.describe_request_params(provider, model)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as RequestParams
+}
+
+// ===== QA (deterministic, no AI) =====
+
+export async function qaScanSeries(seriesId: string, includeLow = true): Promise<QaReport> {
+  const api = getApi()
+  const result = await api.qa_scan_series(seriesId, includeLow)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as QaReport
+}
+
+export async function qaPreviewFixes(seriesId: string, categories: string[]): Promise<QaFixPreview> {
+  const api = getApi()
+  const result = await api.qa_preview_fixes(seriesId, JSON.stringify(categories))
+  if (isApiError(result)) throw new Error(result.message)
+  return result as QaFixPreview
+}
+
+export interface RenamePreview {
+  chapters: { chapterId: string; chapterNumber: string; text: number; summary: number }[]
+  memory: number
+  glossary: { sourceTerm: string; translatedTerm: string }[]
+  samples: { chapter: string; before: string; after: string }[]
+  total: number
+}
+
+export async function qaPreviewRename(seriesId: string, oldText: string, newText: string): Promise<RenamePreview> {
+  const api = getApi()
+  const result = await api.qa_preview_rename(seriesId, oldText, newText)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as RenamePreview
+}
+
+export async function qaApplyRename(seriesId: string, oldText: string, newText: string): Promise<{ chapters: number; replaced: number; glossary: number }> {
+  const api = getApi()
+  const result = await api.qa_apply_rename(seriesId, oldText, newText)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { chapters: number; replaced: number; glossary: number }
+}
+
+export async function glossaryAudit(seriesId: string): Promise<GlossaryAudit> {
+  const api = getApi()
+  const result = await api.glossary_audit(seriesId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as GlossaryAudit
+}
+
+export async function qaChapterDetail(seriesId: string, chapterId: string): Promise<QaChapterDetail> {
+  const api = getApi()
+  const result = await api.qa_chapter_detail(seriesId, chapterId)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as QaChapterDetail
+}
+
+/** Replace one paragraph (empty text deletes it). Returns the refreshed chapter detail. */
+export async function qaUpdateParagraph(
+  seriesId: string, chapterId: string, index: number, expected: string, newText: string, archive: boolean,
+): Promise<QaChapterDetail> {
+  const api = getApi()
+  const result = await api.qa_update_paragraph(seriesId, chapterId, index, expected, newText, archive)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as QaChapterDetail
+}
+
+export async function qaSuggestFix(seriesId: string, chapterId: string, index: number): Promise<{ suggestion: string; delete: boolean }> {
+  const api = getApi()
+  const result = await api.qa_suggest_fix(seriesId, chapterId, index)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { suggestion: string; delete: boolean }
+}
+
+export async function glossaryResolve(seriesId: string, action: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const api = getApi()
+  const result = await api.glossary_resolve(seriesId, JSON.stringify(action))
+  if (isApiError(result)) throw new Error(result.message)
+  return result as Record<string, unknown>
+}
+
+export async function glossaryDeleteEntries(seriesId: string, entryIds: string[]): Promise<{ deleted: number; backup: string }> {
+  const api = getApi()
+  const result = await api.glossary_delete_entries(seriesId, JSON.stringify(entryIds))
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { deleted: number; backup: string }
+}
+
+export async function qaApplyFixes(seriesId: string, categories: string[]): Promise<{ chapters: number; categories: Record<string, number> }> {
+  const api = getApi()
+  const result = await api.qa_apply_fixes(seriesId, JSON.stringify(categories), null)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as { chapters: number; categories: Record<string, number> }
 }

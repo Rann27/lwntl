@@ -3,7 +3,17 @@ Prompt Builder Module
 Builds system and user prompts for translation with template variable support
 """
 
+import re
 from typing import Dict, Any, List
+
+# Text carrying no letters or digits — "-", "—", "." and friends. Users type these
+# to disable a section when an empty field is awkward to express, so treat them as
+# absent rather than injecting a stray "# Custom Instructions:\n-" into the prompt.
+_MEANINGFUL_RE = re.compile(r'[0-9A-Za-z぀-ヿ㐀-䶿一-鿿가-힯]')
+
+
+def is_blank_prompt(text: str) -> bool:
+    return not _MEANINGFUL_RE.search(text or "")
 
 def get_profile_system_prompt_template() -> str:
     """Get the active profile's system prompt template (empty string if not set)."""
@@ -39,6 +49,7 @@ def build_system_prompt(
     memory_context: str = "",
     raw_content: str = "",
     pre_filter: bool = True,
+    lookup_context: str = "",
 ) -> str:
     """
     Build system prompt for translation with full layered context.
@@ -62,8 +73,17 @@ def build_system_prompt(
     else:
         system_prompt = resolve_template_vars(base_prompt, series) + "\n\n"
 
-    # Instructions: per-series → profile template → nothing
-    instructions = series.get("instructions", "").strip() or get_profile_instructions_template().strip()
+    # Instructions: per-series → profile template → nothing.
+    # Optional by design: an all-in-one system prompt needs no second section, and
+    # a placeholder-only value counts as nothing at either level.
+    series_instructions = series.get("instructions", "").strip()
+    if is_blank_prompt(series_instructions):
+        series_instructions = ""
+    template_instructions = get_profile_instructions_template().strip()
+    if is_blank_prompt(template_instructions):
+        template_instructions = ""
+
+    instructions = series_instructions or template_instructions
     if instructions:
         system_prompt += f"# Custom Instructions:\n{resolve_template_vars(instructions, series)}\n\n"
 
@@ -83,6 +103,8 @@ def build_system_prompt(
 
         if filtered:
             system_prompt += "# Glossary (use these translations EXACTLY — non-negotiable):\n"
+            system_prompt += ("A name may appear only in part (surname or given name alone). Render that part "
+                              "with the matching word from the full-name entry — never a new romanization.\n")
             system_prompt += build_glossary_table(filtered)
             system_prompt += "\n"
 
@@ -93,6 +115,12 @@ def build_system_prompt(
     # Layer 3: Memory context (compacted long-term memory)
     if memory_context:
         system_prompt += f"\n{memory_context}"
+
+    # Layer 4: Look Up — real text of the last N chapters. Placed last so the most
+    # task-relevant context sits closest to the chapter being translated, and so the
+    # block that changes most often is furthest from the cacheable prefix.
+    if lookup_context:
+        system_prompt += f"\n{lookup_context}"
 
     return system_prompt
 
@@ -113,10 +141,16 @@ def filter_glossary_by_content(glossary: List[Dict[str, Any]], raw_content: str)
     1. Exact substring  — 船坂叶馬 in "船坂叶馬が歩いた"
     2. Subsequence      — 船坂叶馬 in "船ふな坂さか叶馬" (furigana interleaved between kanji)
 
+    3. Name part      — 船坂叶馬 (Funasaka Touma) when the chapter only says 叶馬.
+       Dropping the full-name entry here is how a model ends up inventing a
+       second romanization for the given name.
+
     False positives (term included though absent) are acceptable;
     false negatives (term silently dropped) break translation.
     Single-char terms are kept as exact-only to avoid subsequence noise.
     """
+    from .glossary_guard import partial_name_match
+
     if not glossary or not raw_content:
         return glossary
     result = []
@@ -127,6 +161,8 @@ def filter_glossary_by_content(glossary: List[Dict[str, Any]], raw_content: str)
         if term in raw_content:
             result.append(e)
         elif len(term) >= 2 and _is_subsequence(term, raw_content):
+            result.append(e)
+        elif partial_name_match(term, e.get("translatedTerm", ""), raw_content):
             result.append(e)
     return result
 

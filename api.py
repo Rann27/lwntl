@@ -125,6 +125,26 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
+    def get_openrouter_models(self, force: bool = False):
+        """OpenRouter catalog for the model picker (cached for a day; force refetches)."""
+        try:
+            from core.openrouter import compact_catalog
+            return compact_catalog(bool(force))
+        except Exception as e:
+            return {"error": True, "message": f"Gagal memuat katalog OpenRouter: {e}"}
+
+    def describe_request_params(self, provider: str, model: str):
+        """What LWNTL will actually send for this provider + model, with the reasons."""
+        try:
+            from core.llm_client import request_profile
+            prof = request_profile(self._get_config(), provider, model)
+            body = dict(prof["extra_body"] or {})
+            body.pop("google", None)  # safety settings are shown by their own toggle
+            return {"temperature": prof["temperature"], "maxTokensKey": prof["max_tokens_key"],
+                    "extra": body, "notes": prof["notes"]}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
     def test_config(self):
         """Test if LLM client can connect with current config"""
         try:
@@ -195,14 +215,19 @@ class API:
     def update_series(self, series_id: str, title: str, language: str,
                       target_language: str = None, system_prompt: str = None,
                       worker_id: str = None, iteration_lock=None, auto_fix_cjk=None,
-                      image_folder=None):
+                      image_folder=None, revision_pass=None,
+                      lookup_enabled=None, lookup_chapters=None):
         """Update a series"""
         try:
             lock = bool(iteration_lock) if iteration_lock is not None else None
             autofix = bool(auto_fix_cjk) if auto_fix_cjk is not None else None
             folder = str(image_folder) if image_folder is not None else None
+            revision = bool(revision_pass) if revision_pass is not None else None
+            lookup_on = bool(lookup_enabled) if lookup_enabled is not None else None
+            lookup_n = int(lookup_chapters) if lookup_chapters is not None else None
             return update_series_db(series_id, title, language, target_language, system_prompt,
-                                    worker_id, lock, autofix, folder)
+                                    worker_id, lock, autofix, folder, revision,
+                                    lookup_on, lookup_n)
         except Exception as e:
             return {"error": True, "message": str(e)}
     
@@ -220,10 +245,24 @@ class API:
         except Exception as e:
             return {"error": True, "message": str(e)}
 
-    def save_profile_templates(self, system_prompt_template: str, instructions_template: str):
+    def get_default_task_prompts(self):
+        """Built-in guidance for the revision / autofix / pre-pass prompts, per language (en, id)."""
+        try:
+            from core.task_prompts import all_defaults
+            return all_defaults()
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def save_profile_templates(self, system_prompt_template: str, instructions_template: str,
+                               revision_prompt_template: str = None,
+                               autofix_prompt_template: str = None,
+                               prepass_prompt_template: str = None):
         """Save prompt templates for the active profile."""
         try:
-            return save_profile_templates(system_prompt_template, instructions_template)
+            return save_profile_templates(system_prompt_template, instructions_template,
+                                          revision_prompt_template=revision_prompt_template,
+                                          autofix_prompt_template=autofix_prompt_template,
+                                          prepass_prompt_template=prepass_prompt_template)
         except Exception as e:
             return {"error": True, "message": str(e)}
 
@@ -404,6 +443,132 @@ class API:
                 force=bool(force),
                 archive_previous=bool(archive_previous),
             )
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def start_agent_run(self, series_id: str, brief: str = "", review: str = "full",
+                        volume_pass: bool = True, rereview: bool = False, safe_fixes: bool = True):
+        """Autonomous agent loop over the whole series (translate -> review -> volume pass)."""
+        try:
+            return self._worker_manager.start_agent_run(
+                series_id,
+                brief=brief or "",
+                review=review or "full",
+                volume_pass=bool(volume_pass),
+                rereview=bool(rereview),
+                safe_fixes=bool(safe_fixes),
+            )
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    # ── QA (deterministic, no AI) ──────────────────────────────────────────
+
+    def qa_scan_series(self, series_id: str, include_low: bool = True):
+        """Volume-wide QA report: per-chapter findings + cross-chapter checks."""
+        try:
+            from core.qa_scan import scan_series
+            return scan_series(series_id, include_low=bool(include_low))
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def qa_preview_fixes(self, series_id: str, categories):
+        """Dry run of the safe-fix categories over every translated chapter."""
+        try:
+            from core.qa_scan import preview_safe_fixes
+            cats = json.loads(categories) if isinstance(categories, str) else list(categories or [])
+            return preview_safe_fixes(series_id, cats)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def qa_preview_rename(self, series_id: str, old: str, new: str):
+        """Where a rendering occurs: translations, summaries, memory, glossary."""
+        try:
+            from core.qa_scan import preview_rename
+            return preview_rename(series_id, old, new)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def qa_apply_rename(self, series_id: str, old: str, new: str):
+        """Replace a rendering everywhere it could re-enter the context."""
+        try:
+            if self._worker_manager.is_series_running(series_id):
+                return {"error": True, "message": "Series ini sedang diproses — tunggu sampai selesai."}
+            from core.qa_scan import apply_rename
+            return apply_rename(series_id, old, new)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def glossary_audit(self, series_id: str):
+        """Per-entry usefulness: source frequency, usage, variants, conflicts (no AI)."""
+        try:
+            from core.glossary_audit import audit_glossary
+            return audit_glossary(series_id)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def qa_chapter_detail(self, series_id: str, chapter_id: str):
+        """One chapter for in-place review: paragraphs, findings, source map, fix previews."""
+        try:
+            from core.qa_chapter import chapter_detail
+            return chapter_detail(series_id, chapter_id)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def qa_update_paragraph(self, series_id: str, chapter_id: str, index: int, expected: str,
+                            new_text: str, archive: bool = True):
+        """Replace (or with empty text, delete) one paragraph; returns the refreshed detail."""
+        try:
+            if self._worker_manager.is_series_running(series_id):
+                return {"error": True, "message": "Series ini sedang diproses — tunggu sampai selesai."}
+            from core.qa_chapter import update_paragraph
+            return update_paragraph(series_id, chapter_id, int(index), expected or "", new_text or "", bool(archive))
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def qa_suggest_fix(self, series_id: str, chapter_id: str, index: int):
+        """Ask the series' worker model for a corrected paragraph (one call)."""
+        try:
+            from core.qa_chapter import suggest_fix
+            from core.llm_client import LLMClient
+            series = get_series(series_id) or {}
+            workers = self._get_config().get("workers", [])
+            worker = next((w for w in workers if w.get("id") == series.get("workerId")), None) or (workers[0] if workers else None)
+            if not worker:
+                return {"error": True, "message": "Belum ada worker. Tambahkan worker di Settings."}
+            client = LLMClient(self._worker_manager._build_worker_config(worker))
+            return suggest_fix(client, series_id, chapter_id, int(index))
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def glossary_resolve(self, series_id: str, action):
+        """Apply one decision from the glossary review flow (canonical / ignore / delete)."""
+        try:
+            if self._worker_manager.is_series_running(series_id):
+                return {"error": True, "message": "Series ini sedang diproses — tunggu sampai selesai."}
+            from core.glossary_audit import resolve_entry
+            act = json.loads(action) if isinstance(action, str) else dict(action or {})
+            return resolve_entry(series_id, act)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def glossary_delete_entries(self, series_id: str, entry_ids):
+        """Delete many entries at once; removed entries are backed up to a JSON file first."""
+        try:
+            from core.glossary_audit import delete_entries
+            ids = json.loads(entry_ids) if isinstance(entry_ids, str) else list(entry_ids or [])
+            return delete_entries(series_id, ids)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def qa_apply_fixes(self, series_id: str, categories, chapter_ids=None):
+        """Apply safe fixes; each changed chapter is archived to version history first."""
+        try:
+            if self._worker_manager.is_series_running(series_id):
+                return {"error": True, "message": "Series ini sedang diproses — tunggu sampai selesai."}
+            from core.qa_scan import apply_safe_fixes_to_series
+            cats = json.loads(categories) if isinstance(categories, str) else list(categories or [])
+            ids = json.loads(chapter_ids) if isinstance(chapter_ids, str) else chapter_ids
+            return apply_safe_fixes_to_series(series_id, cats, ids or None)
         except Exception as e:
             return {"error": True, "message": str(e)}
 

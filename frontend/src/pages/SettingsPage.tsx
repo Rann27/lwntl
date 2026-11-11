@@ -10,6 +10,9 @@ import { useAppStore } from '../store/appStore'
 import { saveConfig, testConfig as testConfigApi } from '../api'
 import { useToast } from '../hooks/useToast'
 import { PROVIDERS } from '../types'
+import type { EffortSetting } from '../types'
+import { OpenRouterModelPicker } from '../components/OpenRouterModelPicker'
+import { RequestParamsPreview } from '../components/RequestParamsPreview'
 import type { AppConfig, WorkerProfile, DeepSeekApiKeyEntry } from '../types'
 import { useI18n, LANGUAGE_OPTIONS, type Language } from '../i18n'
 
@@ -29,6 +32,7 @@ const API_KEY_FIELDS: Array<{
   { provider: 'moonshot',     field: 'moonshotApiKey',     label: 'Moonshot AI (Kimi)' },
   { provider: 'deepseek',     field: 'deepseekApiKey',     label: 'DeepSeek', hasThinkingToggle: true },
   { provider: 'mimo',         field: 'mimoApiKey',         label: 'Xiaomi MiMo', hasThinkingToggle: true },
+  { provider: 'openrouter',   field: 'openrouterApiKey',   label: 'OpenRouter' },
   { provider: 'openaicompat', field: 'openaicompatApiKey', label: 'OpenAI Compatible', hasBaseUrl: true },
 ]
 
@@ -172,6 +176,7 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
           const providerModels = PROVIDERS[worker.provider]?.models || []
           const modelIsPreset = providerModels.includes(worker.model)
           const useCustomInput = worker.provider === 'openaicompat' || !modelIsPreset
+          const useOpenRouter = worker.provider === 'openrouter'
           return (
             <div key={worker.id} className="p-3" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
               <div className="flex items-center gap-2 mb-3">
@@ -210,7 +215,9 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
                   })}
                 </select>
 
-                {useCustomInput ? (
+                {useOpenRouter ? (
+                  <OpenRouterModelPicker value={worker.model} onChange={(id) => updateWorker(worker.id, { model: id })} />
+                ) : useCustomInput ? (
                   <input
                     value={worker.model}
                     onChange={(e) => updateWorker(worker.id, { model: e.target.value })}
@@ -232,6 +239,8 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
                   </select>
                 )}
               </div>
+
+              <RequestParamsPreview provider={worker.provider} model={worker.model} revision={config} />
 
               {worker.provider === 'deepseek' && config.deepseekApiKeys?.length > 1 && (
                 <div className="flex items-center gap-2 mt-2">
@@ -422,13 +431,24 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     config.deepseekApiKeys?.length ? config.deepseekApiKeys : []
   )
   const [deepseekThinking, setDeepseekThinking] = useState(config.deepseekThinking ?? false)
-  const [deepseekReasoningEffort, setDeepseekReasoningEffort] = useState<'high' | 'max'>(
-    (config.deepseekReasoningEffort === 'max' ? 'max' : 'high')
+  const [deepseekReasoningEffort, setDeepseekReasoningEffort] = useState<'low' | 'high' | 'max'>(
+    (['low', 'high', 'max'].includes(config.deepseekReasoningEffort) ? config.deepseekReasoningEffort : 'high')
   )
   const [zhipuaiThinking, setZhipuaiThinking] = useState(config.zhipuaiThinking ?? true)
+  const [zhipuaiReasoningEffort, setZhipuaiReasoningEffort] = useState<EffortSetting>(config.zhipuaiReasoningEffort ?? 'default')
   const [mimoThinking, setMimoThinking] = useState(config.mimoThinking ?? true)
   const [mimoReasoningEffort, setMimoReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.mimoReasoningEffort ?? 'medium')
-  const [xaiReasoningEffort, setXaiReasoningEffort] = useState<'low' | 'medium' | 'high'>(config.xaiReasoningEffort ?? 'high')
+  const [xaiReasoningEffort, setXaiReasoningEffort] = useState<AppConfig['xaiReasoningEffort']>(config.xaiReasoningEffort ?? 'high')
+  const [openaiReasoningEffort, setOpenaiReasoningEffort] = useState<EffortSetting>(config.openaiReasoningEffort ?? 'default')
+  const [anthropicEffort, setAnthropicEffort] = useState<EffortSetting>(config.anthropicEffort ?? 'default')
+  const [geminiReasoningEffort, setGeminiReasoningEffort] = useState<EffortSetting>(config.geminiReasoningEffort ?? 'default')
+  const [moonshotRegion, setMoonshotRegion] = useState<AppConfig['moonshotRegion']>(config.moonshotRegion ?? 'international')
+  const [moonshotReasoningEffort, setMoonshotReasoningEffort] = useState<EffortSetting>(config.moonshotReasoningEffort ?? 'default')
+  const [moonshotThinking, setMoonshotThinking] = useState(config.moonshotThinking ?? true)
+  const [qwenThinking, setQwenThinking] = useState(config.qwenThinking ?? true)
+  const [openrouterReasoning, setOpenrouterReasoning] = useState<AppConfig['openrouterReasoning']>(config.openrouterReasoning ?? 'default')
+  const [openrouterSort, setOpenrouterSort] = useState<AppConfig['openrouterSort']>(config.openrouterSort ?? '')
+  const [openrouterDeny, setOpenrouterDeny] = useState(config.openrouterDenyDataCollection ?? false)
   const [geminiSafetyFilter, setGeminiSafetyFilter] = useState(config.geminiSafetyFilter ?? true)
   const [showKey, setShowKey] = useState<Record<string, boolean>>({})
   const [testing, setTesting] = useState(false)
@@ -446,9 +466,20 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
     updated.deepseekThinking = deepseekThinking
     updated.deepseekReasoningEffort = deepseekReasoningEffort
     updated.zhipuaiThinking = zhipuaiThinking
+    updated.zhipuaiReasoningEffort = zhipuaiReasoningEffort
     updated.mimoThinking = mimoThinking
     updated.mimoReasoningEffort = mimoReasoningEffort
     updated.xaiReasoningEffort = xaiReasoningEffort
+    updated.openaiReasoningEffort = openaiReasoningEffort
+    updated.anthropicEffort = anthropicEffort
+    updated.geminiReasoningEffort = geminiReasoningEffort
+    updated.moonshotRegion = moonshotRegion
+    updated.moonshotReasoningEffort = moonshotReasoningEffort
+    updated.moonshotThinking = moonshotThinking
+    updated.qwenThinking = qwenThinking
+    updated.openrouterReasoning = openrouterReasoning
+    updated.openrouterSort = openrouterSort
+    updated.openrouterDenyDataCollection = openrouterDeny
     updated.geminiSafetyFilter = geminiSafetyFilter
     return updated
   }
@@ -626,38 +657,58 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 </button>
               </div>
             )}
+            {provider === 'zhipuai' && (
+              <OptionRow title="Reasoning Effort" desc="Mulai GLM-5.2. GLM-5.3 / 5.3-Flash hanya LOW/HIGH/MAX (MED dan XHIGH dipetakan otomatis); GLM-5.2 dan 5.3-FlashX menerima semua level. DEFAULT = MAX. Tidak dikirim saat thinking OFF."
+                value={zhipuaiReasoningEffort} onChange={v => { setZhipuaiReasoningEffort(v as EffortSetting); setTestResult(null) }}
+                options={[['default', 'DEFAULT'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
+            )}
             {provider === 'xai' && (
-              <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
-                <div>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                    Reasoning Effort
-                  </span>
-                  <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
-                    Grok always reasons — adjust depth only. Low = faster, High = deeper.
-                  </p>
-                </div>
-                <div className="flex gap-1" style={{ flexShrink: 0, marginLeft: '12px' }}>
-                  {([
-                    { value: 'low',    label: 'LOW',  color: '#28E272' },
-                    { value: 'medium', label: 'MED',  color: '#FFD600' },
-                    { value: 'high',   label: 'HIGH', color: '#FF3C3C' },
-                  ] as const).map(opt => (
-                    <button
-                      key={opt.value}
-                      onClick={() => { setXaiReasoningEffort(opt.value); setTestResult(null) }}
-                      style={{
-                        padding: '4px 10px', fontSize: '10px', fontWeight: 700,
-                        border: '2px solid var(--color-border)', cursor: 'pointer',
-                        textTransform: 'uppercase', letterSpacing: '0.4px',
-                        backgroundColor: xaiReasoningEffort === opt.value ? opt.color : 'var(--color-surface)',
-                        color: xaiReasoningEffort === opt.value ? '#111' : 'var(--color-text-muted)',
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <OptionRow title="Reasoning Effort" desc="Grok selalu berpikir. Grok 4.6/4.7 menerima XHIGH; 4.5 maksimal HIGH; 4.3 dan 4.20 tidak menerima effort (otomatis tidak dikirim)."
+                value={xaiReasoningEffort} onChange={v => { setXaiReasoningEffort(v as AppConfig['xaiReasoningEffort']); setTestResult(null) }}
+                options={[['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH']]} />
+            )}
+            {provider === 'openai' && (
+              <OptionRow title="Reasoning Effort" desc="GPT-6 selalu reasoning dan tidak menerima temperature. NONE hanya ada di GPT-6 Luna (model lain otomatis ke LOW). DEFAULT = bawaan model (medium)."
+                value={openaiReasoningEffort} onChange={v => { setOpenaiReasoningEffort(v as EffortSetting); setTestResult(null) }}
+                options={[['default', 'DEFAULT'], ['none', 'NONE'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
+            )}
+            {provider === 'anthropic' && (
+              <OptionRow title="Effort" desc="Claude 5.x berpikir adaptif dan menolak temperature — effort mengatur kedalaman sekaligus biaya. DEFAULT = medium (Opus/Haiku 5.5) atau high (Sonnet 5.5, Fable 5.1)."
+                value={anthropicEffort} onChange={v => { setAnthropicEffort(v as EffortSetting); setTestResult(null) }}
+                options={[['default', 'DEFAULT'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
+            )}
+            {provider === 'gemini' && (
+              <OptionRow title="Thinking Level" desc="Gemini 3 tidak bisa mematikan thinking; LOW/MED/HIGH mengatur kedalamannya. DEFAULT = bawaan model."
+                value={geminiReasoningEffort} onChange={v => { setGeminiReasoningEffort(v as EffortSetting); setTestResult(null) }}
+                options={[['default', 'DEFAULT'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH']]} />
+            )}
+            {provider === 'qwen' && (
+              <ToggleRow title="Thinking" desc="Qwen 3.7/3.8 berpikir secara default. OFF = jawab langsung (lebih cepat dan murah)."
+                on={qwenThinking} onToggle={() => { setQwenThinking(v => !v); setTestResult(null) }} />
+            )}
+            {provider === 'moonshot' && (
+              <>
+                <OptionRow title="Region" desc="Key dari platform internasional (platform.kimi.ai) atau China (platform.moonshot.cn) — tidak bisa dipertukarkan."
+                  value={moonshotRegion} onChange={v => { setMoonshotRegion(v as AppConfig['moonshotRegion']); setTestResult(null) }}
+                  options={[['international', 'INTL'], ['china', 'CHINA']]} />
+                <OptionRow title="Effort (Kimi K3)" desc="Temperature Kimi dikunci 1.0 oleh provider (tidak dikirim). DEFAULT = MAX."
+                  value={moonshotReasoningEffort} onChange={v => { setMoonshotReasoningEffort(v as EffortSetting); setTestResult(null) }}
+                  options={[['default', 'DEFAULT'], ['low', 'LOW'], ['high', 'HIGH'], ['max', 'MAX']]} />
+                <ToggleRow title="Thinking (Kimi K2.6)" desc="K2.6 bisa menjawab tanpa berpikir. K2.7 Code selalu berpikir."
+                  on={moonshotThinking} onToggle={() => { setMoonshotThinking(v => !v); setTestResult(null) }} />
+              </>
+            )}
+            {provider === 'openrouter' && (
+              <>
+                <OptionRow title="Reasoning" desc="Diterjemahkan per model dari katalog OpenRouter: level yang tidak ada dipetakan ke yang terdekat, model berbasis anggaran (Qwen) diberi token budget, dan OFF diabaikan bila reasoning wajib. Lihat baris 'Dikirim' di tiap worker."
+                  value={openrouterReasoning} onChange={v => { setOpenrouterReasoning(v as AppConfig['openrouterReasoning']); setTestResult(null) }}
+                  options={[['default', 'DEFAULT'], ['off', 'OFF'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
+                <OptionRow title="Routing" desc="Satu model bisa dilayani beberapa penyedia. DEFAULT = OpenRouter menyeimbangkan harga & uptime."
+                  value={openrouterSort} onChange={v => { setOpenrouterSort(v as AppConfig['openrouterSort']); setTestResult(null) }}
+                  options={[['', 'DEFAULT'], ['price', 'MURAH'], ['throughput', 'CEPAT'], ['latency', 'LATENSI']]} />
+                <ToggleRow title="Tolak penyedia yang menyimpan data" desc="Hanya pakai penyedia yang tidak menyimpan/melatih dari prompt. Pilihan penyedia jadi lebih sedikit (kadang lebih mahal)."
+                  on={openrouterDeny} onToggle={() => { setOpenrouterDeny(v => !v); setTestResult(null) }} />
+              </>
             )}
             {hasThinkingToggle && (() => {
               const isZhipuai = provider === 'zhipuai'
@@ -679,12 +730,13 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 setTestResult(null)
               }
               const setEffort = (v: string) => {
-                if (isDeepseek) setDeepseekReasoningEffort(v as 'high' | 'max')
+                if (isDeepseek) setDeepseekReasoningEffort(v as 'low' | 'high' | 'max')
                 else if (isMimo) setMimoReasoningEffort(v as 'low' | 'medium' | 'high')
                 setTestResult(null)
               }
               const EFFORT_OPTIONS = isDeepseek
                 ? [
+                    { value: 'low',  label: 'LOW',  color: '#28E272' },
                     { value: 'high', label: 'HIGH', color: '#FFD600' },
                     { value: 'max',  label: 'MAX',  color: '#FF3C3C' },
                   ]
@@ -863,3 +915,47 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
   )
 }
 
+
+// ─── Option rows ─────────────────────────────────────────────────────────────
+
+const OPTION_COLORS = ['#E0E0E0', '#28E272', '#9BF0B8', '#FFD600', '#FFB020', '#FF8A3C', '#FF3C3C']
+
+function OptionRow({ title, desc, options, value, onChange }: {
+  title: string
+  desc: string
+  options: [string, string][]
+  value: string
+  onChange: (v: string) => void
+}) {
+  return (
+    <div className="mt-2 px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</span>
+      <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>{desc}</p>
+      <div className="flex gap-1 flex-wrap" style={{ marginTop: '6px' }}>
+        {options.map(([v, label], i) => (
+          <button key={v || 'default'} onClick={() => onChange(v)} style={{
+            padding: '4px 10px', fontSize: '10px', fontWeight: 700, border: '2px solid var(--color-border)', cursor: 'pointer',
+            textTransform: 'uppercase', letterSpacing: '0.4px',
+            backgroundColor: value === v ? OPTION_COLORS[Math.min(i, OPTION_COLORS.length - 1)] : 'var(--color-surface)',
+            color: value === v ? '#111' : 'var(--color-text-muted)',
+          }}>{label}</button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ToggleRow({ title, desc, on, onToggle }: { title: string; desc: string; on: boolean; onToggle: () => void }) {
+  return (
+    <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+      <div>
+        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</span>
+        <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5, maxWidth: '420px' }}>{desc}</p>
+      </div>
+      <button onClick={onToggle} style={{
+        flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)',
+        cursor: 'pointer', textTransform: 'uppercase', backgroundColor: on ? '#00F7FF' : 'var(--color-surface)', color: on ? '#111' : 'var(--color-text-muted)',
+      }}>{on ? 'ON' : 'OFF'}</button>
+    </div>
+  )
+}

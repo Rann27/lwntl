@@ -152,27 +152,40 @@ def _set_active(name: str):
 
 DEFAULT_CONFIG = {
     "provider": "zhipuai",
-    "model": "glm-5",
+    "model": "glm-5.3",
     "workers": [
         {
             "id": "default",
             "label": "worker 1",
             "provider": "zhipuai",
-            "model": "glm-5",
+            "model": "glm-5.3",
             "maxConcurrent": 1,
         }
     ],
     "customModels": {},
     "zhipuaiApiKey": "",
     "zhipuaiThinking": True,
+    "zhipuaiReasoningEffort": "default",
     "qwenApiKey": "",
+    "qwenThinking": True,
     "openaiApiKey": "",
+    # "default" = send nothing and let the model use its own default.
+    "openaiReasoningEffort": "default",
     "geminiApiKey": "",
     "geminiSafetyFilter": True,
+    "geminiReasoningEffort": "default",
     "anthropicApiKey": "",
+    "anthropicEffort": "default",
     "xaiApiKey": "",
     "xaiReasoningEffort": "high",
     "moonshotApiKey": "",
+    "moonshotRegion": "international",
+    "moonshotReasoningEffort": "default",
+    "moonshotThinking": True,
+    "openrouterApiKey": "",
+    "openrouterReasoning": "default",
+    "openrouterSort": "",
+    "openrouterDenyDataCollection": False,
     "deepseekApiKey": "",
     "deepseekApiKeys": [],
     "deepseekThinking": False,
@@ -193,6 +206,20 @@ DEFAULT_CONFIG = {
     "uiLanguage": "id",
     "sourceLanguages": ["Japanese", "Chinese", "Korean"],
     "targetLanguages": ["Indonesian", "English"],
+}
+
+
+# DeepSeek retired these IDs on 2026-09-10; requests are only temporarily routed
+# to V4.1 Flash, so saved workers are moved to the current name.
+_DEEPSEEK_MODEL_ALIASES = {
+    "deepseek-v4-flash": "deepseek-flash",
+    "deepseek-v4-flash-vision-exp": "deepseek-flash",
+}
+
+
+# Preview IDs shut down after the same model went GA under a new name.
+_SHUTDOWN_ALIASES = {
+    "gemini": {"gemini-3.1-flash-lite-preview": "gemini-3.1-flash-lite"},
 }
 
 
@@ -218,11 +245,16 @@ def _normalize_workers(config: Dict[str, Any]) -> Dict[str, Any]:
         if worker_id in seen_ids:
             worker_id = str(uuid.uuid4())
         seen_ids.add(worker_id)
+        provider = str(worker.get("provider") or config.get("provider", DEFAULT_CONFIG["provider"]))
+        model = str(worker.get("model") or config.get("model", DEFAULT_CONFIG["model"]))
+        if provider == "deepseek":
+            model = _DEEPSEEK_MODEL_ALIASES.get(model, model)
+        model = _SHUTDOWN_ALIASES.get(provider, {}).get(model, model)
         normalized_worker = {
             "id": worker_id,
             "label": str(worker.get("label") or f"worker {i}").strip() or f"worker {i}",
-            "provider": str(worker.get("provider") or config.get("provider", DEFAULT_CONFIG["provider"])),
-            "model": str(worker.get("model") or config.get("model", DEFAULT_CONFIG["model"])),
+            "provider": provider,
+            "model": model,
             "maxConcurrent": max(1, int(worker.get("maxConcurrent") or 1)),
         }
         # Preserve the worker-specific DeepSeek key selection. Without this, the
@@ -237,6 +269,10 @@ def _normalize_workers(config: Dict[str, Any]) -> Dict[str, Any]:
         normalized = DEFAULT_CONFIG["workers"].copy()
 
     config["workers"] = normalized
+    if config.get("provider") == "deepseek":
+        config["model"] = _DEEPSEEK_MODEL_ALIASES.get(config.get("model"), config.get("model"))
+    if config.get("deepseekReasoningEffort") not in ("low", "high", "max"):
+        config["deepseekReasoningEffort"] = "high"
     return config
 
 
@@ -258,6 +294,10 @@ def get_config() -> Dict[str, Any]:
         stored = json.load(f)
 
     merged = {**DEFAULT_CONFIG, **stored}
+    # Moonshot used the China endpoint before the region setting existed; a key
+    # saved then belongs to that platform, so keep it there.
+    if "moonshotRegion" not in stored and (stored.get("moonshotApiKey") or "").strip():
+        merged["moonshotRegion"] = "china"
     merged = _migrate_deepseek_keys(merged)
     return _normalize_workers(merged)
 

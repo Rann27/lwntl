@@ -4,6 +4,7 @@
  */
 
 import { useAppStore } from '../store/appStore'
+import { useI18n } from '../i18n'
 import type { Chapter } from '../types'
 
 interface Props {
@@ -24,12 +25,19 @@ const statusDot = (status: string) => {
 export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: Props) {
   const batches = useAppStore((s) => s.batches)
   const batch = batches[seriesId] ?? null
+  const { t } = useI18n()
 
   if (!batch || batch.status !== 'translating') return null
 
   const completed = batch.completed || 0
   const total = batch.total || chapters.length
   const progressPct = total > 0 ? Math.round((completed / total) * 100) : 0
+  const isAgent = !!batch.agent
+  const phaseLabel = batch.phase === 'review'
+    ? t.agent.phaseReview
+    : batch.phase === 'volume'
+      ? t.agent.phaseVolume
+      : isAgent ? t.agent.phaseTranslate : 'Sedang menerjemahkan'
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center pb-6 pointer-events-none">
@@ -40,7 +48,7 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-[#00F7FF] animate-pulse" />
             <span className="font-space text-sm font-bold tracking-wide text-[#00F7FF]">
-              BATCH TRANSLATION
+              {isAgent ? 'AGENT RUN' : 'BATCH TRANSLATION'}
             </span>
             <span className="text-xs text-[#999] font-mono">
               {completed}/{total} bab
@@ -86,8 +94,8 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
                   <span className={`truncate ${isCurrent ? 'text-white' : 'text-[#999]'}`}>
                     {ch.title || 'Tanpa Judul'}
                   </span>
-                  <span className="ml-auto text-[#444] shrink-0">
-                    {ch.status === 'done' ? '✓' : ch.status === 'processing' ? '⟳' : ch.status === 'error' ? '✗' : '○'}
+                  <span className="ml-auto text-[#444] shrink-0" title={ch.agentReview ? t.agent.reviewedBadge : undefined}>
+                    {ch.status === 'done' ? (ch.agentReview ? '✓✓' : '✓') : ch.status === 'processing' ? '⟳' : ch.status === 'error' ? '✗' : '○'}
                   </span>
                 </div>
               )
@@ -95,9 +103,13 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
         </div>
 
         {/* Current activity */}
-        {batch.chapterNumber && (
+        {batch.phase === 'volume' ? (
+          <div className="px-4 py-2 border-t border-[#333] text-xs text-[#C9A7FF]">
+            {phaseLabel}…
+          </div>
+        ) : batch.chapterNumber && (
           <div className="px-4 py-2 border-t border-[#333] text-xs text-[#666]">
-            Sedang menerjemahkan: <span className="text-[#00F7FF]">Bab {batch.chapterNumber}</span>
+            {phaseLabel}: <span className={isAgent && batch.phase === 'review' ? 'text-[#C9A7FF]' : 'text-[#00F7FF]'}>Bab {batch.chapterNumber}</span>
             {batch.chapterTitle ? ` — ${batch.chapterTitle}` : ''}
           </div>
         )}

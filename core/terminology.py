@@ -90,39 +90,8 @@ def _build_messages(source_text: str, source_lang: str, target_lang: str,
             + "\n"
         )
 
-    system_prompt = (
-        f"You are a terminology lead preparing a {source_lang}-to-{target_lang} "
-        "light/web novel translation.\n\n"
-        "You are given RAW SOURCE TEXT (not a translation). Identify the recurring "
-        "terms a translator must render identically every time, and decide the "
-        f"{target_lang} form to use.\n\n"
-        "INCLUDE:\n"
-        "- Character names, nicknames, epithets, titles\n"
-        "- Place, organization, faction, and group names\n"
-        "- Skills, spells, techniques, abilities\n"
-        "- Weapons, items, artifacts, equipment\n"
-        "- World-specific concepts, ranks, systems, races\n"
-        "- Any recurring compound noun whose rendering could plausibly vary "
-        "(this matters more than whether it is a proper noun)\n\n"
-        "EXCLUDE:\n"
-        "- Ordinary vocabulary with a single obvious rendering\n"
-        "- One-off descriptive phrases that do not recur\n\n"
-        "SOURCE TERM RULES — strict:\n"
-        f"- 'sourceTerm' MUST be written in the original {source_lang} script, exactly "
-        "as it appears in the text. Never put the translation there.\n"
-        "- Raw text often interleaves furigana readings between kanji, e.g. "
-        "'【 杖 じよう 剣 けん 】'. Strip the readings and give the base form: '杖剣'.\n"
-        "- For a name written with furigana such as 叶馬（とうま）, use the kanji: 叶馬\n\n"
-        f"TRANSLATION RULES:\n"
-        f"- 'translatedTerm' must be pure {target_lang} with no {source_lang} characters, "
-        "except honorifics/cultural terms conventionally kept romanized.\n"
-        "- Pick ONE canonical form per term and stay consistent.\n"
-        "- Keep 'notes' to a short role/context hint.\n"
-        f"{known}\n"
-        "OUTPUT — a JSON array only, no markdown fences, no prose:\n"
-        '[{"sourceTerm":"魔王","translatedTerm":"Demon King","notes":"main antagonist"}]\n'
-        "Return [] if nothing qualifies."
-    )
+    from .task_prompts import build_task_prompt
+    system_prompt = build_task_prompt("prepass", source_lang, target_lang) + "\n" + known
 
     user_prompt = (
         "RAW SOURCE TEXT:\n"

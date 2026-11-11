@@ -18,8 +18,10 @@ import { AllTermsModal, countInconsistencies } from '../components/AllTermsModal
 import { RollingMemoryModal } from '../components/RollingMemoryModal'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch, Image as ImageIcon } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch, Bot, ShieldCheck, Image as ImageIcon } from 'lucide-react'
 import { TerminologyPrepassModal } from '../components/TerminologyPrepassModal'
+import { AgentRunModal } from '../components/AgentRunModal'
+import { QaReportModal } from '../components/QaReportModal'
 import { ImageFolderModal } from '../components/ImageFolderModal'
 import type { ProposedTerm } from '../api'
 import {
@@ -56,11 +58,13 @@ export function SeriesSettingsPage() {
   const toast = useToast()
   const { t } = useI18n()
   const { config, setConfig, apiReady } = useAppStore()
-  const { isBatchActive, startBatch, startSelectedBatch, cancelBatch } = useBatchTranslation(seriesId!)
+  const { isBatchActive, startBatch, startSelectedBatch, startAgent, cancelBatch } = useBatchTranslation(seriesId!)
   const [showMemory, setShowMemory] = useState(false)
   const [showLogs, setShowLogs] = useState(false)
   const [showAllTerms, setShowAllTerms] = useState(false)
   const [showPrepass, setShowPrepass] = useState(false)
+  const [showAgentRun, setShowAgentRun] = useState(false)
+  const [showQa, setShowQa] = useState(false)
   const [showImageFolder, setShowImageFolder] = useState(false)
   const [showRollingMemory, setShowRollingMemory] = useState(false)
   const [seriesLogLines, setSeriesLogLines] = useState<string[]>([])
@@ -134,8 +138,15 @@ export function SeriesSettingsPage() {
     }
     const onBatchSettled = (e: Event) => {
       const detail = (e as CustomEvent).detail
-      if (detail?.seriesId === seriesId && (detail.status === 'done' || detail.status === 'cancelled')) {
+      if (detail?.seriesId !== seriesId) return
+      const settled = detail.status === 'done' || detail.status === 'cancelled'
+      // Agent runs edit chapters and the glossary between phase events, so
+      // refresh on every phase change, not only when the run settles.
+      if (settled || detail.agent) {
         getChapters(seriesId).then(setChapters).catch(() => {})
+      }
+      if (detail.agent && settled) {
+        getGlossary(seriesId).then(setGlossary).catch(() => {})
       }
     }
     window.addEventListener('lwntl:translation-done', refresh)
@@ -183,7 +194,7 @@ export function SeriesSettingsPage() {
   }, [chapters])
 
   // Save config + instructions + systemPrompt
-  const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean) => {
+  const handleSaveSettings = async (newConfig: AppConfig, newInstructions: string, newSystemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean, revisionPass: boolean, lookupEnabled: boolean, lookupChapters: number) => {
     if (!seriesId || !series) return
     setSaveLoading(true)
     try {
@@ -193,9 +204,9 @@ export function SeriesSettingsPage() {
       await saveInstructions(seriesId, newInstructions)
       setInstructions(newInstructions)
 
-      await updateSeries(seriesId, series.title, series.sourceLanguage, series.targetLanguage, newSystemPrompt, workerId, iterationLock, autoFixCjk)
+      await updateSeries(seriesId, series.title, series.sourceLanguage, series.targetLanguage, newSystemPrompt, workerId, iterationLock, autoFixCjk, undefined, revisionPass, lookupEnabled, lookupChapters)
       setSystemPrompt(newSystemPrompt)
-      setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, instructions: newInstructions, workerId, iterationLock, autoFixCjk } : prev)
+      setSeries((prev) => prev ? { ...prev, systemPrompt: newSystemPrompt, instructions: newInstructions, workerId, iterationLock, autoFixCjk, revisionPass, lookupEnabled, lookupChapters } : prev)
       setWorkerStatuses(await getWorkerStatuses())
 
       toast.success(t.seriesSettings.saveSuccess)
@@ -488,6 +499,16 @@ export function SeriesSettingsPage() {
                   ({chapters.filter(c => c.status === 'pending').length} {t.home.chapters})
                 </span>
               </button>
+              <button
+                onClick={() => setShowAgentRun(true)}
+                disabled={isBatchActive || chapters.length === 0}
+                title={t.agent.buttonTitle}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#C9A7FF] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
+                style={{ color: '#111' }}
+              >
+                <Bot size={14} />
+                {t.agent.button}
+              </button>
               {chapters.filter(c => c.status === 'error').length > 0 && (
                 <button
                   onClick={() => {
@@ -576,6 +597,18 @@ export function SeriesSettingsPage() {
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
           />
+
+          {/* Deterministic QA — no AI, no tokens */}
+          <button
+            onClick={() => setShowQa(true)}
+            disabled={chapters.filter(c => c.status === 'done').length === 0}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            style={{ backgroundColor: '#8AF0FF', color: '#111' }}
+            title="Periksa seluruh terjemahan tanpa AI: sisa huruf Jepang, omisi, varian nama, ejaan, dan lainnya"
+          >
+            <ShieldCheck size={14} />
+            QA SCAN
+          </button>
 
           {/* Terminology pre-pass — build the glossary before translating */}
           <button
@@ -785,6 +818,27 @@ export function SeriesSettingsPage() {
         workerId={series?.workerId}
         chapterCount={chapters.length}
         onApply={handleApplyPrepass}
+      />
+
+      {/* Agent Run Modal */}
+      <AgentRunModal
+        open={showAgentRun}
+        onClose={() => setShowAgentRun(false)}
+        chapters={chapters}
+        onStart={(opts) => startAgent(chapters.length, opts)}
+      />
+
+      {/* QA Report Modal */}
+      <QaReportModal
+        open={showQa}
+        onClose={() => setShowQa(false)}
+        seriesId={seriesId!}
+        disabled={isBatchActive}
+        onApplied={() => {
+          if (!seriesId) return
+          getChapters(seriesId).then(setChapters).catch(() => {})
+          getGlossary(seriesId).then(setGlossary).catch(() => {})
+        }}
       />
 
       {/* Rolling Memory Modal */}

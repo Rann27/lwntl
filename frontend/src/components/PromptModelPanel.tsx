@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 import { AlertCircle, ExternalLink, Info, RotateCcw, Save } from 'lucide-react'
-import { getProfileTemplates } from '../api'
+import { getProfileTemplates, describeRequestParams } from '../api'
+import type { RequestParams } from '../api'
 import { useI18n } from '../i18n'
 import { PROVIDERS } from '../types'
 import type { AppConfig, Series, WorkerStatus } from '../types'
@@ -17,7 +18,7 @@ interface PromptModelPanelProps {
   onInstructionsChange: (val: string) => void
   systemPrompt: string
   onSystemPromptChange: (val: string) => void
-  onSave: (config: AppConfig, instructions: string, systemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean) => void
+  onSave: (config: AppConfig, instructions: string, systemPrompt: string, workerId: string, iterationLock: boolean, autoFixCjk: boolean, revisionPass: boolean, lookupEnabled: boolean, lookupChapters: number) => void
   workerStatuses?: WorkerStatus[]
   loading?: boolean
 }
@@ -79,6 +80,9 @@ export function PromptModelPanel({
   const [glossaryPreFilter, setGlossaryPreFilter] = useState(config?.glossaryPreFilter ?? true)
   const [iterationLock, setIterationLock] = useState(series?.iterationLock ?? true)
   const [autoFixCjk, setAutoFixCjk] = useState(series?.autoFixCjk ?? false)
+  const [revisionPass, setRevisionPass] = useState(series?.revisionPass ?? false)
+  const [lookupEnabled, setLookupEnabled] = useState(series?.lookupEnabled ?? false)
+  const [lookupChapters, setLookupChapters] = useState(series?.lookupChapters ?? 1)
   const [dirty, setDirty] = useState(false)
   const [defaultPrompt, setDefaultPrompt] = useState('')
   const [defaultInstructions, setDefaultInstructions] = useState('')
@@ -94,6 +98,9 @@ export function PromptModelPanel({
     setGlossaryPreFilter(config.glossaryPreFilter ?? true)
     setIterationLock(series?.iterationLock ?? true)
     setAutoFixCjk(series?.autoFixCjk ?? false)
+    setRevisionPass(series?.revisionPass ?? false)
+    setLookupEnabled(series?.lookupEnabled ?? false)
+    setLookupChapters(series?.lookupChapters ?? 1)
   }, [config, series?.workerId])
 
   useEffect(() => {
@@ -111,14 +118,29 @@ export function PromptModelPanel({
   const isCustomPrompt = systemPrompt.trim().length > 0
   const showPromptBadge = isCustomPrompt || defaultPrompt.length > 0
 
-  const displayInstructions = instructions.trim() || defaultInstructions
-  const isCustomInstructions = instructions.trim().length > 0
-  const showInstructionsBadge = isCustomInstructions || defaultInstructions.length > 0
+  // Instructions are optional — an all-in-one system prompt needs no second
+  // section. A placeholder-only value ("-", ".") counts as empty, matching how
+  // the backend treats it, so the field reflects what is actually sent.
+  const hasMeaning = (t: string) => /[0-9A-Za-z぀-ヿ一-鿿가-힯]/.test(t)
+  const effectiveDefaultInstructions = hasMeaning(defaultInstructions) ? defaultInstructions : ''
+  const isCustomInstructions = hasMeaning(instructions)
+  // The profile template only applies when this series has nothing of its own.
+  const templateInUse = !isCustomInstructions && effectiveDefaultInstructions.length > 0
+  const instructionsActive = isCustomInstructions || templateInUse
   const workers = config?.workers || []
   const selectedWorker = workers.find((w) => w.id === workerId)
   const statusByWorker = new Map(workerStatuses.map((w) => [w.id, w]))
   const selectedStatus = selectedWorker ? statusByWorker.get(selectedWorker.id) : null
   const tempMax = selectedWorker?.provider === 'deepseek' ? 2.0 : 1.0
+  // What the worker's model really accepts — some refuse temperature outright
+  // (GPT-6, Claude 5.x, Kimi), DeepSeek ignores it while thinking.
+  const [reqParams, setReqParams] = useState<RequestParams | null>(null)
+  useEffect(() => {
+    if (!selectedWorker) { setReqParams(null); return }
+    describeRequestParams(selectedWorker.provider, selectedWorker.model).then(setReqParams).catch(() => setReqParams(null))
+  }, [selectedWorker?.provider, selectedWorker?.model, config])
+  const deepseekThinkingOn = selectedWorker?.provider === 'deepseek' && !!config?.deepseekThinking
+  const temperatureIgnored = deepseekThinkingOn || reqParams?.temperature === false
 
   // Clamp temperature when switching away from DeepSeek
   useEffect(() => {
@@ -143,6 +165,9 @@ export function PromptModelPanel({
       workerId,
       iterationLock,
       autoFixCjk,
+      revisionPass,
+      lookupEnabled,
+      lookupChapters,
     )
     setDirty(false)
   }
@@ -273,8 +298,13 @@ export function PromptModelPanel({
           <div className="flex items-center justify-between mb-1.5">
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
               {t.seriesSettings.instructionPrompt}
+              {!instructionsActive && (
+                <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1.5px solid var(--color-separator)', color: 'var(--color-text-subtle)', letterSpacing: '0.3px' }}>
+                  TIDAK DIPAKAI
+                </span>
+              )}
             </label>
-            {showInstructionsBadge && (
+            {(isCustomInstructions || templateInUse) && (
               <div className="flex items-center gap-2">
                 <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomInstructions ? '#FFEF33' : '#fff', background: isCustomInstructions ? '#111' : '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>
                   {isCustomInstructions ? t.seriesSettings.custom : t.seriesSettings.default}
@@ -294,15 +324,42 @@ export function PromptModelPanel({
             )}
           </div>
           <textarea
-            value={displayInstructions}
+            value={instructions}
             onChange={(e) => { onInstructionsChange(e.target.value); setDirty(true) }}
-            placeholder={loadingDefault ? t.common.loading : t.seriesSettings.instructionPlaceholder}
+            placeholder={loadingDefault
+              ? t.common.loading
+              : effectiveDefaultInstructions
+                ? 'Kosong → memakai template profil di bawah. Isi untuk menimpanya.'
+                : 'Kosong → instructions tidak dikirim ke model.'}
             className="neo-textarea"
             style={{ minHeight: '80px', fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           />
-          <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
-            {t.seriesSettings.instructionDesc}
-          </p>
+          {templateInUse ? (
+            <div className="mt-2 px-2.5 py-2" style={{ border: '1.5px solid var(--color-separator)', backgroundColor: 'var(--color-surface-2)' }}>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                  Template profil sedang dipakai
+                </span>
+                <button
+                  type="button"
+                  onClick={() => { onInstructionsChange(effectiveDefaultInstructions); setDirty(true) }}
+                  style={{ fontSize: '10px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text-muted)', padding: '2px 8px', cursor: 'pointer', textTransform: 'uppercase', flexShrink: 0 }}
+                >
+                  Salin ke sini
+                </button>
+              </div>
+              <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', margin: 0, lineHeight: 1.5 }}>
+                Untuk mematikan instructions di SEMUA series pada profil ini, kosongkan
+                Instructions Template lewat menu Profile Templates.
+              </p>
+            </div>
+          ) : (
+            <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
+              {isCustomInstructions
+                ? t.seriesSettings.instructionDesc
+                : 'Tidak dipakai — system prompt jalan sendiri. Kosongkan saja jika sudah all-in-one.'}
+            </p>
+          )}
         </div>
 
         <div style={{ height: '2px', backgroundColor: 'var(--color-separator)' }} />
@@ -405,6 +462,14 @@ export function PromptModelPanel({
                   max 2.0 · DeepSeek
                 </span>
               )}
+              {temperatureIgnored && (
+                <span
+                  title={deepseekThinkingOn ? 'DeepSeek thinking mode aktif — temperature tidak berpengaruh' : (reqParams?.notes.join(' · ') || 'Model ini tidak menerima temperature')}
+                  style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: '#FFEF33', color: '#111', letterSpacing: '0.3px' }}
+                >
+                  {deepseekThinkingOn ? 'diabaikan · thinking ON' : 'tidak dikirim · model'}
+                </span>
+              )}
             </div>
             <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>{temperature.toFixed(1)}</span>
           </div>
@@ -412,6 +477,74 @@ export function PromptModelPanel({
             <input type="range" min={0} max={tempMax} step={0.1} value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: '#00F7FF' }} />
             <input type="number" value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value) || 0.3); setDirty(true) }} className="neo-input" style={{ width: '70px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} min={0} max={tempMax} step={0.1} />
           </div>
+        </div>
+
+        <div style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+          <div className="flex items-center justify-between px-3 py-2.5">
+            <div>
+              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+                Look Up
+              </span>
+              <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>
+                {lookupEnabled
+                  ? 'Bawa teks terjemahan + istilah bab sebelumnya sebagai acuan gaya. Rolling memory otomatis melewati bab yang sudah dibawa.'
+                  : 'Bawa bab sebelumnya utuh agar suara narasi dan istilah konsisten di batas bab.'}
+              </p>
+            </div>
+            <button
+              onClick={() => { setLookupEnabled(v => !v); setDirty(true) }}
+              style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: lookupEnabled ? '#FFCF77' : 'var(--color-surface)', color: lookupEnabled ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
+            >
+              {lookupEnabled ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          {lookupEnabled && (
+            <div className="px-3 pb-3" style={{ borderTop: '1.5px solid var(--color-separator)', paddingTop: '10px' }}>
+              <div className="flex items-center justify-between mb-1.5">
+                <label style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)' }}>
+                  Jumlah bab
+                </label>
+                <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
+                  {lookupChapters}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range" min={1} max={5} step={1} value={lookupChapters}
+                  onChange={(e) => { setLookupChapters(parseInt(e.target.value)); setDirty(true) }}
+                  className="flex-1" style={{ accentColor: '#FFCF77' }}
+                />
+                <input
+                  type="number" min={1} max={10} value={lookupChapters}
+                  onChange={(e) => { const v = parseInt(e.target.value); setLookupChapters(isNaN(v) ? 1 : Math.min(Math.max(v, 1), 10)); setDirty(true) }}
+                  className="neo-input"
+                  style={{ width: '58px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
+                />
+              </div>
+              <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '5px', lineHeight: 1.5 }}>
+                Bab panjang (LN): 1 sudah cukup. Bab pendek (WN): 3 ke atas. Ada pagar 60K karakter — bab paling baru diprioritaskan.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+          <div>
+            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+              Revision Pass
+            </span>
+            <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>
+              {revisionPass
+                ? 'Model membaca ulang draft-nya sendiri dan memperbaiki prosa — repetisi struktur, atribusi mubazir, ritme. +1 call per chapter.'
+                : 'Pass kedua untuk kualitas prosa. Draft tetap dipakai kalau hasil revisi gagal cek struktur.'}
+            </p>
+          </div>
+          <button
+            onClick={() => { setRevisionPass(v => !v); setDirty(true) }}
+            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: revisionPass ? '#C8FF8A' : 'var(--color-surface)', color: revisionPass ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
+          >
+            {revisionPass ? 'ON' : 'OFF'}
+          </button>
         </div>
 
         <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>

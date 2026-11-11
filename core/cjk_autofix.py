@@ -161,21 +161,8 @@ def _batch_fix(
     ]
     valid_ids = {oid for (oid, _, _) in items}
 
-    system_prompt = (
-        f"You repair a {target_language} light/web-novel translation in which a few "
-        "individual words randomly leaked in their original CJK form (Japanese "
-        "kana/kanji or Korean hangul). These are ordinary everyday words.\n\n"
-        "For each item you receive the leaked 'cjk' fragment and a 'context' snippet "
-        "showing how it is used. Return the correct inline replacement for that "
-        f"fragment in that context.\n\n"
-        "RULES:\n"
-        f"- 'fix' must be pure {target_language} with NO CJK characters at all.\n"
-        "- Give ONLY the replacement word(s) that slot directly in place of the cjk "
-        "fragment — no added punctuation, quotes, or surrounding words.\n"
-        "- Match the surrounding tone and grammatical form.\n"
-        "- Output ONLY a JSON array like "
-        '[{"id":0,"fix":"contract"},{"id":1,"fix":"results"}] — no markdown, no prose.'
-    )
+    from .task_prompts import build_task_prompt
+    system_prompt = build_task_prompt("autofix", target_language=target_language)
     user_prompt = (
         "Resolve every item. Return the JSON array only:\n\n"
         + json.dumps(payload, ensure_ascii=False)

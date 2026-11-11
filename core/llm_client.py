@@ -3,8 +3,19 @@ LLM Client - Unified Multi-Provider Support
 Supports: ZhipuAI, Qwen, OpenAI, Google Gemini, Anthropic, xAI (Grok), Moonshot (Kimi), DeepSeek
 """
 
+import json
+import re
 import time
 from typing import Dict, List, Any, Optional
+
+# DeepSeek thinking depth. "low" was added with the 2026-08-13 V4 update.
+DEEPSEEK_EFFORTS = ("low", "high", "max")
+
+# Retired DeepSeek model IDs and what now serves them.
+DEEPSEEK_MODEL_ALIASES = {
+    "deepseek-v4-flash": "deepseek-flash",
+    "deepseek-v4-flash-vision-exp": "deepseek-flash",
+}
 
 # The four harm categories Gemini lets developers adjust. Child-safety and other
 # core protections are enforced by Google and cannot be changed from here.
@@ -32,70 +43,75 @@ def _gemini_safety_body(threshold: str) -> Dict[str, Any]:
     }
 
 
+def _tool_call_to_dict(tc: Any) -> Dict[str, Any]:
+    """Normalise an OpenAI-style tool call into {id, name, arguments(dict)}."""
+    fn = tc.function
+    raw = fn.arguments or "{}"
+    try:
+        args = json.loads(raw) if isinstance(raw, str) else dict(raw)
+    except Exception:
+        # Malformed JSON from the model: hand it to the tool layer as-is so the
+        # agent sees a clear error and can retry.
+        args = {"__raw__": raw}
+    if not isinstance(args, dict):
+        args = {"__raw__": raw}
+    return {"id": tc.id or "", "name": fn.name or "", "arguments": args}
+
+
+# Model lists as of 2026-10 (verified against each provider's docs). Retired or
+# access-limited IDs are dropped from the pickers; a worker still pointing at one
+# keeps working as a custom model ID until the provider shuts it off.
 PROVIDERS = {
     "zhipuai": {
-        "models": ["glm-5", "glm-4.7", "glm-4.7-flashx", "glm-4.7-flash", "custom"],
+        "models": ["glm-5.3", "glm-5.3-flashx", "glm-5.3-flash", "glm-5.2", "glm-5.1", "glm-4.7-flash", "custom"],
         "displayNames": {
-            "glm-5": "GLM-5",
-            "glm-4.7": "GLM-4.7",
-            "glm-4.7-flashx": "GLM-4.7-FlashX",
+            "glm-5.3": "GLM-5.3",
+            "glm-5.3-flashx": "GLM-5.3-FlashX",
+            "glm-5.3-flash": "GLM-5.3-Flash",
+            "glm-5.2": "GLM-5.2",
+            "glm-5.1": "GLM-5.1",
             "glm-4.7-flash": "GLM-4.7-Flash (Free)",
             "custom": "+ Custom Model",
         },
         "label": "ZhipuAI (Z.AI)",
-        "docsUrl": "https://bigmodel.cn/dev/api/normal-model/glm-4",
+        "docsUrl": "https://docs.z.ai/guides/overview/pricing",
         "apiKeyName": "zhipuaiApiKey",
     },
     "qwen": {
-        "models": [
-            "qwen3.5-plus", "qwen3.5-flash", "qwen3.6-plus",
-            "qwen3.6-plus-2026-04-02", "qwen3.5-122b-a10b",
-            "qwen3.5-plus-2026-02-15", "qwen3.5-flash-2026-02-23",
-            "deepseek-v3.2", "custom",
-        ],
+        "models": ["qwen3.8-max", "qwen3.8-flash", "qwen3.7-plus", "qwen3.7-flash", "custom"],
         "displayNames": {
-            "qwen3.5-plus": "Qwen3.5-Plus",
-            "qwen3.5-flash": "Qwen3.5-Flash",
-            "qwen3.6-plus": "Qwen3.6-Plus",
-            "qwen3.6-plus-2026-04-02": "Qwen3.6-Plus (2026-04-02)",
-            "qwen3.5-122b-a10b": "Qwen3.5-122B-A10B",
-            "qwen3.5-plus-2026-02-15": "Qwen3.5-Plus (2026-02-15)",
-            "qwen3.5-flash-2026-02-23": "Qwen3.5-Flash (2026-02-23)",
-            "deepseek-v3.2": "DeepSeek V3.2 (via Qwen)",
+            "qwen3.8-max": "Qwen3.8-Max",
+            "qwen3.8-flash": "Qwen3.8-Flash",
+            "qwen3.7-plus": "Qwen3.7-Plus",
+            "qwen3.7-flash": "Qwen3.7-Flash",
             "custom": "+ Custom Model",
         },
         "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-        "label": "Alibaba Cloud (Qwen/DS)",
-        "docsUrl": "https://www.alibabacloud.com/help/en/model-studio/getting-started/models",
+        "label": "Alibaba Cloud (Qwen)",
+        "docsUrl": "https://www.alibabacloud.com/help/en/model-studio/models",
         "apiKeyName": "qwenApiKey",
     },
     "openai": {
-        "models": ["gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano", "gpt-5.4-pro", "gpt-4.1", "gpt-4.1-mini", "gpt-4o", "gpt-4o-mini", "custom"],
+        "models": ["gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna", "custom"],
         "displayNames": {
-            "gpt-5.4": "GPT-5.4",
-            "gpt-5.4-mini": "GPT-5.4-mini",
-            "gpt-5.4-nano": "GPT-5.4-nano",
-            "gpt-5.4-pro": "GPT-5.4-pro",
-            "gpt-4.1": "GPT-4.1",
-            "gpt-4.1-mini": "GPT-4.1-mini",
-            "gpt-4o": "GPT-4o",
-            "gpt-4o-mini": "GPT-4o-mini",
+            "gpt-6.1-sol": "GPT-6.1 Sol",
+            "gpt-6-astra": "GPT-6 Astra",
+            "gpt-6-luna": "GPT-6 Luna",
             "custom": "+ Custom Model",
         },
         "label": "OpenAI",
-        "docsUrl": "https://platform.openai.com/docs/models",
+        "docsUrl": "https://developers.openai.com/api/docs/models",
         "apiKeyName": "openaiApiKey",
     },
     "gemini": {
-        "models": ["gemini-3.1-pro-preview", "gemini-3.1-flash-lite-preview", "gemini-3-flash-preview", "gemini-2.5-pro", "gemini-2.5-flash", "gemini-2.0-flash", "custom"],
+        "models": ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite",
+                   "gemini-3.1-pro-preview", "custom"],
         "displayNames": {
-            "gemini-3.1-pro-preview": "Gemini 3.1 Pro (Preview)",
-            "gemini-3.1-flash-lite-preview": "Gemini 3.1 Flash Lite (Preview)",
+            "gemini-3.8-flash": "Gemini 3.8 Flash",
+            "gemini-3.6-flash": "Gemini 3.6 Flash",
+            "gemini-3.5-flash-lite": "Gemini 3.5 Flash Lite",
             "gemini-3.1-flash-lite": "Gemini 3.1 Flash Lite",
-            "gemini-3-flash-preview": "Gemini 3 Flash (Preview)",
-            "gemini-2.5-pro": "Gemini 2.5 Pro",
-            "gemini-2.5-flash": "Gemini 2.5 Flash",
-            "gemini-2.0-flash": "Gemini 2.0 Flash",
+            "gemini-3.1-pro-preview": "Gemini 3.1 Pro (Preview)",
             "custom": "+ Custom Model",
         },
         "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai/",
@@ -104,25 +120,28 @@ PROVIDERS = {
         "apiKeyName": "geminiApiKey",
     },
     "anthropic": {
-        "models": ["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-5", "custom"],
+        "models": ["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5", "claude-fable-5-1", "custom"],
         "displayNames": {
-            "claude-opus-4-6": "Claude Opus 4.6",
-            "claude-sonnet-4-6": "Claude Sonnet 4.6",
-            "claude-haiku-4-5": "Claude Haiku 4.5",
+            "claude-opus-5-5": "Claude Opus 5.5",
+            "claude-sonnet-5-5": "Claude Sonnet 5.5",
+            "claude-haiku-5-5": "Claude Haiku 5.5",
+            "claude-fable-5-1": "Claude Fable 5.1",
             "custom": "+ Custom Model",
         },
         "label": "Anthropic (Claude)",
-        "docsUrl": "https://docs.anthropic.com/en/docs/about-claude/models",
+        "docsUrl": "https://platform.claude.com/docs/en/about-claude/models/overview",
         "apiKeyName": "anthropicApiKey",
     },
     "xai": {
-        "models": ["grok-4.5", "grok-4.20-0309", "grok-4.1-fast", "grok-3", "grok-3-mini", "custom"],
+        "models": ["grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-0309-reasoning",
+                   "grok-4.20-0309-non-reasoning", "custom"],
         "displayNames": {
+            "grok-4.7": "Grok 4.7",
+            "grok-4.6": "Grok 4.6",
             "grok-4.5": "Grok 4.5",
-            "grok-4.20-0309": "Grok 4.20 (0309)",
-            "grok-4.1-fast": "Grok 4.1 Fast",
-            "grok-3": "Grok 3",
-            "grok-3-mini": "Grok 3 Mini",
+            "grok-4.3": "Grok 4.3",
+            "grok-4.20-0309-reasoning": "Grok 4.20 (reasoning)",
+            "grok-4.20-0309-non-reasoning": "Grok 4.20 (non-reasoning)",
             "custom": "+ Custom Model",
         },
         "baseUrl": "https://api.x.ai/v1",
@@ -131,24 +150,32 @@ PROVIDERS = {
         "apiKeyName": "xaiApiKey",
     },
     "moonshot": {
-        "models": ["kimi-k2.5", "moonshot-v1-128k", "moonshot-v1-32k", "moonshot-v1-8k", "custom"],
+        "models": ["kimi-k3", "kimi-k2.6", "kimi-k2.7-code", "custom"],
         "displayNames": {
-            "kimi-k2.5": "Kimi K2.5",
-            "moonshot-v1-128k": "Moonshot v1 128k",
-            "moonshot-v1-32k": "Moonshot v1 32k",
-            "moonshot-v1-8k": "Moonshot v1 8k",
+            "kimi-k3": "Kimi K3",
+            "kimi-k2.6": "Kimi K2.6",
+            "kimi-k2.7-code": "Kimi K2.7 Code",
             "custom": "+ Custom Model",
         },
-        "baseUrl": "https://api.moonshot.cn/v1",
+        # International platform; keys from the China platform need the .cn URL
+        # (switchable in Settings).
+        "baseUrl": "https://api.moonshot.ai/v1",
+        "baseUrlChina": "https://api.moonshot.cn/v1",
         "label": "Moonshot AI (Kimi)",
-        "docsUrl": "https://platform.moonshot.cn/docs/api/chat",
+        "docsUrl": "https://platform.kimi.ai/docs/api/models-overview",
         "apiKeyName": "moonshotApiKey",
     },
     "deepseek": {
-        "models": ["deepseek-v4-flash", "deepseek-v4-pro"],
+        # deepseek-flash is DeepSeek-V4.1-Flash (2026-09-10). The old
+        # deepseek-v4-flash name is retired and only routed temporarily, so it is
+        # migrated away from in config rather than offered here.
+        "models": ["deepseek-flash", "deepseek-v4-pro"],
         "displayNames": {
-            "deepseek-v4-flash": "DeepSeek V4 Flash",
+            "deepseek-flash": "DeepSeek V4.1 Flash",
             "deepseek-v4-pro": "DeepSeek V4 Pro",
+            # Legacy IDs, kept only so an unmigrated worker still displays sensibly.
+            "deepseek-v4-flash": "DeepSeek V4 Flash (legacy → V4.1)",
+            "deepseek-v4-flash-vision-exp": "DeepSeek V4 Flash Vision (legacy → V4.1)",
         },
         "baseUrl": "https://api.deepseek.com",
         "label": "DeepSeek",
@@ -156,8 +183,10 @@ PROVIDERS = {
         "apiKeyName": "deepseekApiKey",
     },
     "mimo": {
-        "models": ["mimo-v2.5-pro", "mimo-v2.5"],
+        "models": ["mimo-v2.6-pro", "mimo-v2.6-flash", "mimo-v2.5-pro", "mimo-v2.5"],
         "displayNames": {
+            "mimo-v2.6-pro": "MiMo V2.6 Pro",
+            "mimo-v2.6-flash": "MiMo V2.6 Flash",
             "mimo-v2.5-pro": "MiMo V2.5 Pro",
             "mimo-v2.5": "MiMo V2.5",
         },
@@ -165,6 +194,15 @@ PROVIDERS = {
         "label": "Xiaomi MiMo",
         "docsUrl": "https://platform.xiaomimimo.com/docs/en-US/welcome",
         "apiKeyName": "mimoApiKey",
+    },
+    "openrouter": {
+        # The model list is the live OpenRouter catalog (see core/openrouter.py).
+        "models": [],
+        "displayNames": {},
+        "baseUrl": "https://openrouter.ai/api/v1",
+        "label": "OpenRouter",
+        "docsUrl": "https://openrouter.ai/models",
+        "apiKeyName": "openrouterApiKey",
     },
     "openaicompat": {
         "models": [],
@@ -174,6 +212,172 @@ PROVIDERS = {
         "apiKeyName": "openaicompatApiKey",
     },
 }
+
+# Shut down by the provider; the successor is the same model line.
+MODEL_ALIASES = {
+    "gemini": {"gemini-3.1-flash-lite-preview": "gemini-3.1-flash-lite"},
+}
+
+
+# ─── Per-model request rules ────────────────────────────────────────────────
+
+_EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh", "max")
+
+
+def _clamp_effort(wanted: str, allowed: tuple) -> str:
+    """Nearest allowed level to `wanted`; a tie goes to the level nearer "high"."""
+    if wanted in allowed:
+        return wanted
+    w = _EFFORT_LEVELS.index(wanted) if wanted in _EFFORT_LEVELS else _EFFORT_LEVELS.index("high")
+    h = _EFFORT_LEVELS.index("high")
+    return min(allowed, key=lambda a: (abs(_EFFORT_LEVELS.index(a) - w), abs(_EFFORT_LEVELS.index(a) - h)))
+
+
+def request_profile(config: Dict[str, Any], provider: str, model: str) -> Dict[str, Any]:
+    """
+    Exactly what LWNTL sends for this provider + model, and why.
+
+    Returns {"extra_body": dict|None, "temperature": bool, "max_tokens_key": str,
+             "base_url": str|None, "notes": [str], "gemini_relaxed": bool}.
+    Used by LLMClient when it builds requests and by the settings screen, so the
+    preview and the real request can never disagree.
+    """
+    m = (model or "").lower()
+    notes: List[str] = []
+    extra: Dict[str, Any] = {}
+    temperature = True
+    max_tokens_key = "max_tokens"
+    base_url = PROVIDERS.get(provider, {}).get("baseUrl")
+    relaxed = False
+
+    if provider == "zhipuai":
+        # GLM thinks by default. GLM-5.3 and 5.3-Flash force it and reject "disabled".
+        forced = m in ("glm-5.3", "glm-5.3-flash")
+        thinking = config.get("zhipuaiThinking", True)
+        if not thinking:
+            if forced:
+                notes.append("GLM-5.3 / 5.3-Flash selalu berpikir — thinking tidak bisa dimatikan.")
+            else:
+                extra["thinking"] = {"type": "disabled"}
+        # reasoning_effort (top-level, default "max") exists from GLM-5.2. GLM-5.3 and
+        # 5.3-Flash take only low/high/max; 5.2 and 5.3-FlashX take the full range.
+        effort = config.get("zhipuaiReasoningEffort") or "default"
+        if effort != "default" and (thinking or forced):
+            if forced:
+                allowed = ("low", "high", "max")
+            elif m.startswith(("glm-5.2", "glm-5.3")):
+                allowed = ("minimal", "low", "medium", "high", "xhigh", "max")
+            else:
+                allowed = ()
+                notes.append(f"{model} tidak menerima reasoning_effort (mulai GLM-5.2) — tidak dikirim.")
+            if allowed:
+                level = _clamp_effort(effort, allowed)
+                if level != effort:
+                    notes.append(f"Effort '{effort}' tidak tersedia di {model}; memakai '{level}'.")
+                extra["reasoning_effort"] = level
+
+    elif provider == "qwen":
+        # Qwen3.7/3.8 think by default; enable_thinking=false answers directly.
+        if not config.get("qwenThinking", True):
+            extra["enable_thinking"] = False
+
+    elif provider == "openai":
+        # GPT-5/6 and o-series are reasoning models: temperature is rejected and
+        # the output cap is max_completion_tokens (accepted by every chat model).
+        max_tokens_key = "max_completion_tokens"
+        reasoning_model = m.startswith(("gpt-5", "gpt-6", "o1", "o3", "o4"))
+        if reasoning_model:
+            temperature = False
+            notes.append("Model reasoning OpenAI tidak menerima temperature — tidak dikirim.")
+        effort = config.get("openaiReasoningEffort") or "default"
+        if reasoning_model and effort != "default":
+            allowed = ("none", "low", "medium", "high", "xhigh", "max") if "luna" in m else ("low", "medium", "high", "xhigh", "max")
+            level = _clamp_effort(effort, allowed)
+            if level != effort:
+                notes.append(f"Effort '{effort}' tidak tersedia di {model}; memakai '{level}'.")
+            extra["reasoning_effort"] = level
+
+    elif provider == "gemini":
+        if not config.get("geminiSafetyFilter", True):
+            extra.update(_gemini_safety_body("OFF"))
+            relaxed = True
+        effort = config.get("geminiReasoningEffort") or "default"
+        if effort != "default":
+            # Gemini 3 cannot turn thinking off; low/medium/high map to thinking_level.
+            extra["reasoning_effort"] = _clamp_effort(effort, ("low", "medium", "high"))
+
+    elif provider == "anthropic":
+        # Claude 4.7+ and 5.x reject non-default temperature/top_p/top_k.
+        if re.search(r"claude-(opus|sonnet|haiku)-5|claude-(fable|mythos)|claude-opus-4-[78]", m):
+            temperature = False
+            notes.append("Claude generasi ini menolak temperature — tidak dikirim (atur lewat effort).")
+        effort = config.get("anthropicEffort") or "default"
+        if effort != "default":
+            allowed = ("low", "medium", "high", "max") if "opus-4-6" in m or "sonnet-4-6" in m else ("low", "medium", "high", "xhigh", "max")
+            extra["output_config"] = {"effort": _clamp_effort(effort, allowed)}
+
+    elif provider == "xai":
+        # Only the 4.5+ line takes reasoning_effort; xhigh exists from 4.6.
+        effort = config.get("xaiReasoningEffort") or "high"
+        if m.startswith(("grok-4.6", "grok-4.7")):
+            extra["reasoning_effort"] = _clamp_effort(effort, ("low", "medium", "high", "xhigh"))
+        elif m.startswith("grok-4.5"):
+            extra["reasoning_effort"] = _clamp_effort(effort, ("low", "medium", "high"))
+        else:
+            notes.append("Model ini tidak menerima reasoning_effort — tidak dikirim.")
+
+    elif provider == "moonshot":
+        if config.get("moonshotRegion") == "china":
+            base_url = PROVIDERS["moonshot"]["baseUrlChina"]
+        if m.startswith("kimi-k"):
+            # Kimi K2.6+/K3 lock temperature to 1.0 and top_p to 0.95.
+            temperature = False
+            notes.append("Kimi mengunci temperature di 1.0 — tidak dikirim.")
+        if m.startswith("kimi-k3"):
+            effort = config.get("moonshotReasoningEffort") or "default"
+            if effort != "default":
+                extra["reasoning_effort"] = _clamp_effort(effort, ("low", "high", "max"))
+        elif m.startswith("kimi-k2.6"):
+            extra["thinking"] = {"type": "enabled" if config.get("moonshotThinking", True) else "disabled"}
+
+    elif provider == "deepseek":
+        # Thinking is ON by default server-side, so it is always sent explicitly.
+        # reasoning_effort is a TOP-LEVEL field. While thinking, temperature and
+        # the penalties are ignored.
+        if config.get("deepseekThinking", False):
+            effort = config.get("deepseekReasoningEffort", "high")
+            extra.update({"thinking": {"type": "enabled"},
+                          "reasoning_effort": effort if effort in DEEPSEEK_EFFORTS else "high"})
+            notes.append("Thinking aktif — DeepSeek mengabaikan temperature.")
+        else:
+            extra["thinking"] = {"type": "disabled"}
+
+    elif provider == "mimo":
+        thinking = config.get("mimoThinking", True)
+        if m.startswith("mimo-v2.6"):
+            # V2.6 is controlled by thinking.type only.
+            extra["thinking"] = {"type": "enabled" if thinking else "disabled"}
+        elif thinking:
+            extra.update({"chat_template_kwargs": {"enable_thinking": True},
+                          "reasoning_effort": config.get("mimoReasoningEffort", "medium")})
+        else:
+            extra["chat_template_kwargs"] = {"enable_thinking": False}
+
+    elif provider == "openrouter":
+        from .openrouter import request_profile as _or_profile
+        prof = _or_profile(model, config)
+        extra.update(prof["extra_body"])
+        temperature = prof["temperature"]
+        notes.extend(prof["notes"])
+
+    return {
+        "extra_body": extra or None,
+        "temperature": temperature,
+        "max_tokens_key": max_tokens_key,
+        "base_url": base_url,
+        "notes": notes,
+        "gemini_relaxed": relaxed,
+    }
 
 
 def get_provider_models(provider: str) -> List[str]:
@@ -221,7 +425,8 @@ class _AnthropicResponseChoice:
 class _AnthropicResponse:
     """Makes Anthropic response look like an OpenAI response."""
     def __init__(self, response):
-        text = response.content[0].text if response.content else ""
+        # With adaptive thinking the first block can be a thinking block.
+        text = "".join(getattr(b, "text", "") for b in (response.content or []) if getattr(b, "type", "") == "text")
         self.choices = [_AnthropicResponseChoice(text)]
         self.usage = _AnthropicUsage(
             response.usage.input_tokens,
@@ -250,6 +455,10 @@ class LLMClient:
             self.model = custom_models.get(self.provider, "")
         else:
             self.model = raw_model
+        if self.provider == "deepseek":
+            # A config saved before the rename still works, but sends the current ID.
+            self.model = DEEPSEEK_MODEL_ALIASES.get(self.model, self.model)
+        self.model = MODEL_ALIASES.get(self.provider, {}).get(self.model, self.model)
 
         self.temperature = config.get("temperature", 0.3)
         self.max_tokens = config.get("maxTokensPerIteration", 16000)
@@ -257,6 +466,8 @@ class LLMClient:
         self._log_callback = config.get("logCallback")
         self._client = None
         self._extra_body: Optional[Dict[str, Any]] = None  # provider-specific extra params (e.g. DeepSeek thinking)
+        self._send_temperature = True
+        self._max_tokens_key = "max_tokens"
         self._init_provider(config)
 
     def _close_current_client(self):
@@ -300,71 +511,46 @@ class LLMClient:
     def _init_provider(self, config: Dict[str, Any]):
         self._close_current_client()
         p = self.provider
+        profile = request_profile(config, p, self.model)
+        self._extra_body = profile["extra_body"]
+        self._send_temperature = profile["temperature"]
+        self._max_tokens_key = profile["max_tokens_key"]
+        self._gemini_safety_relaxed = profile["gemini_relaxed"]
+        self._gemini_threshold_index = 0
+        for note in profile["notes"]:
+            self._log(f"[Params] {note}")
+
         if p == "zhipuai":
-            # ZhipuAI GLM models have thinking ON by default.
-            # Only inject a param when the user explicitly turns it OFF.
-            thinking = config.get("zhipuaiThinking", True)
-            self._extra_body = None if thinking else {"thinking": {"type": "disabled"}}
             self._init_zhipuai(config.get("zhipuaiApiKey", ""))
-        elif p == "qwen":
-            self._init_openai_compat(config.get("qwenApiKey", ""), PROVIDERS["qwen"]["baseUrl"])
-        elif p == "openai":
-            self._init_openai_compat(config.get("openaiApiKey", ""), None)
-        elif p == "gemini":
-            # Gemini applies safety filtering that can reject perfectly ordinary
-            # fiction — violence, sexual content and crude language are staples of
-            # the genre. When the filter is switched off we send the permissive
-            # threshold for every adjustable category. Google's non-adjustable core
-            # protections still apply regardless.
-            if not config.get("geminiSafetyFilter", True):
-                self._extra_body = _gemini_safety_body("OFF")
-                self._gemini_safety_relaxed = True
-            self._init_openai_compat(config.get("geminiApiKey", ""), PROVIDERS["gemini"]["baseUrl"])
         elif p == "anthropic":
             self._init_anthropic(config.get("anthropicApiKey", ""))
-        elif p == "xai":
-            effort = config.get("xaiReasoningEffort", "high")
-            if effort not in ("low", "medium", "high"):
-                effort = "high"
-            self._extra_body = {"reasoning_effort": effort}
-            self._init_openai_compat(config.get("xaiApiKey", ""), PROVIDERS["xai"]["baseUrl"])
-        elif p == "moonshot":
-            self._init_openai_compat(config.get("moonshotApiKey", ""), PROVIDERS["moonshot"]["baseUrl"])
         elif p == "deepseek":
-            thinking = config.get("deepseekThinking", False)
-            effort = config.get("deepseekReasoningEffort", "high")
-            if effort not in ("high", "max"):
-                effort = "high"
-            self._extra_body = (
-                {"thinking": {"type": "enabled", "reasoning_effort": effort}}
-                if thinking else {"thinking": {"type": "disabled"}}
-            )
-            # Resolve API key: prefer worker-specific key, fall back to legacy single key
-            deepseek_key = self._resolve_deepseek_key(config)
-            self._init_openai_compat(deepseek_key, PROVIDERS["deepseek"]["baseUrl"])
-        elif p == "mimo":
-            # MiMo thinking is ON by default; turn off by passing enable_thinking=False.
-            # When ON, reasoning_effort controls depth (low/medium/high).
-            thinking = config.get("mimoThinking", True)
-            effort = config.get("mimoReasoningEffort", "medium")
-            if thinking:
-                self._extra_body = {
-                    "chat_template_kwargs": {"enable_thinking": True},
-                    "reasoning_effort": effort,
-                }
-            else:
-                self._extra_body = {"chat_template_kwargs": {"enable_thinking": False}}
-            self._init_openai_compat(config.get("mimoApiKey", ""), PROVIDERS["mimo"]["baseUrl"])
+            self._init_openai_compat(self._resolve_deepseek_key(config), profile["base_url"])
+        elif p == "openrouter":
+            from .openrouter import HEADERS as _OR_HEADERS
+            self._init_openai_compat(config.get("openrouterApiKey", ""), profile["base_url"],
+                                     default_headers=dict(_OR_HEADERS))
         elif p == "openaicompat":
-            self._extra_body = None
             self._init_openai_compat(
                 config.get("openaicompatApiKey", ""),
                 config.get("openaicompatBaseUrl", "") or None,
                 default_headers=self._build_openaicompat_headers(config),
                 optimize_stream=True,
             )
+        elif p in PROVIDERS:
+            key_name = PROVIDERS[p]["apiKeyName"]
+            self._init_openai_compat(config.get(key_name, ""), profile["base_url"])
         else:
             raise ValueError(f"Unknown provider: {p}")
+
+    def _sampling(self, kwargs: Dict[str, Any], max_tokens: int, temperature: Optional[float]) -> Dict[str, Any]:
+        """Add the output cap and (where the model takes it) temperature."""
+        kwargs[self._max_tokens_key] = max_tokens
+        if self._send_temperature and temperature is not None:
+            kwargs["temperature"] = temperature
+        if self._extra_body:
+            kwargs["extra_body"] = self._extra_body
+        return kwargs
 
     def _downgrade_gemini_safety(self, error: Exception) -> bool:
         """Step the safety threshold down one level after a rejection.
@@ -384,7 +570,8 @@ class LLMClient:
         if "safety" not in msg and "threshold" not in msg:
             return False
         self._gemini_threshold_index = idx + 1
-        self._extra_body = _gemini_safety_body(GEMINI_SAFETY_THRESHOLDS[idx + 1])
+        # Swap only the safety block; reasoning_effort and the rest stay.
+        self._extra_body = {**(self._extra_body or {}), **_gemini_safety_body(GEMINI_SAFETY_THRESHOLDS[idx + 1])}
         return True
 
     def _init_zhipuai(self, api_key: str):
@@ -493,7 +680,7 @@ class LLMClient:
         model_display = get_model_display_name(self.provider, self.model) if self.model in PROVIDERS.get(self.provider, {}).get("displayNames", {}) else self.model
 
         self._log(f"[API →] {self.provider} / {model_display} | {mode_label} | "
-                  f"max_tokens={mt} | temp={temp} | "
+                  f"max_tokens={mt} | temp={temp if self._send_temperature else 'not sent'} | "
                   f"msgs={len(messages)} | ~{input_tokens_est} tok input")
 
         t0 = time.time()
@@ -531,27 +718,11 @@ class LLMClient:
         return result
 
     def _complete_zhipuai(self, messages, stream, max_tokens, temperature):
-        kwargs: Dict[str, Any] = dict(
-            model=self.model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=stream,
-        )
-        if self._extra_body:
-            kwargs["extra_body"] = self._extra_body
+        kwargs = self._sampling(dict(model=self.model, messages=messages, stream=stream), max_tokens, temperature)
         return self._client.chat.completions.create(**kwargs)
 
     def _complete_openai(self, messages, stream, max_tokens, temperature):
-        kwargs: Dict[str, Any] = dict(
-            model=self.model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens,
-            stream=stream,
-        )
-        if self._extra_body:
-            kwargs["extra_body"] = self._extra_body
+        kwargs = self._sampling(dict(model=self.model, messages=messages, stream=stream), max_tokens, temperature)
         return self._client.chat.completions.create(**kwargs)
 
     def _complete_anthropic(self, messages, stream, max_tokens, temperature):
@@ -567,9 +738,12 @@ class LLMClient:
         kwargs: Dict[str, Any] = dict(
             model=self.model,
             max_tokens=max_tokens,
-            temperature=temperature,
             messages=user_messages,
         )
+        if self._send_temperature and temperature is not None:
+            kwargs["temperature"] = temperature
+        if self._extra_body:
+            kwargs["extra_body"] = self._extra_body
         if system_msg:
             kwargs["system"] = system_msg
 
@@ -579,6 +753,162 @@ class LLMClient:
         else:
             response = self._client.messages.create(**kwargs)
             return _AnthropicResponse(response)
+
+    # ------------------------------------------------------------------
+    # Tool calling (agent sessions)
+    # ------------------------------------------------------------------
+
+    def chat_with_tools(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        max_tokens: Optional[int] = None,
+        temperature: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        One non-streaming turn with tools offered.
+
+        `tools` use the OpenAI function schema: {"name", "description", "parameters"}.
+        Returns {"content", "tool_calls": [{"id","name","arguments"}],
+        "assistant_message", "finish_reason"}. `assistant_message` is the exact
+        message to append to the history — it carries whatever the provider needs
+        echoed back on the next turn (DeepSeek reasoning_content, Gemini thought
+        signatures on the tool calls).
+        """
+        mt = max_tokens or min(self.max_tokens, 32000)
+        temp = temperature if temperature is not None else self.temperature
+        self._log(f"[Agent →] {self.provider} / {self.model} | tools={len(tools)} | msgs={len(messages)}")
+        t0 = time.time()
+
+        def _dispatch():
+            if self._client_type == "anthropic":
+                return self._chat_with_tools_anthropic(messages, tools, mt, temp)
+            kwargs = self._sampling(dict(
+                model=self.model,
+                messages=messages,
+                tools=[{"type": "function", "function": t} for t in tools],
+                tool_choice="auto",
+            ), mt, temp)
+            if self.provider == "openrouter":
+                # Route only to upstreams that actually support tool calling.
+                body = dict(kwargs.get("extra_body") or {})
+                body["provider"] = {**(body.get("provider") or {}), "require_parameters": True}
+                kwargs["extra_body"] = body
+            response = self._client.chat.completions.create(**kwargs)
+            choice = response.choices[0]
+            msg = choice.message
+            calls = [_tool_call_to_dict(tc) for tc in (msg.tool_calls or [])]
+            assistant: Dict[str, Any] = {"role": "assistant", "content": msg.content or ""}
+            if msg.tool_calls:
+                assistant["tool_calls"] = [
+                    tc.model_dump(exclude_none=True) if hasattr(tc, "model_dump") else tc
+                    for tc in msg.tool_calls
+                ]
+            reasoning = getattr(msg, "reasoning_content", None)
+            if reasoning:
+                assistant["reasoning_content"] = reasoning
+            # OpenRouter: reasoning must be handed back unmodified across tool turns.
+            details = getattr(msg, "reasoning_details", None)
+            if details:
+                assistant["reasoning_details"] = details
+            return {
+                "content": msg.content or "",
+                "tool_calls": calls,
+                "assistant_message": assistant,
+                "finish_reason": choice.finish_reason,
+            }
+
+        try:
+            result = _dispatch()
+        except Exception as e:
+            if self._downgrade_gemini_safety(e):
+                self._log("[Gemini] 'OFF' threshold rejected — retrying with BLOCK_NONE")
+                result = _dispatch()
+            else:
+                raise
+        self._log(f"[Agent ←] {time.time() - t0:.1f}s | tool_calls={len(result['tool_calls'])} "
+                  f"| finish={result['finish_reason']}")
+        return result
+
+    def _chat_with_tools_anthropic(self, messages, tools, max_tokens, temperature):
+        system_msg = ""
+        converted: List[Dict[str, Any]] = []
+        for m in messages:
+            role = m.get("role")
+            if role == "system":
+                system_msg = m.get("content", "")
+            elif role == "tool":
+                block = {
+                    "type": "tool_result",
+                    "tool_use_id": m.get("tool_call_id", ""),
+                    "content": m.get("content", ""),
+                }
+                # Consecutive tool results belong in one user turn.
+                if converted and converted[-1]["role"] == "user" and isinstance(converted[-1]["content"], list) \
+                        and converted[-1]["content"] and converted[-1]["content"][0].get("type") == "tool_result":
+                    converted[-1]["content"].append(block)
+                else:
+                    converted.append({"role": "user", "content": [block]})
+            elif role == "assistant" and m.get("anthropic_content"):
+                # The exact blocks Claude produced, thinking included — they must
+                # be returned unchanged while a tool loop continues.
+                converted.append({"role": "assistant", "content": m["anthropic_content"]})
+            elif role == "assistant" and m.get("tool_calls"):
+                blocks: List[Dict[str, Any]] = []
+                if m.get("content"):
+                    blocks.append({"type": "text", "text": m["content"]})
+                for tc in m["tool_calls"]:
+                    fn = tc.get("function", {})
+                    try:
+                        args = json.loads(fn.get("arguments") or "{}")
+                    except Exception:
+                        args = {}
+                    blocks.append({"type": "tool_use", "id": tc.get("id", ""), "name": fn.get("name", ""), "input": args})
+                converted.append({"role": "assistant", "content": blocks})
+            else:
+                converted.append({"role": role, "content": m.get("content", "")})
+
+        kwargs: Dict[str, Any] = dict(
+            model=self.model,
+            max_tokens=max_tokens,
+            messages=converted,
+            tools=[{"name": t["name"], "description": t.get("description", ""),
+                    "input_schema": t.get("parameters", {"type": "object", "properties": {}})} for t in tools],
+        )
+        if system_msg:
+            kwargs["system"] = system_msg
+        if self._send_temperature and temperature is not None:
+            kwargs["temperature"] = temperature
+        if self._extra_body:
+            kwargs["extra_body"] = self._extra_body
+        response = self._client.messages.create(**kwargs)
+
+        text_parts: List[str] = []
+        calls: List[Dict[str, Any]] = []
+        for block in response.content:
+            if block.type == "text":
+                text_parts.append(block.text)
+            elif block.type == "tool_use":
+                calls.append({"id": block.id, "name": block.name, "arguments": dict(block.input or {})})
+        content = "".join(text_parts)
+        assistant: Dict[str, Any] = {"role": "assistant", "content": content}
+        try:
+            assistant["anthropic_content"] = [b.model_dump(exclude_none=True) for b in response.content]
+        except Exception:
+            pass
+        if calls:
+            # Stored in OpenAI shape; converted back to tool_use blocks on the next turn.
+            assistant["tool_calls"] = [
+                {"id": c["id"], "type": "function",
+                 "function": {"name": c["name"], "arguments": json.dumps(c["arguments"], ensure_ascii=False)}}
+                for c in calls
+            ]
+        return {
+            "content": content,
+            "tool_calls": calls,
+            "assistant_message": assistant,
+            "finish_reason": response.stop_reason,
+        }
 
     def update_config(self, config: Dict[str, Any]):
         old_provider = self.provider
@@ -591,8 +921,9 @@ class LLMClient:
             self.model = raw_model
         self.temperature = config.get("temperature", self.temperature)
         self.max_tokens = config.get("maxTokensPerIteration", self.max_tokens)
-        if self.provider != old_provider or self.provider in ("openaicompat", "deepseek", "zhipuai", "mimo"):
-            self._init_provider(config)
+        self.model = MODEL_ALIASES.get(self.provider, {}).get(self.model, self.model)
+        # Parameters depend on provider AND model, so the profile is always rebuilt.
+        self._init_provider(config)
 
 
 def test_client(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -601,7 +932,8 @@ def test_client(config: Dict[str, Any]) -> Dict[str, Any]:
         client = LLMClient(config)
         messages = [{"role": "user", "content": "Hello! Please respond with 'OK'."}]
         # Always stream to avoid thinking-token budget issues
-        stream = client.complete(messages, stream=True, max_tokens=20)
+        # Reasoning models spend tokens thinking first; 20 would end before any text.
+        stream = client.complete(messages, stream=True, max_tokens=1024)
         text = ""
         for chunk in stream:
             if hasattr(chunk, "choices") and chunk.choices:

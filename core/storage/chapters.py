@@ -593,3 +593,19 @@ def update_translation_log(series_id: str, chapter_id: str, iterations: int, tot
         json.dump(chapter, f, indent=2, ensure_ascii=False)
     
     return chapter
+
+def update_chapter_fields(series_id: str, chapter_id: str, **fields: Any) -> Dict[str, Any]:
+    """Set arbitrary top-level fields on a chapter (e.g. agentReview)."""
+    chapter = get_chapter(series_id, chapter_id)
+
+    if chapter is None:
+        raise FileNotFoundError(f"Chapter {chapter_id} not found in series {series_id}")
+
+    chapter.update(fields)
+    chapter["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
+
+    chapter_path = get_chapter_path(series_id, chapter_id)
+    with open(chapter_path, 'w', encoding='utf-8') as f:
+        json.dump(chapter, f, indent=2, ensure_ascii=False)
+
+    return chapter

@@ -27,9 +27,17 @@ const LEAK_RANGES: [number, number][] = [
   [0xF900, 0xFAFF], // CJK Compatibility Ideographs
 ]
 
+// Punctuation that sits inside the Katakana block but is a symbol, not a letter:
+// the middle dot ・ (used as a list bullet) and the double hyphen ゠.
+const KATAKANA_BLOCK_SYMBOLS = new Set([
+  0x30FB, // ・ KATAKANA MIDDLE DOT
+  0x30A0, // ゠ KATAKANA-HIRAGANA DOUBLE HYPHEN
+])
+
 function isCJK(cp: number): boolean {
   // CJK Symbols & Punctuation (U+3000–U+303F): only dialogue brackets are noise
   if (cp >= 0x3000 && cp <= 0x303F) return DIALOGUE_BRACKETS.has(cp)
+  if (KATAKANA_BLOCK_SYMBOLS.has(cp)) return false
   return LEAK_RANGES.some(([lo, hi]) => cp >= lo && cp <= hi)
 }
 

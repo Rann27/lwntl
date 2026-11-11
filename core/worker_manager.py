@@ -247,6 +247,50 @@ class WorkerManager:
         threading.Thread(target=run, daemon=True).start()
         return {"status": "started", "total": len(chapter_ids), "jobId": job["jobId"], "workerId": job["workerId"]}
 
+    def start_agent_run(
+        self,
+        series_id: str,
+        brief: str = "",
+        review: str = "full",
+        volume_pass: bool = True,
+        rereview: bool = False,
+        safe_fixes: bool = True,
+    ) -> Dict[str, Any]:
+        """Autonomous loop: translate every unfinished chapter, review each, then a volume pass."""
+        from .agent import AgentRun
+        job = self._reserve(series_id, None, "agent")
+        worker = self._get_worker(job["workerId"])
+        client = LLMClient(self._build_worker_config(worker))
+        translator = Translator(
+            client,
+            window_eval=self.window_eval,
+            job_id=job["jobId"],
+            worker_id=job["workerId"],
+            worker_label=job["workerLabel"],
+            log_callback=lambda line, wid=job["workerId"], sid=series_id: self.log(wid, line, already_prefixed=True, series_id=sid),
+        )
+        translator._glossary_pre_filter = get_config().get("glossaryPreFilter", True)
+        job["translator"] = translator
+        self.log(job["workerId"], f"Starting agent run: series={series_id}", series_id=series_id)
+
+        def run():
+            try:
+                translator._cancelled = False
+                translator._batch_active = True
+                AgentRun(translator, series_id, brief=brief, review=review,
+                         volume_pass=volume_pass, rereview=rereview, safe_fixes=safe_fixes).run()
+            except Exception as e:
+                self.log(job["workerId"], f"Agent run crashed: {e}", series_id=series_id)
+                translator._emit_js("onBatchStatus", translator._with_meta(
+                    {"status": "cancelled", "seriesId": series_id, "agent": True, "error": str(e)}))
+            finally:
+                translator._batch_active = False
+                self.log(job["workerId"], f"Finished agent run: series={series_id}", series_id=series_id)
+                self._release(job["jobId"])
+
+        threading.Thread(target=run, daemon=True).start()
+        return {"status": "started", "jobId": job["jobId"], "workerId": job["workerId"]}
+
     def cancel(self, series_id: Optional[str] = None, worker_id: Optional[str] = None) -> bool:
         with self._lock:
             jobs = list(self._jobs.values())

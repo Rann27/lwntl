@@ -46,6 +46,9 @@ def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
     series.setdefault("workerId", "")
     series.setdefault("autoFixCjk", False)
     series.setdefault("imageFolder", "")
+    series.setdefault("revisionPass", False)
+    series.setdefault("lookupEnabled", False)
+    series.setdefault("lookupChapters", 1)
     return series
 
 
@@ -121,6 +124,9 @@ def create_series(title: str, language: str, target_language: str = "Indonesian"
         "workerId": "",
         "autoFixCjk": False,
         "imageFolder": "",
+        "revisionPass": False,
+        "lookupEnabled": False,
+        "lookupChapters": 1,
         "systemPrompt": "",
         "instructions": "",
         "glossary": [],
@@ -171,7 +177,9 @@ def get_series(series_id: str) -> Optional[Dict[str, Any]]:
 def update_series(series_id: str, title: str, language: str,
                   target_language: str = None, system_prompt: str = None,
                   worker_id: str = None, iteration_lock: bool = None,
-                  auto_fix_cjk: bool = None, image_folder: str = None) -> Dict[str, Any]:
+                  auto_fix_cjk: bool = None, image_folder: str = None,
+                  revision_pass: bool = None, lookup_enabled: bool = None,
+                  lookup_chapters: int = None) -> Dict[str, Any]:
     """
     Update a series
     
@@ -204,6 +212,12 @@ def update_series(series_id: str, title: str, language: str,
         series["autoFixCjk"] = auto_fix_cjk
     if image_folder is not None:
         series["imageFolder"] = image_folder
+    if revision_pass is not None:
+        series["revisionPass"] = revision_pass
+    if lookup_enabled is not None:
+        series["lookupEnabled"] = lookup_enabled
+    if lookup_chapters is not None:
+        series["lookupChapters"] = max(0, min(int(lookup_chapters), 10))
     series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
     
     # Write updated series.json

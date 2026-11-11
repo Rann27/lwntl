@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react'
 import { X, FileCode2, Save, Info } from 'lucide-react'
 import { useAppStore } from '../store/appStore'
-import { getProfileTemplates, saveProfileTemplates } from '../api'
+import { getProfileTemplates, saveProfileTemplates, getDefaultTaskPrompts } from '../api'
+import type { TaskPromptDefaults, TaskPromptKind } from '../api'
 
 interface Props {
   open: boolean
@@ -19,11 +20,74 @@ const TEMPLATE_VARS = [
   { variable: '{title}', description: 'Judul series' },
 ]
 
+const TASKS: { kind: TaskPromptKind; title: string; hint: string }[] = [
+  { kind: 'revision', title: 'Revision Prompt', hint: 'pass ke-2 saat Revision Pass aktif' },
+  { kind: 'autofix', title: 'AutoFix CJK Prompt', hint: 'mengganti kata Jepang yang bocor, per kemunculan' },
+  { kind: 'prepass', title: 'Pre-Pass Terms Prompt', hint: 'mengusulkan glosarium dari raw sebelum menerjemahkan' },
+]
+
+const textareaStyle: React.CSSProperties = {
+  width: '100%',
+  resize: 'vertical',
+  padding: '10px 12px',
+  fontSize: '13px',
+  fontFamily: 'monospace',
+  lineHeight: '1.6',
+  border: '2px solid var(--color-border)',
+  backgroundColor: 'var(--color-surface-2)',
+  color: 'var(--color-text)',
+  outline: 'none',
+}
+
+const smallButton: React.CSSProperties = {
+  fontSize: '10px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent',
+  color: 'var(--color-text-muted)', padding: '2px 8px', cursor: 'pointer', textTransform: 'uppercase',
+}
+
+function TaskPromptEditor({ title, hint, value, onChange, defaults }: {
+  title: string
+  hint: string
+  value: string
+  onChange: (v: string) => void
+  defaults?: { en: string; id: string }
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
+        <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+          {title}
+        </label>
+        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>— {hint}</span>
+        {!value.trim() && (
+          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', background: '#28E272', color: '#fff', textTransform: 'uppercase' }}>
+            bawaan (ikut bahasa target)
+          </span>
+        )}
+        {defaults && (
+          <div className="flex gap-1.5" style={{ marginLeft: 'auto' }}>
+            <button type="button" onClick={() => onChange(defaults.id)} style={smallButton}>Muat bawaan ID</button>
+            <button type="button" onClick={() => onChange(defaults.en)} style={smallButton}>Muat bawaan EN</button>
+          </div>
+        )}
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Kosongkan untuk memakai bawaan LWNTL — versi Indonesia dipakai otomatis untuk series bertarget Indonesian, versi Inggris untuk lainnya."
+        rows={7}
+        style={textareaStyle}
+      />
+    </div>
+  )
+}
+
 export function ProfileTemplatesModal({ open, onClose }: Props) {
   const profiles = useAppStore((s) => s.profiles)
 
   const [systemPrompt, setSystemPrompt] = useState('')
   const [instructions, setInstructions] = useState('')
+  const [tasks, setTasks] = useState<Record<TaskPromptKind, string>>({ revision: '', autofix: '', prepass: '' })
+  const [defaults, setDefaults] = useState<TaskPromptDefaults | null>(null)
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -38,6 +102,12 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
       .then((t) => {
         setSystemPrompt(t.systemPromptTemplate)
         setInstructions(t.instructionsTemplate)
+        setTasks({
+          revision: t.revisionPromptTemplate || '',
+          autofix: t.autofixPromptTemplate || '',
+          prepass: t.prepassPromptTemplate || '',
+        })
+        getDefaultTaskPrompts().then(setDefaults).catch(() => setDefaults(null))
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
@@ -48,7 +118,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
     setError('')
     setSaved(false)
     try {
-      await saveProfileTemplates(systemPrompt, instructions)
+      await saveProfileTemplates(systemPrompt, instructions, tasks)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch (e: any) {
@@ -172,6 +242,26 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
                   }}
                 />
               </div>
+
+              {/* Helper-pass prompts. Only the guidance is editable; the output
+                  format the code parses is appended automatically. */}
+              <div className="flex items-start gap-2 px-3 py-2" style={{ border: '1.5px dashed var(--color-border)', fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                <Info size={13} style={{ color: '#00F7FF', marginTop: '2px', flexShrink: 0 }} />
+                <span>
+                  Tiga prompt di bawah hanya berisi <strong>aturan/arahan</strong>. Format output (JSON untuk AutoFix &amp; Pre-pass,
+                  teks saja untuk Revision) selalu ditambahkan otomatis oleh aplikasi, jadi prompt kustom tidak bisa merusak parsing.
+                </span>
+              </div>
+              {TASKS.map((task) => (
+                <TaskPromptEditor
+                  key={task.kind}
+                  title={task.title}
+                  hint={task.hint}
+                  value={tasks[task.kind]}
+                  onChange={(v) => setTasks((prev) => ({ ...prev, [task.kind]: v }))}
+                  defaults={defaults?.[task.kind]}
+                />
+              ))}
             </>
           )}
         </div>

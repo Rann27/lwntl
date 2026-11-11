@@ -5,8 +5,8 @@
 
 import { useEffect, useCallback, useRef } from 'react'
 import { useAppStore } from '../store/appStore'
-import { startBatchTranslation, cancelTranslation } from '../api'
-import type { BatchStatusEvent, Chapter } from '../types'
+import { startBatchTranslation, startAgentRun, cancelTranslation } from '../api'
+import type { AgentReviewMode, BatchStatusEvent, Chapter } from '../types'
 
 export function useBatchTranslation(seriesId: string) {
   const batches = useAppStore((s) => s.batches)
@@ -24,6 +24,22 @@ export function useBatchTranslation(seriesId: string) {
     const onBatchStatus = (event: Event) => {
       const data = (event as CustomEvent<BatchStatusEvent>).detail
       if (data.seriesId && data.seriesId !== seriesId) return
+
+      if (data.agent) {
+        if (data.status === 'done') {
+          const failed = data.failed?.length ? ` Gagal: bab ${data.failed.join(', ')}.` : ''
+          addToastRef.current({
+            type: data.failed?.length ? 'error' : 'success',
+            message: `Agent selesai: ${data.completed}/${data.total} bab, ${data.edits ?? 0} perbaikan.${failed}`,
+          })
+        } else if (data.status === 'cancelled') {
+          addToastRef.current({
+            type: data.error ? 'error' : 'info',
+            message: data.error ? `Agent berhenti: ${data.error}` : `Agent dihentikan. ${data.completed ?? 0}/${data.total ?? 0} bab selesai.`,
+          })
+        }
+        return
+      }
 
       if (data.status === 'done') {
         addToastRef.current({
@@ -78,6 +94,21 @@ export function useBatchTranslation(seriesId: string) {
     }
   }, [seriesId, setBatchForSeries])
 
+  // Agent run: whole series, translate → review → volume pass. Resumable.
+  const startAgent = useCallback(async (
+    chapterCount: number,
+    opts: { brief?: string; review?: AgentReviewMode; volumePass?: boolean; rereview?: boolean; safeFixes?: boolean },
+  ) => {
+    try {
+      setBatchForSeries(seriesId, { seriesId, status: 'translating', agent: true, current: 0, total: chapterCount, completed: 0 })
+      await startAgentRun(seriesId, opts)
+      addToastRef.current({ type: 'info', message: `Agent dimulai: ${chapterCount} bab.` })
+    } catch (e: any) {
+      addToastRef.current({ type: 'error', message: `Gagal memulai agent: ${e.message}` })
+      setBatchForSeries(seriesId, null)
+    }
+  }, [seriesId, setBatchForSeries])
+
   const cancelBatch = useCallback(async () => {
     try {
       await cancelTranslation(seriesId)
@@ -94,6 +125,7 @@ export function useBatchTranslation(seriesId: string) {
     isBatchActive,
     startBatch,
     startSelectedBatch,
+    startAgent,
     cancelBatch,
   }
 }
