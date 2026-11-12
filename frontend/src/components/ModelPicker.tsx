@@ -26,9 +26,9 @@ function compact(n?: number | null): string {
 }
 
 const SOURCE_LABEL: Record<string, { label: string; color: string; title: string }> = {
-  live: { label: 'LIVE', color: '#28E272', title: 'Baru diambil dari provider' },
-  cache: { label: 'CACHE', color: '#00F7FF', title: 'Dari provider, disimpan sampai 24 jam — tekan ⟳ untuk ambil ulang' },
-  static: { label: 'BAWAAN', color: '#FFB020', title: 'Daftar bawaan LWNTL (belum ada key, atau provider tidak menjawab)' },
+  live: { label: 'LIVE', color: 'var(--fg-green,#28E272)', title: 'Baru diambil dari provider' },
+  cache: { label: 'CACHE', color: 'var(--fg-cyan,#00F7FF)', title: 'Dari provider, disimpan sampai 24 jam — tekan ⟳ untuk ambil ulang' },
+  static: { label: 'BAWAAN', color: 'var(--fg-orange,#FFB020)', title: 'Daftar bawaan LWNTL (belum ada key, atau provider tidak menjawab)' },
 }
 
 export function ModelPicker({ provider, value, onChange }: Props) {
@@ -78,7 +78,7 @@ export function ModelPicker({ provider, value, onChange }: Props) {
         )}
       </div>
       {error && source !== 'live' && (
-        <div title={error} style={{ fontSize: '10px', color: '#FFB020', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div title={error} style={{ fontSize: '10px', color: 'var(--fg-orange,#FFB020)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           Provider tidak menjawab: {error}
         </div>
       )}

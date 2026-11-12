@@ -162,14 +162,14 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: '#9AD5FF', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-blue,#9AD5FF)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
             <ImageIcon size={17} color="#111" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Image Source
             </span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#111', display: 'flex' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
             <X size={18} />
           </button>
         </div>
@@ -206,7 +206,7 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
               </button>
             </div>
             {path.trim() && info && (
-              <p style={{ fontSize: '11px', marginTop: '5px', color: info.exists ? '#1a8f4c' : '#FF3C3C', fontWeight: 600 }}>
+              <p style={{ fontSize: '11px', marginTop: '5px', color: info.exists ? 'var(--fg-green,#1a8f4c)' : 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>
                 {info.exists
                   ? `✓ ${info.count} gambar${info.samples.length ? ` — ${info.samples.slice(0, 3).join(', ')}${info.count > 3 ? '…' : ''}` : ''}`
                   : '✗ Folder tidak ditemukan'}
@@ -222,7 +222,7 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
             <div
               className="flex flex-col items-center justify-center gap-1.5 mt-1.5"
               style={{
-                border: `2.5px dashed ${dragOver ? '#0077FF' : 'var(--color-separator)'}`,
+                border: `2.5px dashed ${dragOver ? 'var(--fg-blue,#0077FF)' : 'var(--color-separator)'}`,
                 background: dragOver ? 'rgba(0,119,255,0.06)' : 'var(--color-surface-2)',
                 padding: '20px', cursor: 'pointer', transition: 'all 0.15s',
               }}
@@ -234,7 +234,7 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
               {uploading
                 ? <><Loader2 size={22} className="animate-spin" style={{ color: 'var(--color-text-muted)' }} /><span style={{ fontSize: '12px', fontWeight: 700 }}>Menyimpan...</span></>
                 : <>
-                    <Upload size={22} style={{ color: dragOver ? '#0077FF' : 'var(--color-text-subtle)' }} />
+                    <Upload size={22} style={{ color: dragOver ? 'var(--fg-blue,#0077FF)' : 'var(--color-text-subtle)' }} />
                     <span style={{ fontSize: '12px', fontWeight: 700, color: dragOver ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
                       {dragOver ? '↓ Lepaskan' : 'Drag & drop gambar ke sini'}
                     </span>
@@ -249,7 +249,7 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                   {poolCount} gambar tersimpan di series ini
                 </span>
-                <button onClick={clearPool} className="flex items-center gap-1" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#FF3C3C', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>
+                <button onClick={clearPool} className="flex items-center gap-1" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>
                   <Trash2 size={11} /> Kosongkan
                 </button>
               </div>
@@ -257,9 +257,9 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 px-3 py-2" style={{ border: '2px solid #FF3C3C', background: 'rgba(255,60,60,0.07)' }}>
-              <AlertCircle size={14} color="#FF3C3C" style={{ flexShrink: 0, marginTop: '1px' }} />
-              <span style={{ fontSize: '11px', color: '#FF3C3C' }}>{error}</span>
+            <div className="flex items-start gap-2 px-3 py-2" style={{ border: '2px solid var(--fg-red,#FF3C3C)', background: 'rgba(255,60,60,0.07)' }}>
+              <AlertCircle size={14} color="var(--fg-red,#FF3C3C)" style={{ flexShrink: 0, marginTop: '1px' }} />
+              <span style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)' }}>{error}</span>
             </div>
           )}
 
@@ -267,7 +267,7 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
           {result && (
             <div className="px-3 py-2.5" style={{ border: '2px solid var(--color-border)', background: 'var(--color-surface-2)' }}>
               <div className="flex items-center gap-2" style={{ marginBottom: result.missing ? '6px' : 0 }}>
-                <Check size={14} color="#1a8f4c" />
+                <Check size={14} color="var(--fg-green,#1a8f4c)" />
                 <span style={{ fontSize: '12px', fontWeight: 700 }}>
                   {result.matched} gambar terpasang di {result.chaptersUpdated} chapter
                 </span>
@@ -300,7 +300,7 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
             onClick={runSync}
             disabled={syncing || !hasSource}
             className="neo-button flex items-center gap-2"
-            style={{ backgroundColor: '#9AD5FF', opacity: syncing || !hasSource ? 0.5 : 1 }}
+            style={{ backgroundColor: 'var(--bg-blue,#9AD5FF)', opacity: syncing || !hasSource ? 0.5 : 1 }}
           >
             {syncing
               ? <><Loader2 size={14} className="animate-spin" /> MEMASANG...</>

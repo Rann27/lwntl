@@ -10,13 +10,13 @@ import { useI18n } from '../i18n'
 import type { SeriesGroup, Series, Chapter } from '../types'
 
 export const GROUP_COLORS = [
-  { value: '#00F7FF', label: 'Cyan' },
-  { value: '#FFEF33', label: 'Yellow' },
-  { value: '#28E272', label: 'Green' },
-  { value: '#FF3C3C', label: 'Red' },
-  { value: '#FF8C00', label: 'Orange' },
-  { value: '#C084FC', label: 'Purple' },
-  { value: '#F472B6', label: 'Pink' },
+  { value: 'var(--fg-cyan,#00F7FF)', label: 'Cyan' },
+  { value: 'var(--fg-yellow,#FFEF33)', label: 'Yellow' },
+  { value: 'var(--fg-green,#28E272)', label: 'Green' },
+  { value: 'var(--fg-red,#FF3C3C)', label: 'Red' },
+  { value: 'var(--fg-orange,#FF8C00)', label: 'Orange' },
+  { value: 'var(--fg-purple,#C084FC)', label: 'Purple' },
+  { value: 'var(--fg-pink,#F472B6)', label: 'Pink' },
 ]
 
 interface GroupCardProps {
@@ -229,7 +229,7 @@ export function GroupCard({
               marginTop: '10px',
               padding: '6px 10px',
               backgroundColor: group.color,
-              color: '#111',
+              color: 'var(--on-accent,#111)',
               fontSize: '11px',
               fontWeight: 800,
               textAlign: 'center',
@@ -293,7 +293,7 @@ function MenuItem({
         background: 'transparent',
         cursor: disabled ? 'not-allowed' : 'pointer',
         textAlign: 'left',
-        color: disabled ? 'var(--color-text-subtle)' : danger ? '#FF3C3C' : 'var(--color-text)',
+        color: disabled ? 'var(--color-text-subtle)' : danger ? 'var(--fg-red,#FF3C3C)' : 'var(--color-text)',
         opacity: disabled ? 0.5 : 1,
       }}
       onMouseEnter={(e) => {

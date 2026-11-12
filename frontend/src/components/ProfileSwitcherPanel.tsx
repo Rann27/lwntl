@@ -111,7 +111,7 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <div className="flex items-center gap-2">
-            <Layers size={15} style={{ color: '#00F7FF' }} />
+            <Layers size={15} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', color: 'var(--color-text)' }}>
               PROFIL
             </span>
@@ -142,7 +142,7 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
                 }}
               >
                 {/* Active checkmark */}
-                <div style={{ width: '16px', flexShrink: 0, color: '#00F7FF' }}>
+                <div style={{ width: '16px', flexShrink: 0, color: 'var(--fg-cyan,#00F7FF)' }}>
                   {isActive && <Check size={14} />}
                 </div>
 
@@ -167,7 +167,7 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
                       cursor: isActive ? 'default' : 'pointer',
                       fontSize: '13px',
                       fontWeight: isActive ? 700 : 600,
-                      color: isActive ? '#00F7FF' : 'var(--color-text)',
+                      color: isActive ? 'var(--fg-cyan,#00F7FF)' : 'var(--color-text)',
                       fontFamily: "'Space Grotesk', sans-serif",
                       padding: 0,
                     }}
@@ -180,8 +180,8 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
                 <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
                   {isRenaming ? (
                     <>
-                      <button onClick={() => handleRenameSubmit(name)} style={{ fontSize: '10px', fontWeight: 700, color: '#28E272', border: '1.5px solid #28E272', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>OK</button>
-                      <button onClick={() => setRenamingProfile(null)} style={{ fontSize: '10px', fontWeight: 700, color: '#888', border: '1.5px solid #888', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>BATAL</button>
+                      <button onClick={() => handleRenameSubmit(name)} style={{ fontSize: '10px', fontWeight: 700, color: 'var(--fg-green,#28E272)', border: '1.5px solid var(--fg-green,#28E272)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>OK</button>
+                      <button onClick={() => setRenamingProfile(null)} style={{ fontSize: '10px', fontWeight: 700, color: 'var(--fg-muted,#888)', border: '1.5px solid var(--fg-muted,#888)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>BATAL</button>
                     </>
                   ) : (
                     <>
@@ -197,7 +197,7 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
                         <button
                           onClick={() => handleDelete(name)}
                           disabled={!!loading}
-                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#FF3C3C', padding: '2px', display: 'flex' }}
+                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', padding: '2px', display: 'flex' }}
                           title="Hapus profil"
                         >
                           <Trash2 size={13} />
@@ -213,8 +213,8 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
 
         {/* Error */}
         {error && (
-          <div style={{ padding: '8px 14px', backgroundColor: 'rgba(255,60,60,0.08)', borderTop: '1px solid #FF3C3C' }}>
-            <p style={{ fontSize: '11px', color: '#FF3C3C', fontWeight: 600 }}>{error}</p>
+          <div style={{ padding: '8px 14px', backgroundColor: 'rgba(255,60,60,0.08)', borderTop: '1px solid var(--fg-red,#FF3C3C)' }}>
+            <p style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{error}</p>
           </div>
         )}
 
@@ -230,7 +230,7 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
                 placeholder="Nama profil baru..."
                 style={{ flex: 1, fontSize: '12px', fontWeight: 600, padding: '5px 8px', border: '2px solid #111', outline: 'none', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
               />
-              <button onClick={handleCreate} disabled={!creatingName.trim() || !!loading} className="neo-button" style={{ fontSize: '11px', backgroundColor: '#FFCF77', opacity: (!creatingName.trim() || !!loading) ? 0.5 : 1 }}>
+              <button onClick={handleCreate} disabled={!creatingName.trim() || !!loading} className="neo-button" style={{ fontSize: '11px', backgroundColor: 'var(--bg-orange,#FFCF77)', opacity: (!creatingName.trim() || !!loading) ? 0.5 : 1 }}>
                 BUAT
               </button>
             </div>

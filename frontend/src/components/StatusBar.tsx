@@ -39,11 +39,11 @@ export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
       <div className="flex items-center gap-3">
         {/* Status icon */}
         {translation.isTranslating ? (
-          <Loader2 size={14} className="animate-spin" style={{ color: '#00F7FF' }} />
+          <Loader2 size={14} className="animate-spin" style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
         ) : status === 'done' ? (
-          <CheckCircle size={14} style={{ color: '#28E272' }} />
+          <CheckCircle size={14} style={{ color: 'var(--fg-green,#28E272)' }} />
         ) : status === 'error' ? (
-          <XCircle size={14} style={{ color: '#FF3C3C' }} />
+          <XCircle size={14} style={{ color: 'var(--fg-red,#FF3C3C)' }} />
         ) : (
           <Zap size={14} style={{ color: 'var(--color-text-muted)' }} />
         )}

@@ -58,7 +58,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
 
   return (
     <div style={{
-      borderTop: '4px solid #00F7FF',
+      borderTop: '4px solid var(--fg-cyan,#00F7FF)',
       backgroundColor: 'var(--color-surface)',
       borderLeft: '2.5px solid var(--color-border)',
       borderRight: '2.5px solid var(--color-border)',
@@ -84,12 +84,12 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
         </div>
         <div className="flex items-center gap-2">
           {hasError && (
-            <span style={{ fontSize: '9px', fontWeight: 700, color: '#FF3C3C', padding: '2px 6px', border: '2px solid #FF3C3C', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--fg-red,#FF3C3C)', padding: '2px 6px', border: '2px solid var(--fg-red,#FF3C3C)', textTransform: 'uppercase' }}>
               ERROR
             </span>
           )}
           {pendingEntries.length > 0 && !expanded && (
-            <span style={{ fontSize: '9px', fontWeight: 700, color: '#111', background: '#28E272', padding: '2px 6px', border: '2px solid var(--color-border)', textTransform: 'uppercase' }}>
+            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--on-accent,#111)', background: 'var(--bg-green,#28E272)', padding: '2px 6px', border: '2px solid var(--color-border)', textTransform: 'uppercase' }}>
               {pendingEntries.length} {t.common.new}
             </span>
           )}
@@ -148,7 +148,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                               {t.common.exists}
                             </span>
                           ) : (
-                            <span style={{ fontSize: '9px', fontWeight: 700, color: '#111', background: '#FFEF33', padding: '2px 6px', border: '1.5px solid #111', textTransform: 'uppercase' }}>
+                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--on-accent,#111)', background: 'var(--bg-yellow,#FFEF33)', padding: '2px 6px', border: '1.5px solid #111', textTransform: 'uppercase' }}>
                               {t.common.new}
                             </span>
                           )}
@@ -156,7 +156,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
 
                         <td className="px-3 py-1.5" style={{ textAlign: 'center' }}>
                           {inGlossary ? (
-                            <span style={{ color: '#28E272', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', fontSize: '10px', fontWeight: 700 }}>
+                            <span style={{ color: 'var(--fg-green,#28E272)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', fontSize: '10px', fontWeight: 700 }}>
                               <Check size={11} /> ✓
                             </span>
                           ) : (
@@ -168,8 +168,8 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                                 fontWeight: 700,
                                 padding: '3px 10px',
                                 border: '2px solid var(--color-border)',
-                                background: isBeingAdded ? 'var(--color-surface-2)' : '#00F7FF',
-                                color: '#111',
+                                background: isBeingAdded ? 'var(--color-surface-2)' : 'var(--bg-cyan,#00F7FF)',
+                                color: 'var(--on-accent,#111)',
                                 cursor: isBeingAdded || addingAll ? 'not-allowed' : 'pointer',
                                 opacity: isBeingAdded || addingAll ? 0.6 : 1,
                                 textTransform: 'uppercase',

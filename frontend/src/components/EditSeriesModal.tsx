@@ -95,7 +95,7 @@ export function EditSeriesModal({ open, onClose, onSubmit, series, config, loadi
             </div>
 
             <div className="flex justify-end gap-3">
-              <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>
+              <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>
                 {t.common.cancel}
               </button>
               <button type="submit" disabled={!title.trim() || loading} className="neo-button" style={{ opacity: title.trim() && !loading ? 1 : 0.5 }}>

@@ -255,7 +255,7 @@ MODEL_ALIASES = {
 
 # ─── Per-model request rules ────────────────────────────────────────────────
 
-_EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh", "max")
+_EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra")
 
 
 def _clamp_effort(wanted: str, allowed: tuple) -> str:
@@ -401,9 +401,23 @@ def request_profile(config: Dict[str, Any], provider: str, model: str) -> Dict[s
         # ChatGPT-plan requests reject temperature and max_output_tokens outright.
         temperature = False
         notes.append("Paket ChatGPT tidak menerima temperature dan batas output — keduanya tidak dikirim.")
+        # No plan model can switch reasoning off; LOW is the lightest. Levels come
+        # from the plan's own catalog per model (some stop at MAX, others reach ULTRA).
         effort = config.get("chatgptReasoningEffort") or "default"
         if effort != "default":
-            extra["reasoning"] = {"effort": _clamp_effort(effort, ("low", "medium", "high", "xhigh"))}
+            from .model_catalog import cached_model
+            meta = cached_model("chatgpt", model) or {}
+            allowed = tuple(lv for lv in meta.get("reasoningLevels") or [] if lv in _EFFORT_LEVELS) \
+                or ("low", "medium", "high", "xhigh", "max")
+            level = _clamp_effort(effort, allowed)
+            if level != effort:
+                notes.append(f"Reasoning '{effort}' tidak tersedia di {model}; memakai '{level}'.")
+            extra["reasoning"] = {"effort": level}
+        else:
+            from .model_catalog import cached_model
+            default = (cached_model("chatgpt", model) or {}).get("defaultReasoning")
+            if default:
+                notes.append(f"Reasoning mengikuti bawaan model: {default}.")
 
     elif provider == "openrouter":
         from .openrouter import request_profile as _or_profile

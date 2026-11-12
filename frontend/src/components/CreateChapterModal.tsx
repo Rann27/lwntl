@@ -171,7 +171,7 @@ export function CreateChapterModal({
         const mark = document.createElement('mark')
         mark.setAttribute('data-search', String(count++))
         mark.textContent = text.slice(idx, idx + lq.length)
-        mark.style.cssText = 'background:#FFE066;border-radius:2px;outline:1px solid #FFAA00;'
+        mark.style.cssText = 'background:var(--bg-yellow,#FFE066);border-radius:2px;outline:1px solid var(--bg-orange,#FFAA00);'
         parts.push(mark)
         pos = idx + lq.length
         idx = lower.indexOf(lq, pos)
@@ -195,7 +195,7 @@ export function CreateChapterModal({
     if (!container || matchIdx === 0 || matchCount === 0) return
     const marks = container.querySelectorAll('mark[data-search]')
     marks.forEach((m, i) => {
-      (m as HTMLElement).style.background = i === matchIdx - 1 ? '#FF9900' : '#FFE066'
+      (m as HTMLElement).style.background = i === matchIdx - 1 ? 'var(--bg-orange,#FF9900)' : 'var(--bg-yellow,#FFE066)'
     })
     const target = marks[matchIdx - 1] as HTMLElement
     if (target) target.scrollIntoView({ block: 'center', behavior: 'smooth' })
@@ -434,7 +434,7 @@ export function CreateChapterModal({
 
   const thStyle: React.CSSProperties = {
     padding: '6px 8px', textAlign: 'left', fontWeight: 700,
-    textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px', color: '#666',
+    textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px', color: 'var(--fg-muted,#666)',
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -461,8 +461,8 @@ export function CreateChapterModal({
 
               {/* Search bar */}
               <div className="flex items-center gap-1" style={{ flex: '1 1 0', minWidth: 0, maxWidth: '340px', marginLeft: 'auto' }}>
-                <div className="flex items-center" style={{ border: '2px solid #111', background: '#fff', flex: 1, minWidth: 0 }}>
-                  <Search size={13} style={{ marginLeft: '7px', color: '#888', flexShrink: 0 }} />
+                <div className="flex items-center" style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', flex: 1, minWidth: 0 }}>
+                  <Search size={13} style={{ marginLeft: '7px', color: 'var(--fg-muted,#888)', flexShrink: 0 }} />
                   <input
                     ref={previewSearchRef}
                     type="text"
@@ -479,22 +479,22 @@ export function CreateChapterModal({
                     }}
                   />
                   {matchCount > 0 && (
-                    <span style={{ fontSize: '11px', color: '#666', whiteSpace: 'nowrap', paddingRight: '6px', fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--fg-muted,#666)', whiteSpace: 'nowrap', paddingRight: '6px', fontVariantNumeric: 'tabular-nums' }}>
                       {matchIdx}/{matchCount}
                     </span>
                   )}
                   {searchQuery && matchCount === 0 && (
-                    <span style={{ fontSize: '11px', color: '#FF3C3C', whiteSpace: 'nowrap', paddingRight: '6px' }}>0</span>
+                    <span style={{ fontSize: '11px', color: 'var(--bg-red,#FF3C3C)', whiteSpace: 'nowrap', paddingRight: '6px' }}>0</span>
                   )}
                 </div>
                 <button
                   onClick={goPrev} disabled={matchCount === 0}
-                  style={{ border: '2px solid #111', background: '#fff', cursor: matchCount > 0 ? 'pointer' : 'default', padding: '3px 4px', display: 'flex', opacity: matchCount > 0 ? 1 : 0.35, flexShrink: 0 }}>
+                  style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', cursor: matchCount > 0 ? 'pointer' : 'default', padding: '3px 4px', display: 'flex', opacity: matchCount > 0 ? 1 : 0.35, flexShrink: 0 }}>
                   <ChevronUp size={13} />
                 </button>
                 <button
                   onClick={goNext} disabled={matchCount === 0}
-                  style={{ border: '2px solid #111', background: '#fff', cursor: matchCount > 0 ? 'pointer' : 'default', padding: '3px 4px', display: 'flex', opacity: matchCount > 0 ? 1 : 0.35, flexShrink: 0 }}>
+                  style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', cursor: matchCount > 0 ? 'pointer' : 'default', padding: '3px 4px', display: 'flex', opacity: matchCount > 0 ? 1 : 0.35, flexShrink: 0 }}>
                   <ChevronDown size={13} />
                 </button>
               </div>
@@ -555,10 +555,10 @@ export function CreateChapterModal({
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 700, fontSize: '12px',
                 textTransform: 'uppercase', letterSpacing: '0.5px',
-                border: 'none', borderRight: '2px solid #eee',
+                border: 'none', borderRight: '2px solid var(--bg-surface-2,#eee)',
                 cursor: 'pointer',
-                background: tab === tabKey ? '#00F7FF' : 'transparent',
-                color: '#111', transition: 'background 0.1s',
+                background: tab === tabKey ? 'var(--bg-cyan,#00F7FF)' : 'transparent',
+                color: 'var(--on-accent,#111)', transition: 'background 0.1s',
                 whiteSpace: 'nowrap',
               }}
             >
@@ -601,7 +601,7 @@ export function CreateChapterModal({
                 </div>
               </div>
               <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
-                <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>
+                <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>
                   {tx.common.cancel}
                 </button>
                 <button type="submit" disabled={!number || loading} className="neo-button" style={{ opacity: number && !loading ? 1 : 0.5 }}>
@@ -618,21 +618,21 @@ export function CreateChapterModal({
                 <div
                   className="flex flex-col items-center justify-center gap-2"
                   style={{
-                    border: `2.5px dashed ${isDragOver ? '#00F7FF' : '#aaa'}`,
-                    background: isDragOver ? '#e6fffe' : '#fafaf8',
+                    border: `2.5px dashed ${isDragOver ? 'var(--bg-cyan,#00F7FF)' : 'var(--fg-subtle,#aaa)'}`,
+                    background: isDragOver ? 'var(--tint-cyan,#e6fffe)' : 'var(--bg-surface,#fafaf8)',
                     padding: '28px 20px', cursor: 'pointer', transition: 'all 0.15s',
-                    boxShadow: isDragOver ? '4px 4px 0px #00F7FF' : 'none',
+                    boxShadow: isDragOver ? '4px 4px 0px var(--bg-cyan,#00F7FF)' : 'none',
                   }}
                   onDragOver={e => { e.preventDefault(); setIsDragOver(true) }}
                   onDragLeave={() => setIsDragOver(false)}
                   onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files) processTxtFiles(Array.from(e.dataTransfer.files)) }}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload size={28} style={{ color: isDragOver ? '#00a8ad' : '#aaa' }} />
-                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: isDragOver ? '#111' : '#666' }}>
+                  <Upload size={28} style={{ color: isDragOver ? '#00a8ad' : 'var(--fg-subtle,#aaa)' }} />
+                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: isDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
                     {isDragOver ? '↓' : 'Drag & drop .txt'}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>.txt</p>
+                  <p style={{ fontSize: '12px', color: 'var(--fg-subtle,#aaa)', margin: 0 }}>.txt</p>
                   <input ref={fileInputRef} type="file" accept=".txt" multiple style={{ display: 'none' }}
                     onChange={e => { if (e.target.files) { processTxtFiles(Array.from(e.target.files)); e.target.value = '' } }} />
                 </div>
@@ -641,11 +641,11 @@ export function CreateChapterModal({
               <div className="flex-1 overflow-y-auto px-6" style={{ minHeight: 0 }}>
                 {entries.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p style={{ color: '#ccc', fontSize: '13px' }}>{tx.common.noData}</p>
+                    <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>{tx.common.noData}</p>
                   </div>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-surface,#fff)', zIndex: 1 }}>
                       <tr style={{ borderBottom: '2.5px solid #111' }}>
                         <th style={{ width: '28px', padding: '6px 4px' }} />
                         <th style={{ width: '82px', ...thStyle }}>No.</th>
@@ -657,26 +657,26 @@ export function CreateChapterModal({
                     <tbody>
                       {entries.map((entry, idx) => (
                         <tr key={entry.id} {...makeRowHandlers(idx, dragIndexRef, setEntries)}
-                          style={{ borderBottom: '1.5px solid #eee', background: '#fff' }}>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: '#ccc' }}>
+                          style={{ borderBottom: '1.5px solid var(--bg-surface-2,#eee)', background: 'var(--bg-surface,#fff)' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: 'var(--line,#ccc)' }}>
                             <GripVertical size={14} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
                             <input type="text" value={entry.number}
                               onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, number: e.target.value } : en))}
-                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: '#F8F3EA', outline: 'none' }} />
+                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
                             <input type="text" value={entry.title}
                               onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, title: e.target.value } : en))}
-                              style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: '#F8F3EA', outline: 'none' }} />
+                              style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
-                          <td style={{ padding: '5px 8px', textAlign: 'right', color: '#999', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--fg-subtle,#999)', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
                             {entry.content.length.toLocaleString()}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             <button onClick={() => setEntries(prev => prev.filter(e => e.id !== entry.id))}
-                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#FF3C3C', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={14} />
                             </button>
                           </td>
@@ -688,11 +688,11 @@ export function CreateChapterModal({
               </div>
 
               <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
-                <span style={{ fontSize: '13px', color: '#666', fontWeight: 600 }}>
+                <span style={{ fontSize: '13px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
                   {entries.length > 0 ? `${entries.length}` : tx.common.noData}
                 </span>
                 <div className="flex gap-3">
-                  <button onClick={onClose} disabled={bulkLoading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>{tx.common.cancel}</button>
+                  <button onClick={onClose} disabled={bulkLoading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</button>
                   <button onClick={handleBulkSubmit} disabled={!entries.length || bulkLoading} className="neo-button" style={{ opacity: entries.length && !bulkLoading ? 1 : 0.5 }}>
                     {bulkLoading ? tx.common.loading : `${tx.common.add} ${entries.length}`}
                   </button>
@@ -708,21 +708,21 @@ export function CreateChapterModal({
                 <div
                   className="flex flex-col items-center justify-center gap-2"
                   style={{
-                    border: `2.5px dashed ${isDragOver ? '#C084FC' : '#aaa'}`,
-                    background: isDragOver ? '#f5edff' : '#fafaf8',
+                    border: `2.5px dashed ${isDragOver ? 'var(--bg-purple,#C084FC)' : 'var(--fg-subtle,#aaa)'}`,
+                    background: isDragOver ? 'var(--tint-purple,#f5edff)' : 'var(--bg-surface,#fafaf8)',
                     padding: '28px 20px', cursor: 'pointer', transition: 'all 0.15s',
-                    boxShadow: isDragOver ? '4px 4px 0px #C084FC' : 'none',
+                    boxShadow: isDragOver ? '4px 4px 0px var(--bg-purple,#C084FC)' : 'none',
                   }}
                   onDragOver={e => { e.preventDefault(); setIsDragOver(true) }}
                   onDragLeave={() => setIsDragOver(false)}
                   onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files) processMdFiles(Array.from(e.dataTransfer.files)) }}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload size={28} style={{ color: isDragOver ? '#9333ea' : '#aaa' }} />
-                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: isDragOver ? '#111' : '#666' }}>
+                  <Upload size={28} style={{ color: isDragOver ? '#9333ea' : 'var(--fg-subtle,#aaa)' }} />
+                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: isDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
                     {isDragOver ? '↓' : 'Drag & drop .md'}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>.md — markdown with formatting</p>
+                  <p style={{ fontSize: '12px', color: 'var(--fg-subtle,#aaa)', margin: 0 }}>.md — markdown with formatting</p>
                   <input ref={fileInputRef} type="file" accept=".md" multiple style={{ display: 'none' }}
                     onChange={e => { if (e.target.files) { processMdFiles(Array.from(e.target.files)); e.target.value = '' } }} />
                 </div>
@@ -731,11 +731,11 @@ export function CreateChapterModal({
               <div className="flex-1 overflow-y-auto px-6" style={{ minHeight: 0 }}>
                 {entries.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p style={{ color: '#ccc', fontSize: '13px' }}>{tx.common.noData}</p>
+                    <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>{tx.common.noData}</p>
                   </div>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-surface,#fff)', zIndex: 1 }}>
                       <tr style={{ borderBottom: '2.5px solid #111' }}>
                         <th style={{ width: '28px', padding: '6px 4px' }} />
                         <th style={{ width: '82px', ...thStyle }}>No.</th>
@@ -747,26 +747,26 @@ export function CreateChapterModal({
                     <tbody>
                       {entries.map((entry, idx) => (
                         <tr key={entry.id} {...makeRowHandlers(idx, dragIndexRef, setEntries)}
-                          style={{ borderBottom: '1.5px solid #eee', background: '#fff' }}>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: '#ccc' }}>
+                          style={{ borderBottom: '1.5px solid var(--bg-surface-2,#eee)', background: 'var(--bg-surface,#fff)' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: 'var(--line,#ccc)' }}>
                             <GripVertical size={14} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
                             <input type="text" value={entry.number}
                               onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, number: e.target.value } : en))}
-                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: '#F8F3EA', outline: 'none' }} />
+                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
                             <input type="text" value={entry.title}
                               onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, title: e.target.value } : en))}
-                              style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: '#F8F3EA', outline: 'none' }} />
+                              style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
-                          <td style={{ padding: '5px 8px', textAlign: 'right', color: '#999', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--fg-subtle,#999)', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
                             {entry.content.length.toLocaleString()}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             <button onClick={() => setEntries(prev => prev.filter(e => e.id !== entry.id))}
-                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#FF3C3C', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={14} />
                             </button>
                           </td>
@@ -778,11 +778,11 @@ export function CreateChapterModal({
               </div>
 
               <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
-                <span style={{ fontSize: '13px', color: '#666', fontWeight: 600 }}>
+                <span style={{ fontSize: '13px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
                   {entries.length > 0 ? `${entries.length}` : tx.common.noData}
                 </span>
                 <div className="flex gap-3">
-                  <button onClick={onClose} disabled={bulkLoading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>{tx.common.cancel}</button>
+                  <button onClick={onClose} disabled={bulkLoading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</button>
                   <button onClick={handleBulkSubmit} disabled={!entries.length || bulkLoading} className="neo-button" style={{ opacity: entries.length && !bulkLoading ? 1 : 0.5 }}>
                     {bulkLoading ? tx.common.loading : `${tx.common.add} ${entries.length}`}
                   </button>
@@ -799,21 +799,21 @@ export function CreateChapterModal({
                 <div
                   className="flex flex-col items-center justify-center gap-2"
                   style={{
-                    border: `2.5px dashed ${docIsDragOver ? '#FF8C00' : '#aaa'}`,
-                    background: docIsDragOver ? '#fff8ed' : '#fafaf8',
+                    border: `2.5px dashed ${docIsDragOver ? 'var(--bg-orange,#FF8C00)' : 'var(--fg-subtle,#aaa)'}`,
+                    background: docIsDragOver ? 'var(--tint-orange,#fff8ed)' : 'var(--bg-surface,#fafaf8)',
                     padding: '28px 20px', cursor: 'pointer', transition: 'all 0.15s',
-                    boxShadow: docIsDragOver ? '4px 4px 0px #FF8C00' : 'none',
+                    boxShadow: docIsDragOver ? '4px 4px 0px var(--bg-orange,#FF8C00)' : 'none',
                   }}
                   onDragOver={e => { e.preventDefault(); setDocIsDragOver(true) }}
                   onDragLeave={() => setDocIsDragOver(false)}
                   onDrop={e => { e.preventDefault(); setDocIsDragOver(false); if (e.dataTransfer.files) processDocFiles(Array.from(e.dataTransfer.files)) }}
                   onClick={() => docFileInputRef.current?.click()}
                 >
-                  <Upload size={28} style={{ color: docIsDragOver ? '#FF8C00' : '#aaa' }} />
-                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: docIsDragOver ? '#111' : '#666' }}>
+                  <Upload size={28} style={{ color: docIsDragOver ? 'var(--bg-orange,#FF8C00)' : 'var(--fg-subtle,#aaa)' }} />
+                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: docIsDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
                     {docIsDragOver ? '↓' : `Drag & drop ${docAccept}`}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#aaa', margin: 0 }}>
+                  <p style={{ fontSize: '12px', color: 'var(--fg-subtle,#aaa)', margin: 0 }}>
                     {tab === 'pdf2' ? `${docAccept} — paragraph reconstruction` : docAccept}
                   </p>
                   <input ref={docFileInputRef} type="file" accept={docAccept} multiple style={{ display: 'none' }}
@@ -821,7 +821,7 @@ export function CreateChapterModal({
                 </div>
 
                 {docParsingCount > 0 && (
-                  <div className="flex items-center gap-2 mt-2 px-1" style={{ fontSize: '12px', color: '#666' }}>
+                  <div className="flex items-center gap-2 mt-2 px-1" style={{ fontSize: '12px', color: 'var(--fg-muted,#666)' }}>
                     <Loader2 size={13} className="animate-spin" />
                     Parsing {docParsingCount} file{docParsingCount > 1 ? 's' : ''}...
                   </div>
@@ -832,11 +832,11 @@ export function CreateChapterModal({
               <div className="flex-1 overflow-y-auto px-6" style={{ minHeight: 0 }}>
                 {docEntries.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p style={{ color: '#ccc', fontSize: '13px' }}>{tx.common.noData}</p>
+                    <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>{tx.common.noData}</p>
                   </div>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+                    <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-surface,#fff)', zIndex: 1 }}>
                       <tr style={{ borderBottom: '2.5px solid #111' }}>
                         <th style={{ width: '28px', padding: '6px 4px' }} />
                         <th style={{ width: '82px', ...thStyle }}>No.</th>
@@ -855,28 +855,28 @@ export function CreateChapterModal({
                         return (
                         <tr key={entry.id}
                           {...(!busy && !isQueued ? makeRowHandlers(idx, docDragIndexRef, setDocEntries) : {})}
-                          style={{ borderBottom: '1.5px solid #eee', background: isError ? '#fff5f5' : isQueued ? '#f8f8ff' : '#fff' }}>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: busy || isQueued ? 'default' : 'grab', color: '#ccc' }}>
-                            {busy ? <Loader2 size={13} className="animate-spin" style={{ color: '#aaa' }} /> : <GripVertical size={14} />}
+                          style={{ borderBottom: '1.5px solid var(--bg-surface-2,#eee)', background: isError ? 'var(--tint-red,#fff5f5)' : isQueued ? 'var(--bg-surface,#f8f8ff)' : 'var(--bg-surface,#fff)' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: busy || isQueued ? 'default' : 'grab', color: 'var(--line,#ccc)' }}>
+                            {busy ? <Loader2 size={13} className="animate-spin" style={{ color: 'var(--fg-subtle,#aaa)' }} /> : <GripVertical size={14} />}
                           </td>
                           <td style={{ padding: '5px 8px' }}>
                             <input type="text" value={entry.number} disabled={busy}
                               onChange={e => updateDocEntry(entry.id, 'number', e.target.value)}
-                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: busy ? '#eee' : '#F8F3EA', outline: 'none' }} />
+                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: busy ? 'var(--bg-surface-2,#eee)' : 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
                             {isError ? (
-                              <div className="flex items-center gap-1" style={{ color: '#FF3C3C', fontSize: '12px' }}>
+                              <div className="flex items-center gap-1" style={{ color: 'var(--bg-red,#FF3C3C)', fontSize: '12px' }}>
                                 <AlertCircle size={13} />
                                 <span title={entry.error ?? ''}>{entry.filename} — {(entry.error ?? '').slice(0, 60)}</span>
                               </div>
                             ) : (
                               <input type="text" value={isQueued ? entry.filename : entry.title} disabled={busy || isQueued}
                                 onChange={e => updateDocEntry(entry.id, 'title', e.target.value)}
-                                style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: busy || isQueued ? '#eee' : '#F8F3EA', outline: 'none', color: isQueued ? '#999' : undefined }} />
+                                style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: busy || isQueued ? 'var(--bg-surface-2,#eee)' : 'var(--bg-page,#F8F3EA)', outline: 'none', color: isQueued ? 'var(--fg-subtle,#999)' : undefined }} />
                             )}
                           </td>
-                          <td style={{ padding: '5px 8px', textAlign: 'right', color: '#999', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--fg-subtle,#999)', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
                             {busy ? '…' : isQueued ? '—' : entry.content.length.toLocaleString()}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
@@ -884,7 +884,7 @@ export function CreateChapterModal({
                               <button
                                 onClick={() => setPreviewEntry(entry)}
                                 title="Preview hasil parsing"
-                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#0077FF', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bg-blue,#0077FF)', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               >
                                 <Eye size={14} />
                               </button>
@@ -892,7 +892,7 @@ export function CreateChapterModal({
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             <button onClick={() => removeDocEntry(entry.id)}
-                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#FF3C3C', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={14} />
                             </button>
                           </td>
@@ -906,7 +906,7 @@ export function CreateChapterModal({
 
               {/* Footer */}
               <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
-                <span style={{ fontSize: '13px', color: '#666', fontWeight: 600 }}>
+                <span style={{ fontSize: '13px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
                   {docEntries.length > 0
                     ? [
                         docQueuedCount > 0 && `${docQueuedCount} queued`,
@@ -916,7 +916,7 @@ export function CreateChapterModal({
                     : tx.common.noData}
                 </span>
                 <div className="flex gap-3">
-                  <button onClick={onClose} disabled={docBulkLoading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>{tx.common.cancel}</button>
+                  <button onClick={onClose} disabled={docBulkLoading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</button>
                   {docQueuedCount > 0 && (tab === 'pdf1' || tab === 'pdf2') && (() => {
                     const sampleFile = docEntries.find(e => e.status === 'queued' && e.file)?.file ?? null
                     const topM = tab === 'pdf1' ? pdf1MarginTop : pdf2MarginTop
@@ -935,7 +935,7 @@ export function CreateChapterModal({
                           onClick={() => parseAllPdfEntries(topM, botM)}
                           disabled={docParsingCount > 0}
                           className="neo-button"
-                          style={{ backgroundColor: '#00F7FF', fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
+                          style={{ backgroundColor: 'var(--bg-cyan,#00F7FF)', fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
                         >
                           PARSE ALL {docQueuedCount}
                         </button>
@@ -946,7 +946,7 @@ export function CreateChapterModal({
                     onClick={handleDocBulkSubmit}
                     disabled={!docReadyCount || docBulkLoading || docParsingCount > 0}
                     className="neo-button"
-                    style={{ opacity: docReadyCount && !docBulkLoading && !docParsingCount ? 1 : 0.5, backgroundColor: '#FFCF77' }}
+                    style={{ opacity: docReadyCount && !docBulkLoading && !docParsingCount ? 1 : 0.5, backgroundColor: 'var(--bg-orange,#FFCF77)' }}
                   >
                     {docBulkLoading ? tx.common.loading : `${tx.common.add} ${docReadyCount}`}
                   </button>

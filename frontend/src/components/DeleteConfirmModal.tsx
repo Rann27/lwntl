@@ -69,13 +69,13 @@ export function DeleteConfirmModal({
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Trash2 size={22} style={{ color: '#FF3C3C' }} />
+              <Trash2 size={22} style={{ color: 'var(--fg-red,#FF3C3C)' }} />
               <h2
                 style={{
                   fontFamily: "'Space Grotesk', sans-serif",
                   fontWeight: 700,
                   fontSize: '20px',
-                  color: '#111',
+                  color: 'var(--on-accent,#111)',
                 }}
               >
                 {t.common.delete} {typeLabel}
@@ -91,7 +91,7 @@ export function DeleteConfirmModal({
           </div>
 
           {/* Entity name highlight */}
-          <p className="mb-3" style={{ fontSize: '14px', color: '#666' }}>
+          <p className="mb-3" style={{ fontSize: '14px', color: 'var(--fg-muted,#666)' }}>
             {t.modal.deleteConfirm}
           </p>
           <div
@@ -105,7 +105,7 @@ export function DeleteConfirmModal({
               style={{
                 fontWeight: 700,
                 fontSize: '16px',
-                color: '#111',
+                color: 'var(--on-accent,#111)',
               }}
             >
               "{entityName}"
@@ -115,12 +115,12 @@ export function DeleteConfirmModal({
           {/* Details */}
           {details.length > 0 && (
             <div className="mb-4">
-              <p className="mb-2" style={{ fontSize: '14px', color: '#666' }}>
+              <p className="mb-2" style={{ fontSize: '14px', color: 'var(--fg-muted,#666)' }}>
                 {t.modal.deleteWarning}
               </p>
               <ul style={{ paddingLeft: '1.2rem', listStyle: 'disc' }}>
                 {details.map((d, i) => (
-                  <li key={i} style={{ fontSize: '14px', color: '#111' }}>
+                  <li key={i} style={{ fontSize: '14px', color: 'var(--on-accent,#111)' }}>
                     {d}
                   </li>
                 ))}
@@ -133,11 +133,11 @@ export function DeleteConfirmModal({
             className="flex items-center gap-2 mb-6 p-3"
             style={{
               backgroundColor: 'rgba(255, 60, 60, 0.08)',
-              border: '2.5px solid #FF3C3C',
+              border: '2.5px solid var(--fg-red,#FF3C3C)',
             }}
           >
-            <AlertTriangle size={18} style={{ color: '#FF3C3C', flexShrink: 0 }} />
-            <p style={{ fontSize: '13px', fontWeight: 700, color: '#FF3C3C' }}>
+            <AlertTriangle size={18} style={{ color: 'var(--fg-red,#FF3C3C)', flexShrink: 0 }} />
+            <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--fg-red,#FF3C3C)' }}>
               {t.modal.deleteWarning}
             </p>
           </div>
@@ -148,7 +148,7 @@ export function DeleteConfirmModal({
               onClick={onClose}
               disabled={loading}
               className="neo-button"
-              style={{ backgroundColor: '#F0F0F0' }}
+              style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}
             >
               {t.common.cancel}
             </button>

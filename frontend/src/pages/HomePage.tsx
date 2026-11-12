@@ -317,7 +317,7 @@ export function HomePage() {
     <div className="app-layout">
       <Topbar />
 
-      <main className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--color-bg, #F8F3EA)' }}>
+      <main className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--color-bg, var(--bg-page,#F8F3EA))' }}>
         {/* Page header */}
         <div className="flex items-center justify-between mb-4">
           <h1
@@ -380,7 +380,7 @@ export function HomePage() {
                       if (seriesId && !isLast) handleDropOnBreadcrumb(seriesId, idx)
                     }}
                     style={{
-                      border: isDropTarget ? '2px solid #00F7FF' : 'none',
+                      border: isDropTarget ? '2px solid var(--fg-cyan,#00F7FF)' : 'none',
                       background: isDropTarget ? 'rgba(0,247,255,0.12)' : 'transparent',
                       cursor: isLast ? 'default' : 'pointer',
                       fontFamily: "'Space Grotesk', sans-serif",
@@ -417,7 +417,7 @@ export function HomePage() {
             </>
           ) : loadError ? (
             <div className="flex flex-col items-center justify-center py-20" style={{ gridColumn: '1 / -1' }}>
-              <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px', color: '#FF3C3C', marginBottom: '8px' }}>
+              <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px', color: 'var(--fg-red,#FF3C3C)', marginBottom: '8px' }}>
                 GAGAL MEMUAT SERIES
               </h2>
               <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>

@@ -60,7 +60,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
             <div
               className="inline-flex items-center justify-center w-16 h-16 mb-4"
               style={{
-                backgroundColor: '#00F7FF',
+                backgroundColor: 'var(--bg-cyan,#00F7FF)',
                 border: '3px solid #111',
                 boxShadow: '6px 6px 0px #111',
               }}
@@ -72,13 +72,13 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 900,
                 fontSize: '28px',
-                color: '#111',
+                color: 'var(--on-accent,#111)',
                 letterSpacing: '1px',
               }}
             >
               LWNTL
             </h1>
-            <p style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
+            <p style={{ fontSize: '14px', color: 'var(--fg-muted,#666)', marginTop: '4px' }}>
               Light Novel / Web Novel Translator
             </p>
           </div>
@@ -91,7 +91,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                 style={{
                   width: step >= s ? '32px' : '12px',
                   height: '12px',
-                  backgroundColor: step >= s ? '#00F7FF' : '#ddd',
+                  backgroundColor: step >= s ? 'var(--bg-cyan,#00F7FF)' : '#ddd',
                   border: '2.5px solid #111',
                   transition: 'all 200ms ease',
                 }}
@@ -105,7 +105,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
               <h2 className="text-center mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px' }}>
                 {t.seriesSettings.provider}
               </h2>
-              <p className="text-center mb-5" style={{ fontSize: '13px', color: '#666' }}>
+              <p className="text-center mb-5" style={{ fontSize: '13px', color: 'var(--fg-muted,#666)' }}>
                 {t.onboarding.step1Desc}
               </p>
 
@@ -116,9 +116,9 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                     onClick={() => setProvider(p)}
                     className="w-full text-left p-4 transition-all"
                     style={{
-                      border: `2.5px solid ${provider === p ? '#00F7FF' : '#111'}`,
-                      boxShadow: provider === p ? '4px 4px 0px #00F7FF' : '4px 4px 0px #111',
-                      backgroundColor: provider === p ? 'rgba(0,247,255,0.05)' : '#fff',
+                      border: `2.5px solid ${provider === p ? 'var(--fg-cyan,#00F7FF)' : '#111'}`,
+                      boxShadow: provider === p ? '4px 4px 0px var(--fg-cyan,#00F7FF)' : '4px 4px 0px #111',
+                      backgroundColor: provider === p ? 'rgba(0,247,255,0.05)' : 'var(--bg-surface,#fff)',
                       cursor: 'pointer',
                       transform: provider === p ? 'translate(2px, 2px)' : undefined,
                     }}
@@ -126,14 +126,14 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p style={{ fontWeight: 700, fontSize: '15px' }}>{providerInfo[p].name}</p>
-                        <p style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>{providerInfo[p].description}</p>
+                        <p style={{ fontSize: '12px', color: 'var(--fg-muted,#666)', marginTop: '2px' }}>{providerInfo[p].description}</p>
                       </div>
                       <div
                         style={{
                           width: '20px',
                           height: '20px',
                           border: `2.5px solid #111`,
-                          backgroundColor: provider === p ? '#00F7FF' : 'transparent',
+                          backgroundColor: provider === p ? 'var(--bg-cyan,#00F7FF)' : 'transparent',
                           flexShrink: 0,
                         }}
                       />
@@ -147,7 +147,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                             fontWeight: 600,
                             padding: '2px 6px',
                             border: '1.5px solid #111',
-                            backgroundColor: '#F8F3EA',
+                            backgroundColor: 'var(--bg-page,#F8F3EA)',
                           }}
                         >
                           {PROVIDERS[p].displayNames[m] || m}
@@ -166,7 +166,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
               <h2 className="text-center mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px' }}>
                 API KEY
               </h2>
-              <p className="text-center mb-5" style={{ fontSize: '13px', color: '#666' }}>
+              <p className="text-center mb-5" style={{ fontSize: '13px', color: 'var(--fg-muted,#666)' }}>
                 {providerInfo[provider].name}
               </p>
 
@@ -187,7 +187,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                   <button
                     onClick={() => setShowKey(!showKey)}
                     className="absolute right-2 top-1/2 -translate-y-1/2"
-                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#666' }}
+                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)' }}
                   >
                     {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -197,7 +197,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
               <button
                 onClick={() => { setStep(0); setApiKey('') }}
                 className="text-sm font-semibold"
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#666', textDecoration: 'underline' }}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)', textDecoration: 'underline' }}
               >
                 ← {t.seriesSettings.provider}
               </button>

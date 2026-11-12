@@ -92,19 +92,19 @@ export function TerminologyPrepassModal({
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: '#C8FF8A', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-lime,#C8FF8A)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
             <ScanSearch size={17} color="#111" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Terminology Pre-Pass
             </span>
             {phase === 'review' && (
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#111', opacity: 0.7 }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--on-accent,#111)', opacity: 0.7 }}>
                 — {terms.length} usulan
               </span>
             )}
           </div>
-          <button onClick={close} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#111', display: 'flex' }}>
+          <button onClick={close} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
             <X size={18} />
           </button>
         </div>
@@ -133,7 +133,7 @@ export function TerminologyPrepassModal({
                     hanya masuk glossary setelah bab yang memperkenalkannya selesai — dan bab-bab
                     sebelumnya terlanjur mengarang bentuk sendiri.
                   </p>
-                  <button onClick={run} className="neo-button" style={{ backgroundColor: '#C8FF8A' }}>
+                  <button onClick={run} className="neo-button" style={{ backgroundColor: 'var(--bg-lime,#C8FF8A)' }}>
                     <ScanSearch size={14} style={{ display: 'inline', marginRight: '6px' }} />
                     MULAI PEMINDAIAN
                   </button>
@@ -144,8 +144,8 @@ export function TerminologyPrepassModal({
 
           {phase === 'error' && (
             <div className="flex flex-col items-center justify-center h-full gap-3 px-10 text-center">
-              <AlertCircle size={30} color="#FF3C3C" />
-              <p style={{ fontSize: '13px', fontWeight: 700, color: '#FF3C3C' }}>Gagal</p>
+              <AlertCircle size={30} color="var(--fg-red,#FF3C3C)" />
+              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--fg-red,#FF3C3C)' }}>Gagal</p>
               <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', maxWidth: '520px' }}>{error}</p>
               <button onClick={run} className="neo-button">COBA LAGI</button>
             </div>
@@ -172,7 +172,7 @@ export function TerminologyPrepassModal({
                   {terms.map((t, i) => (
                     <tr key={i} style={{ borderBottom: '1px solid var(--color-border)', opacity: selected.has(i) ? 1 : 0.4 }}>
                       <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-                        <input type="checkbox" checked={selected.has(i)} onChange={() => toggle(i)} style={{ cursor: 'pointer', accentColor: '#28E272' }} />
+                        <input type="checkbox" checked={selected.has(i)} onChange={() => toggle(i)} style={{ cursor: 'pointer', accentColor: 'var(--fg-green,#28E272)' }} />
                       </td>
                       <td style={{ padding: '4px 8px' }}>
                         <input value={t.sourceTerm} onChange={e => editTerm(i, 'sourceTerm', e.target.value)} style={{ ...inputStyle, fontWeight: 700 }} />
@@ -214,7 +214,7 @@ export function TerminologyPrepassModal({
                 onClick={apply}
                 disabled={selected.size === 0 || phase === 'applying'}
                 className="neo-button"
-                style={{ backgroundColor: '#28E272', color: '#111', opacity: selected.size === 0 || phase === 'applying' ? 0.5 : 1 }}
+                style={{ backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: selected.size === 0 || phase === 'applying' ? 0.5 : 1 }}
               >
                 {phase === 'applying'
                   ? <><Loader2 size={13} className="animate-spin" style={{ display: 'inline', marginRight: '6px' }} /> MENYIMPAN...</>

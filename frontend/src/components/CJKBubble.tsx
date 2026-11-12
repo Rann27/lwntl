@@ -61,8 +61,8 @@ export default function CJKBubble({ incidents, workerId }: Props) {
           alignItems: 'center',
           gap: '6px',
           padding: '8px 14px',
-          backgroundColor: '#FFEF33',
-          color: '#111',
+          backgroundColor: 'var(--bg-yellow,#FFEF33)',
+          color: 'var(--on-accent,#111)',
           border: '2.5px solid #111',
           boxShadow: '4px 4px 0px #111',
           fontFamily: "'Space Grotesk', sans-serif",
@@ -103,7 +103,7 @@ export default function CJKBubble({ incidents, workerId }: Props) {
             height: '20px',
             padding: '0 5px',
             backgroundColor: '#111',
-            color: '#FFEF33',
+            color: 'var(--fg-yellow,#FFEF33)',
             fontSize: '11px',
             fontWeight: 700,
             borderRadius: '2px',
@@ -149,16 +149,16 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                 justifyContent: 'space-between',
                 padding: '12px 16px',
                 borderBottom: '2.5px solid #111',
-                backgroundColor: '#FFEF33',
+                backgroundColor: 'var(--bg-yellow,#FFEF33)',
                 flexShrink: 0,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertTriangle size={16} color="#111" />
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   CJK Detector
                 </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#111', opacity: 0.7 }}>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--on-accent,#111)', opacity: 0.7 }}>
                   — {incidents.length} incident{incidents.length !== 1 ? 's' : ''}
                 </span>
               </div>
@@ -174,7 +174,7 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                     gap: '5px',
                     padding: '4px 10px',
                     backgroundColor: fixingAll ? '#888' : '#111',
-                    color: '#FFEF33',
+                    color: 'var(--fg-yellow,#FFEF33)',
                     border: '2px solid #111',
                     fontFamily: "'Space Grotesk', sans-serif",
                     fontWeight: 700,
@@ -194,7 +194,7 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                 </button>
                 <button
                   onClick={() => setOpen(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: '#111', display: 'flex' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--on-accent,#111)', display: 'flex' }}
                 >
                   <X size={18} />
                 </button>
@@ -227,7 +227,7 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                           display: 'inline-block',
                           padding: '1px 8px',
                           backgroundColor: '#111',
-                          color: '#FFEF33',
+                          color: 'var(--fg-yellow,#FFEF33)',
                           fontSize: '13px',
                           fontWeight: 700,
                           fontFamily: 'monospace',
@@ -261,7 +261,7 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                           gap: '4px',
                           padding: '2px 8px',
                           backgroundColor: fix?.status === 'done' ? 'var(--color-surface-2)' : fix?.status === 'loading' ? 'var(--color-surface-2)' : '#111',
-                          color: fix?.status === 'done' ? 'var(--color-text-muted)' : fix?.status === 'loading' ? 'var(--color-text-muted)' : '#FFEF33',
+                          color: fix?.status === 'done' ? 'var(--color-text-muted)' : fix?.status === 'loading' ? 'var(--color-text-muted)' : 'var(--fg-yellow,#FFEF33)',
                           border: '1.5px solid var(--color-border)',
                           fontFamily: "'Space Grotesk', sans-serif",
                           fontWeight: 600,

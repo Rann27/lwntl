@@ -117,7 +117,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
     >
       <div style={{
         width: '640px', maxWidth: '95vw', maxHeight: '90vh',
-        backgroundColor: '#fff', border: '2.5px solid #111',
+        backgroundColor: 'var(--bg-surface,#fff)', border: '2.5px solid #111',
         boxShadow: '6px 6px 0px #111',
         display: 'flex', flexDirection: 'column',
       }}>
@@ -129,25 +129,25 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
               PDF PRE-PREVIEW
             </span>
             {file && (
-              <span style={{ fontSize: '12px', color: '#666', fontWeight: 600 }}>
+              <span style={{ fontSize: '12px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
                 — {file.name}
               </span>
             )}
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#666', padding: '2px', display: 'flex' }}>
+          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)', padding: '2px', display: 'flex' }}>
             <X size={16} />
           </button>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: '1.5px solid #eee', flexShrink: 0, backgroundColor: '#fafaf8' }}>
+        <div className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: '1.5px solid var(--line,#eee)', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
           {detecting ? (
-            <div className="flex items-center gap-2" style={{ fontSize: '12px', color: '#888' }}>
+            <div className="flex items-center gap-2" style={{ fontSize: '12px', color: 'var(--fg-muted,#888)' }}>
               <Loader2 size={13} className="animate-spin" />
               Auto-detecting margins...
             </div>
           ) : (
-            <span style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--fg-muted,#888)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
               Margin cut (pt)
             </span>
           )}
@@ -167,21 +167,21 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
               style={{ width: '64px', padding: '3px 6px', fontSize: '12px', border: '2px solid #111', fontWeight: 700, textAlign: 'right', outline: 'none' }}
             />
           </label>
-          <span style={{ fontSize: '10px', color: '#aaa', marginLeft: 'auto' }}>
+          <span style={{ fontSize: '10px', color: 'var(--fg-subtle,#aaa)', marginLeft: 'auto' }}>
             Page height: {pageHeight} pt · drag lines to adjust
           </span>
         </div>
 
         {/* Page viewer */}
-        <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, backgroundColor: '#e8e8e8', padding: '16px' }}>
+        <div className="flex-1 overflow-y-auto" style={{ minHeight: 0, backgroundColor: 'var(--bg-surface-2,#e8e8e8)', padding: '16px' }}>
           {isLoading ? (
             <div className="flex flex-col items-center justify-center" style={{ height: '300px', gap: '12px' }}>
-              <Loader2 size={28} className="animate-spin" style={{ color: '#888' }} />
-              <span style={{ fontSize: '13px', color: '#888' }}>Loading PDF preview...</span>
+              <Loader2 size={28} className="animate-spin" style={{ color: 'var(--fg-muted,#888)' }} />
+              <span style={{ fontSize: '13px', color: 'var(--fg-muted,#888)' }}>Loading PDF preview...</span>
             </div>
           ) : images.length === 0 ? (
             <div className="flex items-center justify-center" style={{ height: '300px' }}>
-              <span style={{ fontSize: '13px', color: '#aaa' }}>Could not render preview</span>
+              <span style={{ fontSize: '13px', color: 'var(--fg-subtle,#aaa)' }}>Could not render preview</span>
             </div>
           ) : (
             <div
@@ -193,7 +193,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
               <img
                 src={`data:image/png;base64,${images[currentPage]}`}
                 alt={`Page ${currentPage + 1}`}
-                style={{ width: '100%', display: 'block', border: '1px solid #ccc' }}
+                style={{ width: '100%', display: 'block', border: '1px solid var(--line,#ccc)' }}
                 draggable={false}
               />
 
@@ -210,14 +210,14 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                 onPointerDown={onPointerDown('top')}
                 style={{
                   position: 'absolute', top: `${topPct}%`, left: 0, right: 0,
-                  height: '3px', backgroundColor: '#FF3C3C',
+                  height: '3px', backgroundColor: 'var(--bg-red,#FF3C3C)',
                   cursor: 'ns-resize', transform: 'translateY(-1px)',
                 }}
               >
                 <div style={{
                   position: 'absolute', right: '8px', top: '-9px',
-                  fontSize: '9px', fontWeight: 700, color: '#FF3C3C',
-                  backgroundColor: '#fff', padding: '1px 4px', border: '1px solid #FF3C3C',
+                  fontSize: '9px', fontWeight: 700, color: 'var(--fg-red,#FF3C3C)',
+                  backgroundColor: 'var(--bg-surface,#fff)', padding: '1px 4px', border: '1px solid var(--fg-red,#FF3C3C)',
                   userSelect: 'none',
                 }}>
                   TOP CUT {topMargin}pt
@@ -229,14 +229,14 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                 onPointerDown={onPointerDown('bottom')}
                 style={{
                   position: 'absolute', bottom: `${bottomPct}%`, left: 0, right: 0,
-                  height: '3px', backgroundColor: '#FF3C3C',
+                  height: '3px', backgroundColor: 'var(--bg-red,#FF3C3C)',
                   cursor: 'ns-resize', transform: 'translateY(1px)',
                 }}
               >
                 <div style={{
                   position: 'absolute', right: '8px', bottom: '-9px',
-                  fontSize: '9px', fontWeight: 700, color: '#FF3C3C',
-                  backgroundColor: '#fff', padding: '1px 4px', border: '1px solid #FF3C3C',
+                  fontSize: '9px', fontWeight: 700, color: 'var(--fg-red,#FF3C3C)',
+                  backgroundColor: 'var(--bg-surface,#fff)', padding: '1px 4px', border: '1px solid var(--fg-red,#FF3C3C)',
                   userSelect: 'none',
                 }}>
                   BOTTOM CUT {bottomMargin}pt
@@ -263,17 +263,17 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                 <button
                   onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
                   disabled={currentPage === 0}
-                  style={{ border: '2px solid #111', background: '#fff', cursor: currentPage === 0 ? 'default' : 'pointer', padding: '4px', display: 'flex', opacity: currentPage === 0 ? 0.3 : 1 }}
+                  style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', cursor: currentPage === 0 ? 'default' : 'pointer', padding: '4px', display: 'flex', opacity: currentPage === 0 ? 0.3 : 1 }}
                 >
                   <ChevronLeft size={14} />
                 </button>
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#666' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--fg-muted,#666)' }}>
                   Page {currentPage + 1} / {images.length}
                 </span>
                 <button
                   onClick={() => setCurrentPage(p => Math.min(images.length - 1, p + 1))}
                   disabled={currentPage === images.length - 1}
-                  style={{ border: '2px solid #111', background: '#fff', cursor: currentPage === images.length - 1 ? 'default' : 'pointer', padding: '4px', display: 'flex', opacity: currentPage === images.length - 1 ? 0.3 : 1 }}
+                  style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', cursor: currentPage === images.length - 1 ? 'default' : 'pointer', padding: '4px', display: 'flex', opacity: currentPage === images.length - 1 ? 0.3 : 1 }}
                 >
                   <ChevronRight size={14} />
                 </button>
@@ -282,14 +282,14 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
           </div>
 
           <div className="flex gap-3">
-            <button onClick={onClose} className="neo-button" style={{ backgroundColor: '#F0F0F0', fontSize: '12px' }}>
+            <button onClick={onClose} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)', fontSize: '12px' }}>
               CANCEL
             </button>
             <button
               onClick={() => onParseAll(topMargin, bottomMargin)}
               disabled={isLoading}
               className="neo-button"
-              style={{ backgroundColor: '#FFCF77', fontSize: '12px', opacity: isLoading ? 0.5 : 1 }}
+              style={{ backgroundColor: 'var(--bg-orange,#FFCF77)', fontSize: '12px', opacity: isLoading ? 0.5 : 1 }}
             >
               PARSE {queuedCount} FILE{queuedCount !== 1 ? 'S' : ''}
             </button>

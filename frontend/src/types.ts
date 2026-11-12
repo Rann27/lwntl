@@ -9,7 +9,7 @@ export interface DeepSeekApiKeyEntry {
 }
 
 /** 'default' = send nothing, let the model use its own default */
-export type EffortSetting = 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max'
+export type EffortSetting = 'default' | 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'max' | 'ultra'
 
 // Config
 export interface AppConfig {

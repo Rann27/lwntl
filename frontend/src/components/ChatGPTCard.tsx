@@ -93,7 +93,7 @@ export function ChatGPTCard({ config, onSave }: { config: AppConfig; onSave: (c:
   const effortBtn = (v: EffortSetting, label: string) => (
     <button key={v} onClick={() => onSave({ ...config, chatgptReasoningEffort: v })}
       style={{ padding: '3px 9px', fontSize: '10px', fontWeight: 700, border: '2px solid var(--color-border)', cursor: 'pointer',
-        backgroundColor: effort === v ? '#28E272' : 'var(--color-surface)', color: effort === v ? '#111' : 'var(--color-text-muted)' }}>
+        backgroundColor: effort === v ? 'var(--bg-green,#28E272)' : 'var(--color-surface)', color: effort === v ? 'var(--on-accent,#111)' : 'var(--color-text-muted)' }}>
       {label}
     </button>
   )
@@ -103,7 +103,7 @@ export function ChatGPTCard({ config, onSave }: { config: AppConfig; onSave: (c:
       <div className="flex items-center gap-2 flex-wrap">
         <span style={{ fontSize: '13px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px' }}>ChatGPT</span>
         <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 6px', border: '1.5px solid var(--color-border)' }}>TANPA API KEY</span>
-        {status?.connected && <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 6px', background: '#28E272', color: '#111', border: '1.5px solid var(--color-border)' }}>TERHUBUNG</span>}
+        {status?.connected && <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 6px', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', border: '1.5px solid var(--color-border)' }}>TERHUBUNG</span>}
       </div>
       <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
         Pakai paket ChatGPT-mu (Go, Plus, Pro, Business) untuk menerjemahkan — fitur resmi OpenAI <em>Sign in with ChatGPT</em> untuk aplikasi open-source yang berjalan lokal. Login terjadi di browser; token tersimpan hanya di komputer ini.
@@ -120,11 +120,13 @@ export function ChatGPTCard({ config, onSave }: { config: AppConfig; onSave: (c:
           <div className="flex items-center gap-2 flex-wrap">
             <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>Reasoning</span>
             <div className="flex gap-1 flex-wrap">
-              {effortBtn('default', 'DEFAULT')}{effortBtn('low', 'LOW')}{effortBtn('medium', 'MED')}{effortBtn('high', 'HIGH')}{effortBtn('xhigh', 'XHIGH')}
+              {effortBtn('default', 'DEFAULT')}{effortBtn('low', 'LOW')}{effortBtn('medium', 'MED')}{effortBtn('high', 'HIGH')}{effortBtn('xhigh', 'XHIGH')}{effortBtn('max', 'MAX')}{effortBtn('ultra', 'ULTRA')}
             </div>
           </div>
           <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', lineHeight: 1.5 }}>
-            Aturan paket ChatGPT: temperature dan batas output tidak dikirim; daftar model mengikuti paketmu (pilih di tab Worker).
+            Model paket ChatGPT tidak bisa mematikan reasoning — LOW adalah yang paling ringan (dan bawaan sebagian besar model).
+            Level yang tidak ada di model terpilih dipetakan ke yang terdekat (mis. ULTRA → MAX di Luna).
+            Temperature dan batas output tidak dikirim; daftar model mengikuti paketmu (pilih di tab Worker).
           </p>
           <button onClick={disconnect} className="flex items-center gap-1.5 self-start"
             style={{ fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '4px 10px', cursor: 'pointer' }}>
@@ -146,7 +148,7 @@ export function ChatGPTCard({ config, onSave }: { config: AppConfig; onSave: (c:
         <>
           <ContinueButton onClick={connect} busy={busy} />
           {status.login.status === 'error' && status.login.error && (
-            <p style={{ fontSize: '11px', color: '#FF3C3C', fontWeight: 700 }}>{status.login.error}</p>
+            <p style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700 }}>{status.login.error}</p>
           )}
         </>
       )}
@@ -160,7 +162,7 @@ export function ChatGPTCard({ config, onSave }: { config: AppConfig; onSave: (c:
               Terjemahan dengan worker ChatGPT memakai kuota paket ChatGPT-mu, bukan saldo API.
             </p>
             <div className="flex items-center gap-2 mt-4">
-              <a href={MANAGE_USAGE_URL} target="_blank" rel="noreferrer" className="neo-button" style={{ fontSize: '12px', textDecoration: 'none', color: '#111', backgroundColor: '#00F7FF' }}>Manage usage</a>
+              <a href={MANAGE_USAGE_URL} target="_blank" rel="noreferrer" className="neo-button" style={{ fontSize: '12px', textDecoration: 'none', color: 'var(--on-accent,#111)', backgroundColor: 'var(--bg-cyan,#00F7FF)' }}>Manage usage</a>
               <button onClick={() => setWelcome(false)} className="neo-button" style={{ fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}>OK</button>
             </div>
           </div>

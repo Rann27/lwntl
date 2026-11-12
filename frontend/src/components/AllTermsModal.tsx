@@ -90,8 +90,8 @@ function CopyCell({ text, style, bold }: { text: string; style?: React.CSSProper
     >
       {text}
       {copied
-        ? <Check size={11} style={{ color: '#28E272', flexShrink: 0 }} />
-        : <Copy size={10} style={{ color: '#bbb', flexShrink: 0, opacity: 0 }} className="copy-icon" />
+        ? <Check size={11} style={{ color: 'var(--fg-green,#28E272)', flexShrink: 0 }} />
+        : <Copy size={10} style={{ color: 'var(--fg-subtle,#bbb)', flexShrink: 0, opacity: 0 }} className="copy-icon" />
       }
     </span>
   )
@@ -220,7 +220,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
           width: '900px',
           maxWidth: '96vw',
           maxHeight: '88vh',
-          backgroundColor: '#F8F3EA',
+          backgroundColor: 'var(--bg-page,#F8F3EA)',
           border: '3px solid #111',
           boxShadow: '6px 6px 0px #111',
         }}
@@ -234,41 +234,41 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               ALL EXTRACTED TERMS
             </span>
-            <span style={{ fontSize: '12px', color: '#888', fontWeight: 600 }}>
+            <span style={{ fontSize: '12px', color: 'var(--fg-muted,#888)', fontWeight: 600 }}>
               {filtered.length} / {allRows.length}
             </span>
             {inconsistentCount > 0 && (
               <span
                 className="flex items-center gap-1"
-                style={{ padding: '2px 8px', fontSize: '11px', fontWeight: 800, backgroundColor: '#FF3C3C', color: '#fff', border: '2px solid #111', letterSpacing: '0.3px' }}
+                style={{ padding: '2px 8px', fontSize: '11px', fontWeight: 800, backgroundColor: 'var(--bg-red,#FF3C3C)', color: '#fff', border: '2px solid #111', letterSpacing: '0.3px' }}
               >
                 <AlertTriangle size={11} />
                 {inconsistentCount} INCONSISTENC{inconsistentCount === 1 ? 'Y' : 'IES'}
               </span>
             )}
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#111' }}>
+          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--on-accent,#111)' }}>
             <X size={18} />
           </button>
         </div>
 
         {/* Filter tabs + Search */}
-        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '2px solid #eee', flexShrink: 0 }}>
+        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '2px solid var(--line,#eee)', flexShrink: 0 }}>
           <div className="flex" style={{ border: '2px solid #111', flexShrink: 0 }}>
             <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')} color="#111">
               ALL ({allRows.length})
             </FilterBtn>
-            <FilterBtn active={filter === 'main'} onClick={() => setFilter('main')} color="#1565C0" borderRight>
+            <FilterBtn active={filter === 'main'} onClick={() => setFilter('main')} color="var(--fg-blue,#1565C0)" borderRight>
               ★ MAIN ({allRows.filter(r => r.isMain).length})
             </FilterBtn>
-            <FilterBtn active={filter === 'inconsistent'} onClick={() => setFilter('inconsistent')} color="#FF3C3C">
+            <FilterBtn active={filter === 'inconsistent'} onClick={() => setFilter('inconsistent')} color="var(--fg-red,#FF3C3C)">
               <AlertTriangle size={10} style={{ display: 'inline', marginRight: 4 }} />
               INCONSISTENT ({inconsistentCount})
             </FilterBtn>
           </div>
 
-          <div className="flex items-center gap-2 flex-1" style={{ border: '2px solid #111', backgroundColor: '#fff', padding: '5px 10px' }}>
-            <Search size={13} style={{ color: '#888', flexShrink: 0 }} />
+          <div className="flex items-center gap-2 flex-1" style={{ border: '2px solid #111', backgroundColor: 'var(--bg-surface,#fff)', padding: '5px 10px' }}>
+            <Search size={13} style={{ color: 'var(--fg-muted,#888)', flexShrink: 0 }} />
             <input
               ref={inputRef}
               value={query}
@@ -277,7 +277,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
               style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', fontFamily: "'Inter', sans-serif" }}
             />
             {query && (
-              <button onClick={() => setQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#aaa', padding: 0 }}>
+              <button onClick={() => setQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-subtle,#aaa)', padding: 0 }}>
                 <X size={12} />
               </button>
             )}
@@ -285,20 +285,20 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
         </div>
 
         {/* Options row: sort + collapse */}
-        <div className="flex items-center gap-4 px-4 py-2" style={{ borderBottom: '1px solid #eee', flexShrink: 0, backgroundColor: '#fafaf8' }}>
+        <div className="flex items-center gap-4 px-4 py-2" style={{ borderBottom: '1px solid var(--line,#eee)', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
           {/* Sort */}
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', color: '#888' }}>Sort:</span>
-            <div className="flex" style={{ border: '1.5px solid #ccc' }}>
+            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', color: 'var(--fg-muted,#888)' }}>Sort:</span>
+            <div className="flex" style={{ border: '1.5px solid var(--line,#ccc)' }}>
               <button
                 onClick={() => setSortBy('chapter')}
-                style={{ padding: '3px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', border: 'none', borderRight: '1.5px solid #ccc', cursor: 'pointer', backgroundColor: sortBy === 'chapter' ? '#111' : 'transparent', color: sortBy === 'chapter' ? '#fff' : '#666' }}
+                style={{ padding: '3px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', border: 'none', borderRight: '1.5px solid var(--line,#ccc)', cursor: 'pointer', backgroundColor: sortBy === 'chapter' ? '#111' : 'transparent', color: sortBy === 'chapter' ? '#fff' : 'var(--fg-muted,#666)' }}
               >
                 By Chapter
               </button>
               <button
                 onClick={() => setSortBy('source')}
-                style={{ padding: '3px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', border: 'none', cursor: 'pointer', backgroundColor: sortBy === 'source' ? '#111' : 'transparent', color: sortBy === 'source' ? '#fff' : '#666' }}
+                style={{ padding: '3px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', border: 'none', cursor: 'pointer', backgroundColor: sortBy === 'source' ? '#111' : 'transparent', color: sortBy === 'source' ? '#fff' : 'var(--fg-muted,#666)' }}
               >
                 By Source Term
               </button>
@@ -307,7 +307,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
 
           {/* Collapse MAIN toggle */}
           <div className="flex items-center gap-2" style={{ marginLeft: 'auto' }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', color: '#888' }}>
+            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', color: 'var(--fg-muted,#888)' }}>
               Collapse MAIN duplicates:
             </span>
             <button
@@ -319,9 +319,9 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
                 textTransform: 'uppercase',
                 border: '1.5px solid',
                 cursor: 'pointer',
-                borderColor: collapseMain ? '#1565C0' : '#ccc',
-                backgroundColor: collapseMain ? '#1565C0' : 'transparent',
-                color: collapseMain ? '#fff' : '#888',
+                borderColor: collapseMain ? 'var(--fg-blue,#1565C0)' : 'var(--line,#ccc)',
+                backgroundColor: collapseMain ? 'var(--bg-blue,#1565C0)' : 'transparent',
+                color: collapseMain ? '#fff' : 'var(--fg-muted,#888)',
                 letterSpacing: '0.3px',
               }}
             >
@@ -331,14 +331,14 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 px-5 py-1.5" style={{ borderBottom: '1px solid #eee', flexShrink: 0, backgroundColor: '#fafaf8' }}>
-          <span style={{ fontSize: '10px', color: '#888', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Status:</span>
-          <span style={{ ...legendBadge, borderColor: '#1565C0', backgroundColor: '#e8f0fe', color: '#1565C0' }}>★ MAIN</span>
-          <span style={{ fontSize: '10px', color: '#666' }}>= source + translation match glossary (patokan)</span>
-          <span style={{ ...legendBadge, borderColor: '#f59e0b', backgroundColor: '#fffbeb', color: '#b45309' }}>MISMATCH</span>
-          <span style={{ fontSize: '10px', color: '#666' }}>= source ada di glossary, tapi terjemahan beda</span>
-          <span style={{ ...legendBadge, borderColor: '#ddd', backgroundColor: 'transparent', color: '#aaa' }}>EXTRACTED</span>
-          <span style={{ fontSize: '10px', color: '#666' }}>= belum masuk glossary</span>
+        <div className="flex items-center gap-4 px-5 py-1.5" style={{ borderBottom: '1px solid var(--line,#eee)', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
+          <span style={{ fontSize: '10px', color: 'var(--fg-muted,#888)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Status:</span>
+          <span style={{ ...legendBadge, borderColor: 'var(--fg-blue,#1565C0)', backgroundColor: 'var(--tint-blue,#e8f0fe)', color: 'var(--fg-blue,#1565C0)' }}>★ MAIN</span>
+          <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)' }}>= source + translation match glossary (patokan)</span>
+          <span style={{ ...legendBadge, borderColor: 'var(--fg-orange,#f59e0b)', backgroundColor: 'var(--tint-orange,#fffbeb)', color: 'var(--fg-orange,#b45309)' }}>MISMATCH</span>
+          <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)' }}>= source ada di glossary, tapi terjemahan beda</span>
+          <span style={{ ...legendBadge, borderColor: 'var(--line,#ddd)', backgroundColor: 'transparent', color: 'var(--fg-subtle,#aaa)' }}>EXTRACTED</span>
+          <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)' }}>= belum masuk glossary</span>
         </div>
 
         {/* Table */}
@@ -348,15 +348,15 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
               {filter === 'inconsistent' && inconsistentCount === 0 ? (
                 <>
                   <span style={{ fontSize: '28px' }}>✓</span>
-                  <p style={{ color: '#28E272', fontSize: '13px', fontWeight: 700 }}>No inconsistencies found!</p>
+                  <p style={{ color: 'var(--fg-green,#28E272)', fontSize: '13px', fontWeight: 700 }}>No inconsistencies found!</p>
                 </>
               ) : (
-                <p style={{ color: '#ccc', fontSize: '13px' }}>No terms found.</p>
+                <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>No terms found.</p>
               )}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-              <thead style={{ position: 'sticky', top: 0, backgroundColor: '#F8F3EA', zIndex: 1 }}>
+              <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-page,#F8F3EA)', zIndex: 1 }}>
                 <tr style={{ borderBottom: '2.5px solid #111' }}>
                   <th style={thStyle}>Source Term</th>
                   <th style={thStyle}>Translation</th>
@@ -368,25 +368,25 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
               <tbody>
                 {filtered.map((row, i) => {
                   const bg = row.isInconsistent
-                    ? (i % 2 === 0 ? '#fff5f5' : '#ffeeee')
+                    ? (i % 2 === 0 ? 'var(--fg-red,#fff5f5)' : 'var(--fg-red,#ffeeee)')
                     : (i % 2 === 0 ? '#fff' : '#faf6ee')
-                  const borderLeft = row.isInconsistent ? '3px solid #FF3C3C' : '3px solid transparent'
-                  const srcColor = row.isInconsistent ? '#cc1111' : '#111'
+                  const borderLeft = row.isInconsistent ? '3px solid var(--fg-red,#FF3C3C)' : '3px solid transparent'
+                  const srcColor = row.isInconsistent ? 'var(--fg-red,#cc1111)' : '#111'
                   const badge = statusBadge(row)
 
                   return (
                     <tr key={i} style={{ borderBottom: '1px solid #e8e3da', backgroundColor: bg, borderLeft }}>
                       <td style={tdStyle}>
                         <div className="flex items-center gap-1.5">
-                          {row.isInconsistent && <span title="Inconsistent"><AlertTriangle size={11} style={{ color: '#FF3C3C', flexShrink: 0 }} /></span>}
+                          {row.isInconsistent && <span title="Inconsistent"><AlertTriangle size={11} style={{ color: 'var(--fg-red,#FF3C3C)', flexShrink: 0 }} /></span>}
                           <CopyCell text={row.sourceTerm} bold style={{ color: srcColor }} />
                         </div>
                       </td>
                       <td style={tdStyle}>
                         <CopyCell text={row.translatedTerm} style={{ color: srcColor }} />
                       </td>
-                      <td style={{ ...tdStyle, color: '#888' }}>{row.notes}</td>
-                      <td style={{ ...tdStyle, color: '#666', fontSize: '11px' }}>{row.chapterLabel}</td>
+                      <td style={{ ...tdStyle, color: 'var(--fg-muted,#888)' }}>{row.notes}</td>
+                      <td style={{ ...tdStyle, color: 'var(--fg-muted,#666)', fontSize: '11px' }}>{row.chapterLabel}</td>
                       <td style={{ ...tdStyle, textAlign: 'center' }}>
                         <span style={badge.style}>{badge.label}</span>
                       </td>
@@ -400,9 +400,9 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
 
         {/* Footer */}
         {inconsistentCount > 0 && (
-          <div className="flex items-center gap-2 px-5 py-2" style={{ borderTop: '2px solid #eee', flexShrink: 0, backgroundColor: '#fff8f8' }}>
-            <AlertTriangle size={12} style={{ color: '#FF3C3C' }} />
-            <span style={{ fontSize: '11px', color: '#888' }}>
+          <div className="flex items-center gap-2 px-5 py-2" style={{ borderTop: '2px solid var(--line,#eee)', flexShrink: 0, backgroundColor: 'var(--tint-red,#fff8f8)' }}>
+            <AlertTriangle size={12} style={{ color: 'var(--fg-red,#FF3C3C)' }} />
+            <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>
               Filter <strong>MAIN</strong> untuk lihat mana yang jadi patokan, lalu fix inkonsistensi dengan update glossary series.
             </span>
           </div>
@@ -430,7 +430,7 @@ function FilterBtn({ active, onClick, color, children, borderRight }: {
         display: 'flex',
         alignItems: 'center',
         backgroundColor: active ? color : 'transparent',
-        color: active ? '#fff' : color === '#111' ? '#555' : color,
+        color: active ? '#fff' : color === 'var(--on-accent,#111)' ? 'var(--fg-muted,#555)' : color,
       }}
     >
       {children}
@@ -441,19 +441,19 @@ function FilterBtn({ active, onClick, color, children, borderRight }: {
 function statusBadge(row: TermRow): { label: string; style: React.CSSProperties } {
   if (row.isMain) return {
     label: '★ MAIN',
-    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid #1565C0', backgroundColor: '#e8f0fe', color: '#1565C0' },
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid var(--fg-blue,#1565C0)', backgroundColor: 'var(--tint-blue,#e8f0fe)', color: 'var(--fg-blue,#1565C0)' },
   }
   if (row.tableOnly) return {
     label: 'HANYA TABEL',
-    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid #bbb', backgroundColor: 'transparent', color: '#888' },
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid var(--fg-subtle,#bbb)', backgroundColor: 'transparent', color: 'var(--fg-muted,#888)' },
   }
   if (row.inGlossary) return {
     label: 'MISMATCH',
-    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid #f59e0b', backgroundColor: '#fffbeb', color: '#b45309' },
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid var(--fg-orange,#f59e0b)', backgroundColor: 'var(--tint-orange,#fffbeb)', color: 'var(--fg-orange,#b45309)' },
   }
   return {
     label: 'EXTRACTED',
-    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid #ddd', backgroundColor: 'transparent', color: '#aaa' },
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid var(--line,#ddd)', backgroundColor: 'transparent', color: 'var(--fg-subtle,#aaa)' },
   }
 }
 
@@ -464,7 +464,7 @@ const legendBadge: React.CSSProperties = {
 
 const thStyle: React.CSSProperties = {
   padding: '8px 12px', textAlign: 'left', fontSize: '11px',
-  fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: '#555',
+  fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--fg-muted,#555)',
 }
 
 const tdStyle: React.CSSProperties = {

@@ -352,7 +352,7 @@ export function ChapterWorkspacePage() {
             <button
               onClick={handleStartTranslation}
               className="neo-button flex items-center gap-1"
-              style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: '#FFEF33' }}
+              style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: 'var(--bg-yellow,#FFEF33)' }}
             >
               <RefreshCw size={14} />
               {t.chapter.translate}
@@ -373,7 +373,7 @@ export function ChapterWorkspacePage() {
             <button
               onClick={handleExport}
               className="neo-button flex items-center gap-1"
-              style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: '#F0F0F0' }}
+              style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}
             >
               <Download size={14} />
               {t.chapter.export}
@@ -386,7 +386,7 @@ export function ChapterWorkspacePage() {
       {confirmRetranslate && (
         <div
           className="flex items-center justify-between px-4 py-2.5"
-          style={{ backgroundColor: 'rgba(255,239,51,0.12)', borderBottom: '2px solid #FFEF33', flexShrink: 0 }}
+          style={{ backgroundColor: 'rgba(255,239,51,0.12)', borderBottom: '2px solid var(--fg-yellow,#FFEF33)', flexShrink: 0 }}
         >
           <span style={{ fontSize: '12px', color: 'var(--color-text)', fontWeight: 500 }}>
             {t.chapter.retranslateConfirm}
@@ -395,7 +395,7 @@ export function ChapterWorkspacePage() {
             <button
               onClick={() => _doStartTranslation(true)}
               className="neo-button flex items-center gap-1"
-              style={{ padding: '5px 12px', fontSize: '11px', backgroundColor: '#FFEF33', color: '#111' }}
+              style={{ padding: '5px 12px', fontSize: '11px', backgroundColor: 'var(--bg-yellow,#FFEF33)', color: 'var(--on-accent,#111)' }}
             >
               <RefreshCw size={12} /> {t.chapter.proceedRetranslate}
             </button>
@@ -445,8 +445,8 @@ export function ChapterWorkspacePage() {
                       fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
                       padding: '2px 8px', border: 'none',
                       borderRight: mode === 'plain' ? '1px solid var(--color-border)' : 'none',
-                      backgroundColor: rawViewMode === mode ? '#00F7FF' : 'transparent',
-                      color: rawViewMode === mode ? '#111' : 'var(--color-text-muted)',
+                      backgroundColor: rawViewMode === mode ? 'var(--bg-cyan,#00F7FF)' : 'transparent',
+                      color: rawViewMode === mode ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
                       cursor: 'pointer', transition: 'background 0.1s',
                     }}
                   >
@@ -461,7 +461,7 @@ export function ChapterWorkspacePage() {
                 style={{
                   fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
                   padding: '3px 8px', border: '1.5px solid var(--color-border)',
-                  backgroundColor: '#28E272', color: '#111',
+                  backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)',
                   cursor: (!isRawDirty || isSavingRaw || isTranslating) ? 'not-allowed' : 'pointer',
                   opacity: (!isRawDirty || isSavingRaw || isTranslating) ? 0.35 : 1,
                   transition: 'opacity 150ms',
@@ -476,9 +476,9 @@ export function ChapterWorkspacePage() {
           {chapter.translatedContent && (
             <div
               className="flex items-start gap-2 px-3 py-1.5"
-              style={{ backgroundColor: 'rgba(255,239,51,0.1)', borderBottom: '1.5px solid #FFEF33', fontSize: '10px', color: 'var(--color-text-muted)', lineHeight: 1.4, flexShrink: 0 }}
+              style={{ backgroundColor: 'rgba(255,239,51,0.1)', borderBottom: '1.5px solid var(--fg-yellow,#FFEF33)', fontSize: '10px', color: 'var(--color-text-muted)', lineHeight: 1.4, flexShrink: 0 }}
             >
-              <AlertTriangle size={11} style={{ color: '#FFEF33', flexShrink: 0, marginTop: '1px' }} />
+              <AlertTriangle size={11} style={{ color: 'var(--fg-yellow,#FFEF33)', flexShrink: 0, marginTop: '1px' }} />
               <span>{t.chapter.rawEditedAfterTranslation}</span>
             </div>
           )}
@@ -534,7 +534,7 @@ export function ChapterWorkspacePage() {
               transform: 'translate(-50%, -50%)',
               width: '4px',
               height: '32px',
-              backgroundColor: '#00F7FF',
+              backgroundColor: 'var(--bg-cyan,#00F7FF)',
             }}
           />
         </div>
@@ -555,7 +555,7 @@ export function ChapterWorkspacePage() {
               </span>
               <div className="flex items-center gap-2">
                 {isTranslating && (
-                  <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: '#00F7FF', padding: '2px 6px', border: '2px solid var(--color-border)', fontWeight: 700 }}>
+                  <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: 'var(--bg-cyan,#00F7FF)', padding: '2px 6px', border: '2px solid var(--color-border)', fontWeight: 700 }}>
                     {t.chapter.iteration} {iteration}
                   </span>
                 )}
@@ -580,8 +580,8 @@ export function ChapterWorkspacePage() {
                     style={{
                       fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
                       padding: '3px 8px', border: '1.5px solid var(--color-border)',
-                      backgroundColor: showHistory ? '#00F7FF' : 'var(--color-surface)',
-                      color: showHistory ? '#111' : 'var(--color-text-muted)',
+                      backgroundColor: showHistory ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface)',
+                      color: showHistory ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
                       cursor: 'pointer',
                     }}
                   >
@@ -596,14 +596,14 @@ export function ChapterWorkspacePage() {
           {viewingVersion && (
             <div
               className="flex items-center justify-between px-3 py-1.5"
-              style={{ backgroundColor: 'rgba(0,247,255,0.1)', borderBottom: '1.5px solid #00F7FF', flexShrink: 0 }}
+              style={{ backgroundColor: 'rgba(0,247,255,0.1)', borderBottom: '1.5px solid var(--fg-cyan,#00F7FF)', flexShrink: 0 }}
             >
               <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text)' }}>
                 {t.chapter.viewingVersion.replace('{n}', String(viewingVersion.version))}
               </span>
               <button
                 onClick={() => { setViewingVersion(null); setShowHistory(false) }}
-                style={{ fontSize: '10px', fontWeight: 700, color: '#00F7FF', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ fontSize: '10px', fontWeight: 700, color: 'var(--fg-cyan,#00F7FF)', background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 {t.chapter.backToCurrent}
               </button>
@@ -641,7 +641,7 @@ export function ChapterWorkspacePage() {
                     </button>
                     <button
                       onClick={() => handleRestoreVersion(i)}
-                      style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', border: '1.5px solid var(--color-border)', backgroundColor: '#00F7FF', color: '#111', cursor: 'pointer' }}
+                      style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', border: '1.5px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', cursor: 'pointer' }}
                     >
                       {t.chapter.restoreVersion}
                     </button>

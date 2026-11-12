@@ -88,7 +88,7 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
       className="flex items-center gap-1.5 w-full text-left"
       style={{
         padding: '6px 8px', fontSize: '12px', fontWeight: p.id === selectedId ? 800 : 500, cursor: 'pointer',
-        border: 'none', borderLeft: `4px solid ${p.id === selectedId ? '#00F7FF' : 'transparent'}`,
+        border: 'none', borderLeft: `4px solid ${p.id === selectedId ? 'var(--fg-cyan,#00F7FF)' : 'transparent'}`,
         background: p.id === selectedId ? 'var(--color-surface-2)' : 'transparent', color: 'var(--color-text)',
       }}>
       {p.builtin ? <Lock size={11} style={{ flexShrink: 0, opacity: 0.6 }} /> : <span style={{ width: 11, flexShrink: 0 }}>✎</span>}
@@ -102,14 +102,14 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
     <div className="neo-modal-backdrop" style={{ zIndex: 1300 }} onClick={() => guard(onClose)}>
       <div className="neo-modal" style={{ width: '1040px', maxWidth: '96vw', height: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: '#00F7FF', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#00F7FF)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
             <Library size={17} color="#111" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Pustaka Preset Prompt
             </span>
           </div>
-          <button onClick={() => guard(onClose)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#111', display: 'flex' }}><X size={18} /></button>
+          <button onClick={() => guard(onClose)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></button>
         </div>
 
         <div className="flex" style={{ flex: 1, minHeight: 0 }}>
@@ -138,7 +138,7 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
                       style={{ fontSize: '14px', fontWeight: 700, padding: '4px 8px', maxWidth: '360px' }} />
                   )}
                   {selected.builtin && (
-                    <span className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 800, padding: '1px 6px', background: '#111', color: '#FFEF33', textTransform: 'uppercase' }}>
+                    <span className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 800, padding: '1px 6px', background: '#111', color: 'var(--fg-yellow,#FFEF33)', textTransform: 'uppercase' }}>
                       <Lock size={10} /> hanya baca
                     </span>
                   )}
@@ -149,25 +149,25 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
                   </span>
                 </div>
                 {selected.builtin && (
-                  <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5, borderLeft: '3px solid #00F7FF', paddingLeft: '8px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5, borderLeft: '3px solid var(--fg-cyan,#00F7FF)', paddingLeft: '8px' }}>
                     Preset bawaan diperbarui bersama LWNTL, jadi tidak bisa diedit langsung. Tekan DUPLIKAT untuk membuat salinan milikmu — salinan itu bisa diedit dan dipilih di series maupun profil mana pun.
                   </p>
                 )}
                 <textarea value={text} readOnly={selected.builtin} onChange={e => { setText(e.target.value); setDirty(true) }}
                   className="neo-textarea"
                   style={{ flex: 1, minHeight: 0, resize: 'none', fontSize: '12px', fontFamily: 'monospace', lineHeight: 1.55, background: selected.builtin ? 'var(--color-surface-2)' : 'var(--color-surface)', color: 'var(--color-text)' }} />
-                {err && <p style={{ fontSize: '12px', color: '#FF3C3C', fontWeight: 700 }}>{err}</p>}
+                {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700 }}>{err}</p>}
                 <div className="flex items-center gap-2">
-                  <button onClick={duplicate} disabled={busy} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: '#00F7FF', color: '#111' }}>
+                  <button onClick={duplicate} disabled={busy} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)' }}>
                     {busy ? <Loader2 size={13} className="animate-spin" /> : <Copy size={13} />} DUPLIKAT
                   </button>
                   {!selected.builtin && (
                     <>
                       <button onClick={save} disabled={busy || !dirty || !name.trim()} className="neo-button flex items-center gap-1.5"
-                        style={{ fontSize: '12px', backgroundColor: '#28E272', color: '#111', opacity: (busy || !dirty || !name.trim()) ? 0.5 : 1 }}>
+                        style={{ fontSize: '12px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (busy || !dirty || !name.trim()) ? 0.5 : 1 }}>
                         <Save size={13} /> SIMPAN
                       </button>
-                      <button onClick={remove} disabled={busy} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: '#FF8A8A', color: '#111', marginLeft: 'auto' }}>
+                      <button onClick={remove} disabled={busy} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)', marginLeft: 'auto' }}>
                         <Trash2 size={13} /> HAPUS
                       </button>
                     </>

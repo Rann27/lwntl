@@ -101,7 +101,7 @@ export function SettingsPage() {
               <button key={key} onClick={() => setTab(key)} style={{
                 padding: '9px 18px', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px',
                 border: 'none', borderLeft: i ? '2.5px solid var(--color-border)' : 'none', cursor: 'pointer',
-                backgroundColor: tab === key ? 'var(--color-primary)' : 'transparent', color: tab === key ? '#111' : 'var(--color-text)',
+                backgroundColor: tab === key ? 'var(--bg-cyan,var(--color-primary))' : 'transparent', color: tab === key ? 'var(--on-accent,#111)' : 'var(--color-text)',
               }}>{label}</button>
             ))}
           </div>
@@ -227,7 +227,7 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
                 <button
                   onClick={() => removeWorker(worker.id)}
                   disabled={workers.length <= 1}
-                  style={{ border: '2px solid var(--color-border)', background: '#FF3C3C', color: '#fff', padding: '7px', opacity: workers.length <= 1 ? 0.4 : 1, cursor: workers.length <= 1 ? 'not-allowed' : 'pointer' }}
+                  style={{ border: '2px solid var(--color-border)', background: 'var(--bg-red,#FF3C3C)', color: '#fff', padding: '7px', opacity: workers.length <= 1 ? 0.4 : 1, cursor: workers.length <= 1 ? 'not-allowed' : 'pointer' }}
                   title="Remove worker"
                 >
                   <X size={14} />
@@ -339,7 +339,7 @@ function AppLanguageSection({ config, onSave }: { config: AppConfig; onSave: (c:
               padding: '14px',
               border: `2.5px solid var(--color-border)`,
               boxShadow: language === opt.value ? 'var(--neo-shadow)' : 'none',
-              backgroundColor: language === opt.value ? 'var(--color-primary)' : 'var(--color-surface-2)',
+              backgroundColor: language === opt.value ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface-2)',
               cursor: 'pointer',
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 700,
@@ -392,7 +392,7 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
             padding: '14px',
             border: `2.5px solid var(--color-border)`,
             boxShadow: theme === 'light' ? 'var(--neo-shadow)' : 'none',
-            backgroundColor: theme === 'light' ? 'var(--color-primary)' : 'var(--color-surface-2)',
+            backgroundColor: theme === 'light' ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface-2)',
             cursor: 'pointer',
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 700,
@@ -414,7 +414,7 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
             padding: '14px',
             border: `2.5px solid var(--color-border)`,
             boxShadow: theme === 'dark' ? 'var(--neo-shadow)' : 'none',
-            backgroundColor: theme === 'dark' ? 'var(--color-primary)' : 'var(--color-surface-2)',
+            backgroundColor: theme === 'dark' ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface-2)',
             cursor: 'pointer',
             fontFamily: "'Space Grotesk', sans-serif",
             fontWeight: 700,
@@ -537,12 +537,12 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 {label} API Key
               </label>
               {isActive && (
-                <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--color-primary)', color: '#111', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--bg-cyan,var(--color-primary))', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
                   {t.common.active}
                 </span>
               )}
               {hasKey && !isActive && (
-                <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: '#28E272', color: '#111', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
                   ✓
                 </span>
               )}
@@ -598,7 +598,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                       const newEntry: DeepSeekApiKeyEntry = { id: crypto.randomUUID(), label: `Key ${deepseekApiKeys.length + 1}`, key: '' }
                       setDeepseekApiKeys(prev => [...prev, newEntry])
                     }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 10px', fontSize: '10px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: 'var(--color-primary)', cursor: 'pointer', textTransform: 'uppercase' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 10px', fontSize: '10px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,var(--color-primary))', cursor: 'pointer', textTransform: 'uppercase' }}
                   >
                     <Plus size={11} /> ADD KEY
                   </button>
@@ -631,12 +631,12 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                         </button>
                       </div>
                       {idx === 0 && (
-                        <span style={{ fontSize: '9px', fontWeight: 700, color: '#888', whiteSpace: 'nowrap' }}>DEFAULT</span>
+                        <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--fg-muted,#888)', whiteSpace: 'nowrap' }}>DEFAULT</span>
                       )}
                       <button
                         onClick={() => setDeepseekApiKeys(prev => prev.filter(k => k.id !== entry.id))}
                         disabled={deepseekApiKeys.length <= 1}
-                        style={{ border: '2px solid var(--color-border)', background: '#FF3C3C', color: '#fff', padding: '5px', cursor: deepseekApiKeys.length <= 1 ? 'not-allowed' : 'pointer', opacity: deepseekApiKeys.length <= 1 ? 0.4 : 1, flexShrink: 0 }}
+                        style={{ border: '2px solid var(--color-border)', background: 'var(--bg-red,#FF3C3C)', color: '#fff', padding: '5px', cursor: deepseekApiKeys.length <= 1 ? 'not-allowed' : 'pointer', opacity: deepseekApiKeys.length <= 1 ? 0.4 : 1, flexShrink: 0 }}
                       >
                         <X size={12} />
                       </button>
@@ -668,7 +668,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                     flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700,
                     border: '2px solid var(--color-border)', cursor: 'pointer',
                     textTransform: 'uppercase', letterSpacing: '0.4px',
-                    backgroundColor: geminiSafetyFilter ? '#28E272' : '#FF3C3C',
+                    backgroundColor: geminiSafetyFilter ? 'var(--bg-green,#28E272)' : 'var(--bg-red,#FF3C3C)',
                     color: '#fff',
                   }}
                 >
@@ -755,14 +755,14 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
               }
               const EFFORT_OPTIONS = isDeepseek
                 ? [
-                    { value: 'low',  label: 'LOW',  color: '#28E272' },
-                    { value: 'high', label: 'HIGH', color: '#FFD600' },
-                    { value: 'max',  label: 'MAX',  color: '#FF3C3C' },
+                    { value: 'low',  label: 'LOW',  color: 'var(--fg-green,#28E272)' },
+                    { value: 'high', label: 'HIGH', color: 'var(--fg-yellow,#FFD600)' },
+                    { value: 'max',  label: 'MAX',  color: 'var(--fg-red,#FF3C3C)' },
                   ]
                 : [
-                    { value: 'low',    label: 'LOW',  color: '#28E272' },
-                    { value: 'medium', label: 'MED',  color: '#FFD600' },
-                    { value: 'high',   label: 'HIGH', color: '#FF3C3C' },
+                    { value: 'low',    label: 'LOW',  color: 'var(--fg-green,#28E272)' },
+                    { value: 'medium', label: 'MED',  color: 'var(--fg-yellow,#FFD600)' },
+                    { value: 'high',   label: 'HIGH', color: 'var(--fg-red,#FF3C3C)' },
                   ]
               return (
                 <>
@@ -783,8 +783,8 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                         fontSize: '11px',
                         fontWeight: 700,
                         border: '2px solid var(--color-border)',
-                        backgroundColor: thinkingOn ? '#00F7FF' : 'var(--color-surface)',
-                        color: thinkingOn ? '#111' : 'var(--color-text-muted)',
+                        backgroundColor: thinkingOn ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface)',
+                        color: thinkingOn ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
                         cursor: 'pointer',
                         textTransform: 'uppercase',
                         letterSpacing: '0.4px',
@@ -814,7 +814,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                               fontWeight: 700,
                               border: '2px solid var(--color-border)',
                               backgroundColor: currentEffort === opt.value ? opt.color : 'var(--color-surface)',
-                              color: currentEffort === opt.value ? '#111' : 'var(--color-text-muted)',
+                              color: currentEffort === opt.value ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
                               cursor: 'pointer',
                               textTransform: 'uppercase',
                               letterSpacing: '0.4px',
@@ -845,8 +845,8 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
           {saving ? t.common.saving : t.settings.saveApiKeys}
         </button>
         {testResult && (
-          <div className="flex items-center gap-2 px-3 py-2" style={{ flex: '1 1 260px', minWidth: 0, border: `2px solid ${testResult === 'success' ? '#28E272' : '#FF3C3C'}`, backgroundColor: testResult === 'success' ? 'rgba(40,226,114,0.08)' : 'rgba(255,60,60,0.08)', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
-            {testResult === 'success' ? <CheckCircle size={14} style={{ color: '#28E272', flexShrink: 0 }} /> : <XCircle size={14} style={{ color: '#FF3C3C', flexShrink: 0 }} />}
+          <div className="flex items-center gap-2 px-3 py-2" style={{ flex: '1 1 260px', minWidth: 0, border: `2px solid ${testResult === 'success' ? 'var(--fg-green,#28E272)' : 'var(--fg-red,#FF3C3C)'}`, backgroundColor: testResult === 'success' ? 'rgba(40,226,114,0.08)' : 'rgba(255,60,60,0.08)', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+            {testResult === 'success' ? <CheckCircle size={14} style={{ color: 'var(--fg-green,#28E272)', flexShrink: 0 }} /> : <XCircle size={14} style={{ color: 'var(--fg-red,#FF3C3C)', flexShrink: 0 }} />}
             <span style={{ overflowWrap: 'anywhere' }}>{testMsg}</span>
           </div>
         )}
@@ -938,7 +938,7 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
 
 // ─── Option rows ─────────────────────────────────────────────────────────────
 
-const OPTION_COLORS = ['#E0E0E0', '#28E272', '#9BF0B8', '#FFD600', '#FFB020', '#FF8A3C', '#FF3C3C']
+const OPTION_COLORS = ['#E0E0E0', 'var(--fg-green,#28E272)', 'var(--fg-green,#9BF0B8)', 'var(--fg-yellow,#FFD600)', 'var(--fg-orange,#FFB020)', 'var(--fg-orange,#FF8A3C)', 'var(--fg-red,#FF3C3C)']
 
 function OptionRow({ title, desc, options, value, onChange }: {
   title: string
@@ -957,7 +957,7 @@ function OptionRow({ title, desc, options, value, onChange }: {
             padding: '4px 10px', fontSize: '10px', fontWeight: 700, border: '2px solid var(--color-border)', cursor: 'pointer',
             textTransform: 'uppercase', letterSpacing: '0.4px',
             backgroundColor: value === v ? OPTION_COLORS[Math.min(i, OPTION_COLORS.length - 1)] : 'var(--color-surface)',
-            color: value === v ? '#111' : 'var(--color-text-muted)',
+            color: value === v ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
           }}>{label}</button>
         ))}
       </div>
@@ -974,7 +974,7 @@ function ToggleRow({ title, desc, on, onToggle }: { title: string; desc: string;
       </div>
       <button onClick={onToggle} style={{
         flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)',
-        cursor: 'pointer', textTransform: 'uppercase', backgroundColor: on ? '#00F7FF' : 'var(--color-surface)', color: on ? '#111' : 'var(--color-text-muted)',
+        cursor: 'pointer', textTransform: 'uppercase', backgroundColor: on ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface)', color: on ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
       }}>{on ? 'ON' : 'OFF'}</button>
     </div>
   )

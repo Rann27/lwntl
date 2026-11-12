@@ -102,7 +102,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
           width: '780px',
           maxWidth: '95vw',
           maxHeight: '88vh',
-          backgroundColor: '#F8F3EA',
+          backgroundColor: 'var(--bg-page,#F8F3EA)',
           border: '3px solid #111',
           boxShadow: '6px 6px 0px #111',
         }}
@@ -113,22 +113,22 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
           style={{ borderBottom: '2.5px solid #111', flexShrink: 0, backgroundColor: '#111' }}
         >
           <div className="flex items-center gap-3">
-            <BookText size={16} style={{ color: '#00F7FF' }} />
+            <BookText size={16} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#fff' }}>
               ROLLING MEMORY
             </span>
-            <span style={{ fontSize: '11px', color: '#666', fontWeight: 600 }}>
+            <span style={{ fontSize: '11px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
               {chaptersWithSummary.length} / {chapters.length} chapters summarized
             </span>
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#888' }}>
+          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#888)' }}>
             <X size={18} />
           </button>
         </div>
 
         {/* Description */}
         <div className="px-5 py-3" style={{ borderBottom: '2px solid #e8e3da', flexShrink: 0 }}>
-          <p style={{ fontSize: '12px', color: '#666', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '12px', color: 'var(--fg-muted,#666)', lineHeight: 1.5 }}>
             Rolling memory adalah ringkasan per-chapter yang otomatis dibuat setelah translasi selesai.
             Dipakai sebagai konteks cerita untuk translasi chapter berikutnya. Kamu bisa edit atau hapus manual di sini.
           </p>
@@ -138,7 +138,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
         <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
           {chapters.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <p style={{ color: '#ccc', fontSize: '13px' }}>No chapters yet.</p>
+              <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>No chapters yet.</p>
             </div>
           ) : (
             <div className="flex flex-col">
@@ -154,7 +154,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                       key={ch.id}
                       style={{
                         borderBottom: '1.5px solid #e8e3da',
-                        backgroundColor: isEditing ? '#fffef5' : (i % 2 === 0 ? '#fff' : '#faf6ee'),
+                        backgroundColor: isEditing ? 'var(--tint-yellow,#fffef5)' : (i % 2 === 0 ? 'var(--bg-surface,#fff)' : 'var(--bg-surface,#faf6ee)'),
                       }}
                     >
                       {/* Chapter header row */}
@@ -166,7 +166,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                               width: '8px',
                               height: '8px',
                               borderRadius: '50%',
-                              backgroundColor: hasSummary ? '#28E272' : '#ddd',
+                              backgroundColor: hasSummary ? 'var(--bg-green,#28E272)' : '#ddd',
                               flexShrink: 0,
                             }}
                           />
@@ -184,7 +184,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
                                 border: '2px solid #111',
-                                backgroundColor: '#00F7FF',
+                                backgroundColor: 'var(--bg-cyan,#00F7FF)',
                                 cursor: 'pointer',
                                 letterSpacing: '0.3px',
                               }}
@@ -202,7 +202,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                                 fontWeight: 700,
                                 textTransform: 'uppercase',
                                 border: '2px solid #111',
-                                backgroundColor: '#FFE0E0',
+                                backgroundColor: 'var(--bg-red,#FFE0E0)',
                                 cursor: 'pointer',
                                 letterSpacing: '0.3px',
                                 opacity: saving ? 0.5 : 1,
@@ -222,7 +222,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                                   fontWeight: 700,
                                   textTransform: 'uppercase',
                                   border: '2px solid #111',
-                                  backgroundColor: '#28E272',
+                                  backgroundColor: 'var(--bg-green,#28E272)',
                                   cursor: saving ? 'not-allowed' : 'pointer',
                                   letterSpacing: '0.3px',
                                   display: 'flex',
@@ -242,7 +242,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                                   fontWeight: 700,
                                   textTransform: 'uppercase',
                                   border: '2px solid #111',
-                                  backgroundColor: '#eee',
+                                  backgroundColor: 'var(--bg-surface-2,#eee)',
                                   cursor: 'pointer',
                                   letterSpacing: '0.3px',
                                 }}
@@ -271,26 +271,26 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                               lineHeight: 1.6,
                               resize: 'vertical',
                               outline: 'none',
-                              backgroundColor: '#fff',
+                              backgroundColor: 'var(--bg-surface,#fff)',
                               boxSizing: 'border-box',
                             }}
                             placeholder="Write chapter summary for rolling context..."
                           />
-                          <div style={{ fontSize: '11px', color: '#aaa', marginTop: '4px' }}>
+                          <div style={{ fontSize: '11px', color: 'var(--fg-subtle,#aaa)', marginTop: '4px' }}>
                             {draftText.length} chars · Esc to cancel
                           </div>
                         </div>
                       ) : hasSummary ? (
                         <div
                           className="px-5 pb-3"
-                          style={{ fontSize: '12px', color: '#555', lineHeight: 1.65, whiteSpace: 'pre-wrap', cursor: 'text' }}
+                          style={{ fontSize: '12px', color: 'var(--fg-muted,#555)', lineHeight: 1.65, whiteSpace: 'pre-wrap', cursor: 'text' }}
                           onClick={() => startEdit(ch)}
                           title="Click to edit"
                         >
                           {ch.summary}
                         </div>
                       ) : (
-                        <div className="px-5 pb-3" style={{ fontSize: '11px', color: '#ccc', fontStyle: 'italic' }}>
+                        <div className="px-5 pb-3" style={{ fontSize: '11px', color: 'var(--line,#ccc)', fontStyle: 'italic' }}>
                           No summary yet — will be auto-generated after translation.
                         </div>
                       )}
@@ -307,10 +307,10 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
           style={{ borderTop: '2px solid #e8e3da', flexShrink: 0 }}
         >
           <div className="flex items-center gap-2">
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#28E272', display: 'inline-block' }} />
-            <span style={{ fontSize: '11px', color: '#888' }}>Has summary</span>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--bg-green,#28E272)', display: 'inline-block' }} />
+            <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>Has summary</span>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ddd', display: 'inline-block', marginLeft: '8px' }} />
-            <span style={{ fontSize: '11px', color: '#888' }}>No summary</span>
+            <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>No summary</span>
           </div>
           <button
             onClick={onClose}

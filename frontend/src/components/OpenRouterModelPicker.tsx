@@ -87,7 +87,7 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             </button>
           </div>
-          {err && <p style={{ fontSize: '11px', color: '#FF3C3C', padding: '6px 8px' }}>{err}</p>}
+          {err && <p style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)', padding: '6px 8px' }}>{err}</p>}
           <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
             {filtered.map(m => (
               <button type="button" key={m.id} onClick={() => { onChange(m.id); setOpen(false); setQuery('') }}
@@ -101,12 +101,12 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
                 </div>
                 <div className="flex items-center gap-1 flex-wrap" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                   <span style={{ fontFamily: 'monospace' }}>{m.id}</span>
-                  {m.reasoning && <span style={{ border: '1px solid #C9A7FF', color: '#9B6BFF', padding: '0 4px', fontWeight: 700 }}>
+                  {m.reasoning && <span style={{ border: '1px solid var(--fg-purple,#C9A7FF)', color: '#9B6BFF', padding: '0 4px', fontWeight: 700 }}>
                     R {m.efforts.length ? m.efforts.join('/') : m.budgetReasoning ? 'budget' : ''}
                   </span>}
-                  {m.tools && <span style={{ border: '1px solid #28E272', color: '#1BA556', padding: '0 4px', fontWeight: 700 }}>TOOLS</span>}
+                  {m.tools && <span style={{ border: '1px solid var(--fg-green,#28E272)', color: '#1BA556', padding: '0 4px', fontWeight: 700 }}>TOOLS</span>}
                   {!m.temperature && <span style={{ border: '1px solid var(--color-border)', padding: '0 4px', fontWeight: 700 }}>NO TEMP</span>}
-                  {m.expires && <span style={{ color: '#FF3C3C', fontWeight: 700 }}>pensiun {m.expires}</span>}
+                  {m.expires && <span style={{ color: 'var(--fg-red,#FF3C3C)', fontWeight: 700 }}>pensiun {m.expires}</span>}
                 </div>
               </button>
             ))}

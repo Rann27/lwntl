@@ -136,7 +136,7 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     border: '2px solid var(--color-border)',
-                    backgroundColor: theme === 'light' ? 'var(--color-primary)' : 'var(--color-surface)',
+                    backgroundColor: theme === 'light' ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface)',
                     color: 'var(--color-text)',
                     cursor: 'pointer',
                     letterSpacing: '0.3px',
@@ -152,7 +152,7 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     border: '2px solid var(--color-border)',
-                    backgroundColor: theme === 'dark' ? 'var(--color-primary)' : 'var(--color-surface)',
+                    backgroundColor: theme === 'dark' ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface)',
                     color: 'var(--color-text)',
                     cursor: 'pointer',
                     letterSpacing: '0.3px',
@@ -179,7 +179,7 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
                     {label}
                   </label>
                   {isActive && (
-                    <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--color-primary)', color: '#111', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--bg-cyan,var(--color-primary))', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
                       AKTIF
                     </span>
                   )}
@@ -237,7 +237,7 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
             <div
               className="flex items-center gap-2 mb-4 px-3 py-2"
               style={{
-                border: `2px solid ${testResult === 'success' ? '#28E272' : '#FF3C3C'}`,
+                border: `2px solid ${testResult === 'success' ? 'var(--fg-green,#28E272)' : 'var(--fg-red,#FF3C3C)'}`,
                 backgroundColor: testResult === 'success' ? 'rgba(40,226,114,0.08)' : 'rgba(255,60,60,0.08)',
                 fontSize: '13px',
                 fontWeight: 600,
@@ -245,8 +245,8 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
               }}
             >
               {testResult === 'success'
-                ? <CheckCircle size={14} style={{ color: '#28E272' }} />
-                : <XCircle size={14} style={{ color: '#FF3C3C' }} />}
+                ? <CheckCircle size={14} style={{ color: 'var(--fg-green,#28E272)' }} />
+                : <XCircle size={14} style={{ color: 'var(--fg-red,#FF3C3C)' }} />}
               {testMessage}
             </div>
           )}

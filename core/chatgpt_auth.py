@@ -21,6 +21,7 @@ identifies this installation and is generated once.
 """
 
 import base64
+import html
 import hashlib
 import json
 import os
@@ -51,6 +52,8 @@ MANAGE_USAGE_URL = "https://chatgpt.com/settings/usage"
 LOGIN_TIMEOUT_SECONDS = 600
 # Refresh a little before the hour is up so a long request never starts on a dying token.
 REFRESH_MARGIN_SECONDS = 120
+# Tolerated difference between this PC's clock and OpenAI's when checking token times.
+CLOCK_LEEWAY_SECONDS = 300
 
 # Refresh errors after which the grant is gone: sign in again.
 _DEAD_GRANT = ("invalid_grant", "invalid_refresh_token", "token_expired", "refresh_token_expired",
@@ -125,7 +128,11 @@ def _verify_id_token(id_token: str, client_id: str, nonce: Optional[str]) -> Dic
     except Exception:
         jwks_uri = f"{ISSUER}/.well-known/jwks.json"
     key = jwt.PyJWKClient(jwks_uri).get_signing_key_from_jwt(id_token).key
-    claims = jwt.decode(id_token, key, algorithms=["RS256"], audience=client_id, issuer=ISSUER)
+    # Leeway for the PC clock: a few seconds behind OpenAI's makes a fresh token's
+    # iat look like the future ("token is not yet valid"). Signature, issuer,
+    # audience and nonce are still checked exactly.
+    claims = jwt.decode(id_token, key, algorithms=["RS256"], audience=client_id, issuer=ISSUER,
+                        leeway=CLOCK_LEEWAY_SECONDS)
     if nonce is not None and claims.get("nonce") != nonce:
         raise ChatGPTAuthError("ID token nonce tidak cocok — login dibatalkan")
     return claims
@@ -243,6 +250,38 @@ def start_login() -> Dict[str, Any]:
 
         outcome: Dict[str, Any] = {}
 
+        def finish(query: Dict[str, str]) -> str:
+            """Exchange the code and verify the ID token. Returns '' on success, else the error."""
+            try:
+                if query.get("state") != state:
+                    raise ChatGPTAuthError("State tidak cocok — login dibatalkan demi keamanan")
+                if "code" not in query:
+                    raise ChatGPTAuthError(query.get("error_description") or query.get("error") or "Login ditolak")
+                issued = query.get("client_id") or client_id
+                r = httpx.post(TOKEN_URL, data={
+                    "grant_type": "authorization_code",
+                    "client_id": issued,
+                    "code": query["code"],
+                    "code_verifier": verifier,
+                    "redirect_uri": redirect_uri,
+                    "resource": RESOURCE,
+                }, timeout=30)
+                if r.status_code != 200:
+                    raise ChatGPTAuthError(f"Penukaran kode gagal ({r.status_code}): {r.text[:200]}")
+                tok = r.json()
+                if PLAN_SCOPE not in (tok.get("scope") or "").split():
+                    raise ChatGPTAuthError("Izin memakai paket ChatGPT tidak diberikan")
+                claims = _verify_id_token(tok["id_token"], issued, nonce)
+                with _lock:
+                    fresh = _load()
+                    _store_tokens(fresh, tok, issued, claims)
+                    _set_account_in_config(fresh.get("email", ""))
+                    _login.update({"status": "done", "error": "", "url": ""})
+                return ""
+            except Exception as e:
+                _login.update({"status": "error", "error": str(e), "url": ""})
+                return str(e) or e.__class__.__name__
+
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *args):  # keep tokens and codes out of the console
                 pass
@@ -253,12 +292,14 @@ def start_login() -> Dict[str, Any]:
                     self.send_response(404)
                     self.end_headers()
                     return
-                outcome.update({k: v[0] for k, v in parse_qs(parsed.query).items()})
-                ok = outcome.get("state") == state and "code" in outcome
+                query = {k: v[0] for k, v in parse_qs(parsed.query).items()}
+                # The page reports the real outcome: the code is exchanged and the
+                # ID token verified before the browser hears anything.
+                error = finish(query)
+                outcome["done"] = True
                 page = _DONE_PAGE.format(
-                    title="Terhubung ke ChatGPT" if ok else "Login gagal",
-                    body="Kembali ke LWNTL — jendela ini boleh ditutup." if ok
-                    else (outcome.get("error_description") or outcome.get("error") or "Permintaan tidak valid."),
+                    title="Login gagal" if error else "Terhubung ke ChatGPT",
+                    body=html.escape(error) if error else "Kembali ke LWNTL — jendela ini boleh ditutup.",
                 )
                 body = page.encode("utf-8")
                 self.send_response(200)
@@ -296,35 +337,8 @@ def start_login() -> Dict[str, Any]:
                 server.handle_request()
         finally:
             server.server_close()
-        try:
-            if not outcome:
-                raise ChatGPTAuthError("Login dibatalkan atau melewati batas waktu")
-            if outcome.get("state") != state:
-                raise ChatGPTAuthError("State tidak cocok — login dibatalkan demi keamanan")
-            if "code" not in outcome:
-                raise ChatGPTAuthError(outcome.get("error_description") or outcome.get("error") or "Login ditolak")
-            issued = outcome.get("client_id") or client_id
-            r = httpx.post(TOKEN_URL, data={
-                "grant_type": "authorization_code",
-                "client_id": issued,
-                "code": outcome["code"],
-                "code_verifier": verifier,
-                "redirect_uri": redirect_uri,
-                "resource": RESOURCE,
-            }, timeout=30)
-            if r.status_code != 200:
-                raise ChatGPTAuthError(f"Penukaran kode gagal ({r.status_code}): {r.text[:200]}")
-            tok = r.json()
-            if PLAN_SCOPE not in (tok.get("scope") or "").split():
-                raise ChatGPTAuthError("Izin memakai paket ChatGPT tidak diberikan")
-            claims = _verify_id_token(tok["id_token"], issued, nonce)
-            with _lock:
-                fresh = _load()
-                _store_tokens(fresh, tok, issued, claims)
-                _set_account_in_config(fresh.get("email", ""))
-                _login.update({"status": "done", "error": "", "url": ""})
-        except Exception as e:
-            _login.update({"status": "error", "error": str(e), "url": ""})
+        if not outcome and _login.get("status") == "pending":
+            _login.update({"status": "error", "error": "Login dibatalkan atau melewati batas waktu", "url": ""})
 
     threading.Thread(target=wait, daemon=True).start()
     try:
@@ -345,7 +359,10 @@ def cancel_login() -> bool:
 # ---------------------------------------------------------------------------
 
 def list_models() -> list:
-    """Models this ChatGPT plan can use: [{id, name}] from the visible catalog entries."""
+    """
+    Models this ChatGPT plan can use, from the visible catalog entries:
+    [{id, name, description, contextLength, reasoningLevels, defaultReasoning}].
+    """
     r = httpx.get(f"{RESOURCE}/models", headers={"Authorization": f"Bearer {access_token()}"}, timeout=30)
     if r.status_code == 401:
         invalidate_session()
@@ -359,6 +376,11 @@ def list_models() -> list:
             continue
         mid = it.get("slug") or it.get("id")
         if mid:
+            levels = [lv.get("effort") if isinstance(lv, dict) else lv
+                      for lv in it.get("supported_reasoning_levels") or []]
             out.append({"id": mid, "name": it.get("display_name") or mid,
-                        "description": it.get("description", "")})
+                        "description": it.get("description", ""),
+                        "contextLength": it.get("context_window"),
+                        "reasoningLevels": [lv for lv in levels if lv],
+                        "defaultReasoning": it.get("default_reasoning_level") or ""})
     return out

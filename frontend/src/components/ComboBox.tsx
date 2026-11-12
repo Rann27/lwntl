@@ -187,8 +187,8 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
                   cursor: 'pointer',
                   fontSize: '14px',
                   fontFamily: "'Inter', sans-serif",
-                  color: highlightedIndex === idx ? '#111' : 'var(--color-text)',
-                  background: highlightedIndex === idx ? '#00F7FF' : 'transparent',
+                  color: highlightedIndex === idx ? 'var(--on-accent,#111)' : 'var(--color-text)',
+                  background: highlightedIndex === idx ? 'var(--bg-cyan,#00F7FF)' : 'transparent',
                   fontWeight: opt === value ? 700 : 400,
                 }}
               >
@@ -210,13 +210,13 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
                 style={{
                   padding: '6px 8px',
                   border: '2px dashed var(--color-border)',
-                  background: '#00F7FF',
+                  background: 'var(--bg-cyan,#00F7FF)',
                   cursor: 'pointer',
                   fontFamily: "'Inter', sans-serif",
                   fontSize: '12px',
                   fontWeight: 700,
                   textTransform: 'uppercase',
-                  color: '#111',
+                  color: 'var(--on-accent,#111)',
                 }}
               >
                 <Plus size={12} />

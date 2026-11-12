@@ -513,7 +513,7 @@ export function SeriesSettingsPage() {
               <button
                 onClick={() => startBatch(chapters)}
                 disabled={isBatchActive || chapters.filter(c => c.status === 'pending').length === 0}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 font-bold text-sm border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#28E272] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 font-bold text-sm border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-green,#28E272)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
               >
                 <Play size={16} />
                 {t.batch.title}
@@ -525,8 +525,8 @@ export function SeriesSettingsPage() {
                 onClick={() => setShowAgentRun(true)}
                 disabled={isBatchActive || !chapters.some(c => c.status === 'done')}
                 title={t.agent.buttonTitle}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#C9A7FF] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
-                style={{ color: '#111' }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-purple,#C9A7FF)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
+                style={{ color: 'var(--on-accent,#111)' }}
               >
                 <Bot size={14} />
                 {t.agent.button}
@@ -538,7 +538,7 @@ export function SeriesSettingsPage() {
                     startSelectedBatch(ids)
                   }}
                   disabled={isBatchActive}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FF3C3C] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-red,#FF3C3C)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   style={{ color: '#fff' }}
                 >
                   <RefreshCw size={13} />
@@ -559,8 +559,8 @@ export function SeriesSettingsPage() {
                 onClick={handleBatchExport}
                 disabled={batchExporting || chapters.filter(c => c.status === 'done').length === 0}
                 title={t.batch.batchExportTitle}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FFEF33] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                style={{ color: '#111' }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-yellow,#FFEF33)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                style={{ color: 'var(--on-accent,#111)' }}
               >
                 <FileDown size={13} />
                 {batchExporting ? '...' : t.batch.batchExport}
@@ -574,8 +574,8 @@ export function SeriesSettingsPage() {
                 <button
                   onClick={handleTranslateSelected}
                   disabled={isBatchActive || selectedIds.size === 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#28E272] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  style={{ color: '#111' }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-green,#28E272)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  style={{ color: 'var(--on-accent,#111)' }}
                 >
                   <Play size={12} />
                   {t.batch.translateSelected}
@@ -584,7 +584,7 @@ export function SeriesSettingsPage() {
                 <button
                   onClick={() => { if (selectedIds.size > 0) setDeleteSelectedOpen(true) }}
                   disabled={selectedIds.size === 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FF3C3C] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-red,#FF3C3C)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   style={{ color: '#fff' }}
                 >
                   <Trash2 size={12} />
@@ -625,7 +625,7 @@ export function SeriesSettingsPage() {
             onClick={() => setShowQa(true)}
             disabled={chapters.filter(c => c.status === 'done').length === 0}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            style={{ backgroundColor: '#8AF0FF', color: '#111' }}
+            style={{ backgroundColor: 'var(--bg-cyan,#8AF0FF)', color: 'var(--on-accent,#111)' }}
             title="Periksa seluruh terjemahan tanpa AI: sisa huruf Jepang, omisi, varian nama, ejaan, dan lainnya"
           >
             <ShieldCheck size={14} />
@@ -636,7 +636,7 @@ export function SeriesSettingsPage() {
           <button
             onClick={() => setShowPrepass(true)}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
-            style={{ backgroundColor: '#C8FF8A' }}
+            style={{ backgroundColor: 'var(--bg-lime,#C8FF8A)' }}
             title="Pindai raw semua chapter untuk mengunci istilah sebelum menerjemahkan"
           >
             <ScanSearch size={14} />
@@ -647,7 +647,7 @@ export function SeriesSettingsPage() {
           <button
             onClick={() => setShowImageFolder(true)}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
-            style={{ backgroundColor: '#9AD5FF' }}
+            style={{ backgroundColor: 'var(--bg-blue,#9AD5FF)' }}
             title="Tetapkan folder gambar untuk mengisi Image Placeholder"
           >
             <ImageIcon size={14} />
@@ -659,7 +659,7 @@ export function SeriesSettingsPage() {
             <button
               onClick={() => setShowAllTerms(true)}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
-              style={{ backgroundColor: inconsistencyCount > 0 ? '#FFE0E0' : '#E8D5FF' }}
+              style={{ backgroundColor: inconsistencyCount > 0 ? 'var(--bg-red,#FFE0E0)' : 'var(--bg-purple,#E8D5FF)' }}
             >
               <BookOpen size={14} />
               ALL TERMS ({chapters.reduce((n, c) => n + (c.glossaryUpdates?.entries?.length ?? 0), 0)})
@@ -671,7 +671,7 @@ export function SeriesSettingsPage() {
                   minWidth: '18px',
                   height: '18px',
                   padding: '0 3px',
-                  backgroundColor: '#FF3C3C',
+                  backgroundColor: 'var(--bg-red,#FF3C3C)',
                   color: '#fff',
                   fontSize: '9px',
                   fontWeight: 900,
@@ -690,7 +690,7 @@ export function SeriesSettingsPage() {
           <button
             onClick={() => setShowRollingMemory(true)}
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#111] hover:opacity-80 transition-all"
-            style={{ color: '#00F7FF' }}
+            style={{ color: 'var(--fg-cyan,#00F7FF)' }}
           >
             <BookText size={14} />
             ROLLING MEMORY ({chapters.filter(c => c.summary).length}/{chapters.length})
@@ -699,14 +699,14 @@ export function SeriesSettingsPage() {
           {/* Memory toggle */}
           <button
             onClick={() => setShowMemory(!showMemory)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#FFEF33] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-yellow,#FFEF33)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
           >
             <Brain size={14} />
             {t.memory.title} ({series.memory?.length || 0})
           </button>
 
           {showMemory && (
-            <div className="border-2.5 border-[#111] bg-white max-h-48 overflow-y-auto">
+            <div className="border-2.5 border-[#111] bg-[var(--bg-surface,#fff)] max-h-48 overflow-y-auto">
               <MemoryPanel memories={series.memory || []} />
             </div>
           )}
@@ -714,7 +714,7 @@ export function SeriesSettingsPage() {
           {/* Series Logs toggle */}
           <button
             onClick={() => setShowLogs(!showLogs)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#B8E0FF] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-blue,#B8E0FF)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
           >
             <ScrollText size={14} />
             LOGS {seriesLogLines.length > 0 && <span className="font-normal">({seriesLogLines.length})</span>}
@@ -726,12 +726,12 @@ export function SeriesSettingsPage() {
               style={{ backgroundColor: '#111', padding: '8px' }}
             >
               {seriesLogLines.length === 0 ? (
-                <p style={{ fontSize: '10px', color: '#666', fontFamily: 'monospace', margin: 0 }}>
+                <p style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontFamily: 'monospace', margin: 0 }}>
                   No logs yet.
                 </p>
               ) : (
                 seriesLogLines.map((line, i) => (
-                  <p key={i} style={{ fontSize: '10px', color: '#aaa', fontFamily: 'monospace', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                  <p key={i} style={{ fontSize: '10px', color: 'var(--fg-subtle,#aaa)', fontFamily: 'monospace', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                     {line}
                   </p>
                 ))

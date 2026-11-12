@@ -24,9 +24,9 @@ interface ChapterListProps {
 
 const statusColors: Record<ChapterStatus, string> = {
   pending:    '#999',
-  processing: '#FFEF33',
-  done:       '#28E272',
-  error:      '#FF3C3C',
+  processing: 'var(--fg-yellow,#FFEF33)',
+  done:       'var(--fg-green,#28E272)',
+  error:      'var(--fg-red,#FF3C3C)',
 }
 
 export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, onDeleteChapter, onExportChapter, selectMode = false, selectedIds, onToggleSelect }: ChapterListProps) {
@@ -278,7 +278,7 @@ function ChapterItem({
       style={{
         borderBottom: `1px solid var(--color-separator)`,
         backgroundColor: selected ? 'rgba(0,247,255,0.08)' : 'transparent',
-        borderLeft: selected ? '3px solid #00F7FF' : '3px solid transparent',
+        borderLeft: selected ? '3px solid var(--fg-cyan,#00F7FF)' : '3px solid transparent',
       }}
       onClick={onClick}
       onMouseEnter={(e) => { if (!selected) e.currentTarget.style.backgroundColor = 'var(--color-surface-2)' }}
@@ -289,12 +289,12 @@ function ChapterItem({
         <div
           style={{
             width: '16px', height: '16px', flexShrink: 0,
-            border: `2px solid ${selected ? '#00F7FF' : 'var(--color-border)'}`,
-            backgroundColor: selected ? '#00F7FF' : 'transparent',
+            border: `2px solid ${selected ? 'var(--fg-cyan,#00F7FF)' : 'var(--color-border)'}`,
+            backgroundColor: selected ? 'var(--fg-cyan,#00F7FF)' : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {selected && <span style={{ fontSize: '10px', fontWeight: 900, color: '#111', lineHeight: 1 }}>✓</span>}
+          {selected && <span style={{ fontSize: '10px', fontWeight: 900, color: 'var(--on-accent,#111)', lineHeight: 1 }}>✓</span>}
         </div>
       ) : (
         <div
@@ -309,7 +309,7 @@ function ChapterItem({
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <p style={{ fontSize: '13px', fontWeight: 600, color: selected ? '#00F7FF' : 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: selected ? 'var(--fg-cyan,#00F7FF)' : 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {chapter.title || `${t.chapter.chapter} ${chapter.chapterNumber}`}
         </p>
       </div>
@@ -367,7 +367,7 @@ function ChapterItem({
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(chapter) }}
                 className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: '#FF3C3C' }}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--fg-red,#FF3C3C)' }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,60,60,0.08)')}
                 onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
               >

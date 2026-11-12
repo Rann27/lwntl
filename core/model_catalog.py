@@ -142,7 +142,20 @@ def _fetch_openrouter() -> List[Dict[str, Any]]:
 
 def _fetch_chatgpt() -> List[Dict[str, Any]]:
     from .chatgpt_auth import list_models
-    return [_model(m["id"], m.get("name") or "", description=m.get("description")) for m in list_models()]
+    return [_model(m["id"], m.get("name") or "", description=m.get("description"),
+                   contextLength=m.get("contextLength"), reasoningLevels=m.get("reasoningLevels"),
+                   defaultReasoning=m.get("defaultReasoning"))
+            for m in list_models()]
+
+
+def cached_model(provider: str, model_id: str) -> Optional[Dict[str, Any]]:
+    """A model's entry from the on-disk catalog, without touching the network."""
+    for key, entry in _load_cache().items():
+        if key == provider or key.startswith(provider + "|"):
+            hit = next((m for m in entry.get("models") or [] if m.get("id") == model_id), None)
+            if hit:
+                return hit
+    return None
 
 
 def _target(provider: str, config: Dict[str, Any]) -> Optional[Dict[str, Any]]:

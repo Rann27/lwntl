@@ -86,14 +86,14 @@ export function EditRawModal({ open, chapter, onClose, onSave }: EditRawModalPro
               className="flex items-start gap-2 px-3 py-2 mb-4"
               style={{
                 backgroundColor: 'rgba(255, 239, 51, 0.12)',
-                border: '2px solid #FFEF33',
+                border: '2px solid var(--fg-yellow,#FFEF33)',
                 fontSize: '12px',
                 lineHeight: '1.5',
                 color: 'var(--color-text)',
                 flexShrink: 0,
               }}
             >
-              <AlertTriangle size={13} style={{ color: '#FFEF33', flexShrink: 0, marginTop: '1px' }} />
+              <AlertTriangle size={13} style={{ color: 'var(--fg-yellow,#FFEF33)', flexShrink: 0, marginTop: '1px' }} />
               <span>{t.chapter.rawEditedAfterTranslation}</span>
             </div>
           )}
@@ -126,7 +126,7 @@ export function EditRawModal({ open, chapter, onClose, onSave }: EditRawModalPro
                 onClick={onClose}
                 disabled={saving}
                 className="neo-button"
-                style={{ backgroundColor: '#F0F0F0', opacity: saving ? 0.5 : 1 }}
+                style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)', opacity: saving ? 0.5 : 1 }}
               >
                 {t.common.cancel}
               </button>
@@ -135,7 +135,7 @@ export function EditRawModal({ open, chapter, onClose, onSave }: EditRawModalPro
                 onClick={handleSave}
                 disabled={saving}
                 className="neo-button"
-                style={{ backgroundColor: '#28E272', color: '#111', opacity: saving ? 0.5 : 1 }}
+                style={{ backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: saving ? 0.5 : 1 }}
               >
                 {saving ? t.common.saving : t.common.save}
               </button>

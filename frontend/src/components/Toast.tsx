@@ -35,7 +35,7 @@ export function Toast({ id, type, message }: ToastProps) {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <div
-        className="flex items-center gap-3 bg-white border-[2.5px] border-[#111111] shadow-[4px_4px_0px_#111111] p-4 min-w-[300px] max-w-md"
+        className="flex items-center gap-3 bg-[var(--bg-surface,#fff)] border-[2.5px] border-[#111111] shadow-[4px_4px_0px_#111111] p-4 min-w-[300px] max-w-md"
         style={{
           animation: 'slideIn 200ms ease-out',
           borderLeft: `6px solid ${getAccentColor()}`
@@ -53,7 +53,7 @@ export function Toast({ id, type, message }: ToastProps) {
         </div>
 
         {/* Message */}
-        <p className="flex-1 text-sm text-[#111111]">{message}</p>
+        <p className="flex-1 text-sm text-[var(--on-accent,#111111)]">{message}</p>
 
         {/* Close Button */}
         <button

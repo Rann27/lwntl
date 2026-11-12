@@ -28,12 +28,12 @@ interface PromptModelPanelProps {
 }
 
 const SOURCE_BADGE: Record<ResolvedPrompt['source'], { label: string; bg: string; fg: string }> = {
-  series: { label: 'Teks series', bg: '#111', fg: '#FFEF33' },
-  series_preset: { label: 'Preset series', bg: '#00F7FF', fg: '#111' },
-  profile: { label: 'Template profil', bg: '#28E272', fg: '#111' },
-  profile_preset: { label: 'Preset profil', bg: '#28E272', fg: '#111' },
-  auto: { label: 'Otomatis', bg: '#C9A7FF', fg: '#111' },
-  none: { label: 'Kosong', bg: '#FF8A8A', fg: '#111' },
+  series: { label: 'Teks series', bg: '#111', fg: 'var(--fg-yellow,#FFEF33)' },
+  series_preset: { label: 'Preset series', bg: 'var(--fg-cyan,#00F7FF)', fg: '#111' },
+  profile: { label: 'Template profil', bg: 'var(--fg-green,#28E272)', fg: '#111' },
+  profile_preset: { label: 'Preset profil', bg: 'var(--fg-green,#28E272)', fg: '#111' },
+  auto: { label: 'Otomatis', bg: 'var(--fg-purple,#C9A7FF)', fg: '#111' },
+  none: { label: 'Kosong', bg: 'var(--fg-red,#FF8A8A)', fg: '#111' },
 }
 
 function describe(r: ResolvedPrompt): string {
@@ -251,7 +251,7 @@ export function PromptModelPanel({
           {t.seriesSettings.promptModel}
         </span>
         {dirty && (
-          <div className="flex items-center gap-1" style={{ color: '#FFEF33' }}>
+          <div className="flex items-center gap-1" style={{ color: 'var(--fg-yellow,#FFEF33)' }}>
             <AlertCircle size={12} />
             <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t.seriesSettings.notSaved}</span>
           </div>
@@ -284,12 +284,12 @@ export function PromptModelPanel({
             })}
           </select>
           {selectedWorker && !config?.[PROVIDERS[selectedWorker.provider]?.apiKeyName as keyof AppConfig] && (
-            <p style={{ fontSize: '11px', color: '#FF3C3C', marginTop: '4px', fontWeight: 600 }}>
+            <p style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)', marginTop: '4px', fontWeight: 600 }}>
               API key worker ini belum diisi - {t.topbar.settings}
             </p>
           )}
           {selectedStatus?.active && (
-            <p style={{ fontSize: '11px', color: '#FFEF33', marginTop: '4px', fontWeight: 600 }}>
+            <p style={{ fontSize: '11px', color: 'var(--fg-yellow,#FFEF33)', marginTop: '4px', fontWeight: 600 }}>
               Worker sedang aktif ({selectedStatus.activeCount ?? 1}/{selectedStatus.maxConcurrent ?? 1} slot). Slot tersisa untuk series ini jika ada.
             </p>
           )}
@@ -342,7 +342,7 @@ export function PromptModelPanel({
               )}
             </select>
             <button type="button" onClick={() => setLibraryOpen(true)} className="neo-button flex items-center gap-1"
-              style={{ fontSize: '11px', padding: '4px 10px', backgroundColor: '#00F7FF', color: '#111' }} title="Lihat, duplikat, dan edit preset">
+              style={{ fontSize: '11px', padding: '4px 10px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)' }} title="Lihat, duplikat, dan edit preset">
               <Library size={12} /> PRESET
             </button>
           </div>
@@ -381,7 +381,7 @@ export function PromptModelPanel({
             <div className="space-y-0.5">
               {TEMPLATE_VARS.map((tv) => (
                 <div key={tv.variable} className="flex items-start gap-2">
-                  <code style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 700, color: '#00F7FF', backgroundColor: '#111', padding: '1px 5px', fontSize: '10px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <code style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 700, color: 'var(--fg-cyan,#00F7FF)', backgroundColor: '#111', padding: '1px 5px', fontSize: '10px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     {tv.variable}
                   </code>
                   <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>{tv.description}</span>
@@ -408,7 +408,7 @@ export function PromptModelPanel({
             </label>
             {(isCustomInstructions || templateInUse) && (
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomInstructions ? '#FFEF33' : '#fff', background: isCustomInstructions ? '#111' : '#28E272', padding: '2px 6px', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomInstructions ? 'var(--fg-yellow,#FFEF33)' : '#fff', background: isCustomInstructions ? '#111' : 'var(--bg-green,#28E272)', padding: '2px 6px', textTransform: 'uppercase' }}>
                   {isCustomInstructions ? t.seriesSettings.custom : t.seriesSettings.default}
                 </span>
                 {isCustomInstructions && (
@@ -487,7 +487,7 @@ export function PromptModelPanel({
               value={nearestPresetIndex(MAX_TOKEN_PRESETS, maxTokens)}
               onChange={(e) => { setMaxTokens(MAX_TOKEN_PRESETS[parseInt(e.target.value)]); setDirty(true) }}
               className="flex-1"
-              style={{ accentColor: '#00F7FF' }}
+              style={{ accentColor: 'var(--fg-cyan,#00F7FF)' }}
             />
             <input
               type="number"
@@ -531,7 +531,7 @@ export function PromptModelPanel({
               value={nearestPresetIndex(CONTEXT_PRESETS, maxContext)}
               onChange={(e) => { setMaxContext(CONTEXT_PRESETS[parseInt(e.target.value)]); setDirty(true) }}
               className="flex-1"
-              style={{ accentColor: '#00F7FF' }}
+              style={{ accentColor: 'var(--fg-cyan,#00F7FF)' }}
             />
             <input
               type="number"
@@ -560,14 +560,14 @@ export function PromptModelPanel({
             <div className="flex items-center gap-2">
               <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.temperature}</label>
               {tempMax === 2.0 && (
-                <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: '#00F7FF', color: '#111', letterSpacing: '0.3px' }}>
+                <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', letterSpacing: '0.3px' }}>
                   max 2.0 · DeepSeek
                 </span>
               )}
               {temperatureIgnored && (
                 <span
                   title={deepseekThinkingOn ? 'DeepSeek thinking mode aktif — temperature tidak berpengaruh' : (reqParams?.notes.join(' · ') || 'Model ini tidak menerima temperature')}
-                  style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: '#FFEF33', color: '#111', letterSpacing: '0.3px' }}
+                  style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--bg-yellow,#FFEF33)', color: 'var(--on-accent,#111)', letterSpacing: '0.3px' }}
                 >
                   {deepseekThinkingOn ? 'diabaikan · thinking ON' : 'tidak dikirim · model'}
                 </span>
@@ -576,7 +576,7 @@ export function PromptModelPanel({
             <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>{temperature.toFixed(1)}</span>
           </div>
           <div className="flex items-center gap-3">
-            <input type="range" min={0} max={tempMax} step={0.1} value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: '#00F7FF' }} />
+            <input type="range" min={0} max={tempMax} step={0.1} value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: 'var(--fg-cyan,#00F7FF)' }} />
             <input type="number" value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value) || 0.3); setDirty(true) }} className="neo-input" style={{ width: '70px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} min={0} max={tempMax} step={0.1} />
           </div>
         </div>
@@ -595,7 +595,7 @@ export function PromptModelPanel({
             </div>
             <button
               onClick={() => { setLookupEnabled(v => !v); setDirty(true) }}
-              style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: lookupEnabled ? '#FFCF77' : 'var(--color-surface)', color: lookupEnabled ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
+              style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: lookupEnabled ? 'var(--bg-orange,#FFCF77)' : 'var(--color-surface)', color: lookupEnabled ? 'var(--on-accent,#111)' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
             >
               {lookupEnabled ? 'ON' : 'OFF'}
             </button>
@@ -614,7 +614,7 @@ export function PromptModelPanel({
                 <input
                   type="range" min={1} max={5} step={1} value={lookupChapters}
                   onChange={(e) => { setLookupChapters(parseInt(e.target.value)); setDirty(true) }}
-                  className="flex-1" style={{ accentColor: '#FFCF77' }}
+                  className="flex-1" style={{ accentColor: 'var(--fg-orange,#FFCF77)' }}
                 />
                 <input
                   type="number" min={1} max={10} value={lookupChapters}
@@ -643,7 +643,7 @@ export function PromptModelPanel({
           </div>
           <button
             onClick={() => { setRevisionPass(v => !v); setDirty(true) }}
-            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: revisionPass ? '#C8FF8A' : 'var(--color-surface)', color: revisionPass ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
+            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: revisionPass ? 'var(--bg-lime,#C8FF8A)' : 'var(--color-surface)', color: revisionPass ? 'var(--on-accent,#111)' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
           >
             {revisionPass ? 'ON' : 'OFF'}
           </button>
@@ -662,7 +662,7 @@ export function PromptModelPanel({
           </div>
           <button
             onClick={() => { setAutoFixCjk(v => !v); setDirty(true) }}
-            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: autoFixCjk ? '#FF7A00' : 'var(--color-surface)', color: autoFixCjk ? '#fff' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
+            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: autoFixCjk ? 'var(--bg-orange,#FF7A00)' : 'var(--color-surface)', color: autoFixCjk ? '#fff' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
           >
             {autoFixCjk ? 'ON' : 'OFF'}
           </button>
@@ -679,7 +679,7 @@ export function PromptModelPanel({
           </div>
           <button
             onClick={() => { setGlossaryPreFilter(v => !v); setDirty(true) }}
-            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: glossaryPreFilter ? '#28E272' : 'var(--color-surface)', color: glossaryPreFilter ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
+            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: glossaryPreFilter ? 'var(--bg-green,#28E272)' : 'var(--color-surface)', color: glossaryPreFilter ? 'var(--on-accent,#111)' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
           >
             {glossaryPreFilter ? 'ON' : 'OFF'}
           </button>
@@ -698,7 +698,7 @@ export function PromptModelPanel({
           </div>
           <button
             onClick={() => { setIterationLock(v => !v); setDirty(true) }}
-            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: iterationLock ? '#00F7FF' : 'var(--color-surface)', color: iterationLock ? '#111' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
+            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: iterationLock ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface)', color: iterationLock ? 'var(--on-accent,#111)' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
           >
             {iterationLock ? 'ON' : 'OFF'}
           </button>

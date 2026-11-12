@@ -421,7 +421,7 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
                     </td>
                     <td className="px-1 py-1.5">
                       <div className="flex items-center gap-1">
-                        <button onClick={saveEdit} className="flex items-center justify-center w-7 h-7" style={{ border: '2px solid var(--color-border)', backgroundColor: '#28E272', cursor: 'pointer' }}>
+                        <button onClick={saveEdit} className="flex items-center justify-center w-7 h-7" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--bg-green,#28E272)', cursor: 'pointer' }}>
                           <Check size={12} />
                         </button>
                         <button onClick={cancelEdit} className="flex items-center justify-center w-7 h-7" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', cursor: 'pointer' }}>
@@ -454,7 +454,7 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
                           style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
                           title="Hapus"
                         >
-                          <Trash2 size={12} style={{ color: '#FF3C3C' }} />
+                          <Trash2 size={12} style={{ color: 'var(--fg-red,#FF3C3C)' }} />
                         </button>
                       </div>
                     </td>
@@ -532,8 +532,8 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
               style={{
                 fontSize: '12px', fontFamily: "'Space Grotesk', sans-serif",
                 border: '2px solid var(--color-border)',
-                backgroundColor: (!newSource.trim() || !newTranslated.trim() || adding) ? 'var(--color-surface)' : '#28E272',
-                color: (!newSource.trim() || !newTranslated.trim() || adding) ? 'var(--color-text-muted)' : '#111',
+                backgroundColor: (!newSource.trim() || !newTranslated.trim() || adding) ? 'var(--color-surface)' : 'var(--bg-green,#28E272)',
+                color: (!newSource.trim() || !newTranslated.trim() || adding) ? 'var(--color-text-muted)' : 'var(--on-accent,#111)',
                 cursor: (!newSource.trim() || !newTranslated.trim() || adding) ? 'not-allowed' : 'pointer',
                 opacity: adding ? 0.5 : 1,
                 transition: 'background-color 150ms',

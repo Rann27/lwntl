@@ -62,7 +62,7 @@ function TaskPromptEditor({ title, hint, value, onChange, defaults }: {
         </label>
         <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>— {hint}</span>
         {!value.trim() && (
-          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', background: '#28E272', color: '#fff', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', background: 'var(--bg-green,#28E272)', color: '#fff', textTransform: 'uppercase' }}>
             bawaan (ikut bahasa target)
           </span>
         )}
@@ -157,12 +157,12 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
-            <FileCode2 size={16} style={{ color: '#00F7FF' }} />
+            <FileCode2 size={16} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
               Template Prompt
             </span>
             {profiles.active && (
-              <span style={{ fontSize: '11px', fontWeight: 700, color: '#00F7FF', border: '1.5px solid #00F7FF', padding: '1px 7px', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--fg-cyan,#00F7FF)', border: '1.5px solid var(--fg-cyan,#00F7FF)', padding: '1px 7px', fontFamily: 'monospace' }}>
                 {profiles.active}
               </span>
             )}
@@ -174,11 +174,11 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
 
         {/* Template variable reference */}
         <div className="flex items-start gap-2 px-5 py-2" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'rgba(0,247,255,0.04)', flexShrink: 0 }}>
-          <Info size={13} style={{ color: '#00F7FF', marginTop: '1px', flexShrink: 0 }} />
+          <Info size={13} style={{ color: 'var(--fg-cyan,#00F7FF)', marginTop: '1px', flexShrink: 0 }} />
           <div className="flex flex-wrap gap-x-4 gap-y-0.5">
             {TEMPLATE_VARS.map((v) => (
               <span key={v.variable} style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
-                <code style={{ color: '#00F7FF', fontFamily: 'monospace', fontSize: '11px' }}>{v.variable}</code>
+                <code style={{ color: 'var(--fg-cyan,#00F7FF)', fontFamily: 'monospace', fontSize: '11px' }}>{v.variable}</code>
                 {' — '}{v.description}
               </span>
             ))}
@@ -218,14 +218,14 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
                     )}
                   </select>
                   <button type="button" onClick={() => setLibraryOpen(true)} className="flex items-center gap-1"
-                    style={{ fontSize: '11px', fontWeight: 800, border: '2px solid #111', background: '#00F7FF', color: '#111', padding: '4px 10px', cursor: 'pointer' }}>
+                    style={{ fontSize: '11px', fontWeight: 800, border: '2px solid #111', background: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', padding: '4px 10px', cursor: 'pointer' }}>
                     <Library size={12} /> PRESET
                   </button>
                 </div>
                 {chosenPreset && (
                   <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                     {systemPrompt.trim()
-                      ? <span style={{ color: '#FFB020', fontWeight: 700 }}>Teks template di bawah diutamakan — kosongkan agar preset "{chosenPreset.name}" yang dipakai.</span>
+                      ? <span style={{ color: 'var(--fg-orange,#FFB020)', fontWeight: 700 }}>Teks template di bawah diutamakan — kosongkan agar preset "{chosenPreset.name}" yang dipakai.</span>
                       : <span>Dipakai: preset "{chosenPreset.name}" (≈{approxTokens(chosenPreset.text ?? '').toLocaleString()} token).</span>}
                     <button type="button" onClick={() => setSystemPrompt(chosenPreset.text ?? '')} style={smallButton}>Salin preset ke teks</button>
                   </div>
@@ -284,7 +284,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
               {/* Helper-pass prompts. Only the guidance is editable; the output
                   format the code parses is appended automatically. */}
               <div className="flex items-start gap-2 px-3 py-2" style={{ border: '1.5px dashed var(--color-border)', fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
-                <Info size={13} style={{ color: '#00F7FF', marginTop: '2px', flexShrink: 0 }} />
+                <Info size={13} style={{ color: 'var(--fg-cyan,#00F7FF)', marginTop: '2px', flexShrink: 0 }} />
                 <span>
                   Tiga prompt di bawah hanya berisi <strong>aturan/arahan</strong>. Format output (JSON untuk AutoFix &amp; Pre-pass,
                   teks saja untuk Revision) selalu ditambahkan otomatis oleh aplikasi, jadi prompt kustom tidak bisa merusak parsing.
@@ -307,8 +307,8 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
         {/* Footer */}
         <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '2px solid var(--color-border)', flexShrink: 0 }}>
           <div>
-            {error && <p style={{ fontSize: '12px', color: '#FF3C3C', fontWeight: 600 }}>{error}</p>}
-            {saved && <p style={{ fontSize: '12px', color: '#28E272', fontWeight: 700 }}>✓ Tersimpan</p>}
+            {error && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{error}</p>}
+            {saved && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 700 }}>✓ Tersimpan</p>}
           </div>
           <div className="flex gap-3">
             <button onClick={onClose} className="neo-button" style={{ backgroundColor: 'var(--color-surface-2)', fontSize: '12px' }}>
@@ -318,7 +318,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
               onClick={handleSave}
               disabled={saving || loading}
               className="neo-button flex items-center gap-1.5"
-              style={{ backgroundColor: '#FFCF77', fontSize: '12px', opacity: (saving || loading) ? 0.5 : 1 }}
+              style={{ backgroundColor: 'var(--bg-orange,#FFCF77)', fontSize: '12px', opacity: (saving || loading) ? 0.5 : 1 }}
             >
               <Save size={13} />
               {saving ? 'MENYIMPAN...' : 'SIMPAN'}

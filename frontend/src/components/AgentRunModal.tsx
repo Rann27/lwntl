@@ -78,8 +78,8 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
     flex: 1,
     padding: '8px 10px',
     border: '2px solid var(--color-border)',
-    backgroundColor: active ? '#C9A7FF' : 'var(--color-surface)',
-    color: active ? '#111' : 'var(--color-text)',
+    backgroundColor: active ? 'var(--bg-purple,#C9A7FF)' : 'var(--color-surface)',
+    color: active ? 'var(--on-accent,#111)' : 'var(--color-text)',
     cursor: 'pointer',
     textAlign: 'left',
     boxShadow: active ? '3px 3px 0 #111' : 'none',
@@ -92,14 +92,14 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
         style={{ width: '640px', maxWidth: '94vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: '#C9A7FF', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-purple,#C9A7FF)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
             <Bot size={17} color="#111" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: '#111', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               {t.agent.title}
             </span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#111', display: 'flex' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
             <X size={18} />
           </button>
         </div>
@@ -151,21 +151,21 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
           </div>
 
           <label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={safeFixes} onChange={e => setSafeFixes(e.target.checked)} style={{ marginTop: '2px', accentColor: '#C9A7FF' }} />
+            <input type="checkbox" checked={safeFixes} onChange={e => setSafeFixes(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
             <span><strong>{t.agent.safeFixes}</strong><br /><span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{t.agent.safeFixesDesc}</span></span>
           </label>
 
           <label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={volumePass} onChange={e => setVolumePass(e.target.checked)} style={{ marginTop: '2px', accentColor: '#C9A7FF' }} />
+            <input type="checkbox" checked={volumePass} onChange={e => setVolumePass(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
             <span><strong>{t.agent.volumePass}</strong><br /><span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{t.agent.volumePassDesc}</span></span>
           </label>
 
           <label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={rereview} onChange={e => setRereview(e.target.checked)} style={{ marginTop: '2px', accentColor: '#C9A7FF' }} />
+            <input type="checkbox" checked={rereview} onChange={e => setRereview(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
             <span><strong>{t.agent.rereview}</strong><br /><span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{t.agent.rereviewDesc}</span></span>
           </label>
 
-          <p style={{ fontSize: '11px', lineHeight: 1.5, color: 'var(--color-text-muted)', borderLeft: '3px solid #C9A7FF', paddingLeft: '8px' }}>
+          <p style={{ fontSize: '11px', lineHeight: 1.5, color: 'var(--color-text-muted)', borderLeft: '3px solid var(--fg-purple,#C9A7FF)', paddingLeft: '8px' }}>
             {t.agent.note}
           </p>
 
@@ -191,7 +191,7 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
                   </div>
                 ))}
                 <label className="flex items-center gap-2" style={{ fontSize: '11px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={restoreGlossary} onChange={e => setRestoreGlossary(e.target.checked)} style={{ accentColor: '#C9A7FF' }} />
+                  <input type="checkbox" checked={restoreGlossary} onChange={e => setRestoreGlossary(e.target.checked)} style={{ accentColor: 'var(--fg-purple,#C9A7FF)' }} />
                   {t.agent.backupGlossary}
                 </label>
               </>
@@ -208,7 +208,7 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
             onClick={start}
             disabled={translated.length === 0}
             className="neo-button"
-            style={{ fontSize: '12px', backgroundColor: '#C9A7FF', color: '#111', opacity: translated.length === 0 ? 0.5 : 1 }}
+            style={{ fontSize: '12px', backgroundColor: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)', opacity: translated.length === 0 ? 0.5 : 1 }}
           >
             <Play size={13} style={{ display: 'inline', marginRight: '6px' }} />
             {t.agent.start}

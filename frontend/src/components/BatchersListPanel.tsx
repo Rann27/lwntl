@@ -63,7 +63,7 @@ export function BatchersListPanel({ open, onClose }: Props) {
           style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}
         >
           <div className="flex items-center gap-2">
-            <Activity size={15} style={{ color: '#00F7FF' }} />
+            <Activity size={15} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
             <h2
               style={{
                 fontFamily: "'Space Grotesk', sans-serif",
@@ -79,8 +79,8 @@ export function BatchersListPanel({ open, onClose }: Props) {
                 style={{
                   fontSize: '10px',
                   fontWeight: 700,
-                  color: '#00F7FF',
-                  border: '1.5px solid #00F7FF',
+                  color: 'var(--fg-cyan,#00F7FF)',
+                  border: '1.5px solid var(--fg-cyan,#00F7FF)',
                   padding: '1px 6px',
                   fontFamily: 'monospace',
                 }}
@@ -146,12 +146,12 @@ export function BatchersListPanel({ open, onClose }: Props) {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {isActive && <div className="w-2 h-2 bg-[#00F7FF] animate-pulse" />}
+                      {isActive && <div className="w-2 h-2 bg-[var(--bg-cyan,#00F7FF)] animate-pulse" />}
                       {isDone && (
-                        <span style={{ fontSize: '10px', color: '#28E272', fontWeight: 700 }}>✓ SELESAI</span>
+                        <span style={{ fontSize: '10px', color: 'var(--fg-green,#28E272)', fontWeight: 700 }}>✓ SELESAI</span>
                       )}
                       {isCancelled && (
-                        <span style={{ fontSize: '10px', color: '#666', fontWeight: 700 }}>DIBATALKAN</span>
+                        <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontWeight: 700 }}>DIBATALKAN</span>
                       )}
                       {isActive && (
                         <button
@@ -159,8 +159,8 @@ export function BatchersListPanel({ open, onClose }: Props) {
                           style={{
                             fontSize: '10px',
                             fontWeight: 700,
-                            color: '#FF3C3C',
-                            border: '1.5px solid #FF3C3C',
+                            color: 'var(--fg-red,#FF3C3C)',
+                            border: '1.5px solid var(--fg-red,#FF3C3C)',
                             padding: '2px 8px',
                             backgroundColor: 'transparent',
                             cursor: 'pointer',
@@ -179,7 +179,7 @@ export function BatchersListPanel({ open, onClose }: Props) {
                         style={{
                           width: `${pct}%`,
                           height: '100%',
-                          backgroundColor: isDone ? '#28E272' : isCancelled ? '#555' : '#00F7FF',
+                          backgroundColor: isDone ? 'var(--bg-green,#28E272)' : isCancelled ? '#555' : 'var(--bg-cyan,#00F7FF)',
                           transition: 'width 0.5s',
                         }}
                       />
@@ -198,7 +198,7 @@ export function BatchersListPanel({ open, onClose }: Props) {
 
                   {/* Current chapter */}
                   {isActive && batch.chapterNumber && (
-                    <p style={{ fontSize: '11px', color: '#00F7FF' }}>
+                    <p style={{ fontSize: '11px', color: 'var(--fg-cyan,#00F7FF)' }}>
                       Bab {batch.chapterNumber}
                       {batch.chapterTitle ? ` — ${batch.chapterTitle}` : ''}
                     </p>

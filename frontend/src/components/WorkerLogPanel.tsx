@@ -65,8 +65,8 @@ export function WorkerLogPanel({ open, onClose }: Props) {
               style={{
                 padding: '6px 10px',
                 border: '2px solid var(--color-border)',
-                backgroundColor: selected === tab.id ? '#00F7FF' : 'var(--color-surface-2)',
-                color: selected === tab.id ? '#111' : 'var(--color-text)',
+                backgroundColor: selected === tab.id ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface-2)',
+                color: selected === tab.id ? 'var(--on-accent,#111)' : 'var(--color-text)',
                 fontSize: '11px',
                 fontWeight: 700,
                 textTransform: 'uppercase',

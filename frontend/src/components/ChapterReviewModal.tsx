@@ -27,7 +27,7 @@ interface Props {
   onClose: (changed: boolean) => void
 }
 
-const SEV_COLOR: Record<QaSeverity, string> = { high: '#FF3C3C', medium: '#FFB020', low: '#8A8A8A' }
+const SEV_COLOR: Record<QaSeverity, string> = { high: 'var(--fg-red,#FF3C3C)', medium: 'var(--fg-orange,#FFB020)', low: '#8A8A8A' }
 
 export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClose }: Props) {
   const { language } = useI18n()
@@ -118,13 +118,13 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
     <div className="neo-modal-backdrop" style={{ zIndex: 230 }} onClick={() => onClose(changed)}>
       <div className="neo-modal" style={{ width: '1180px', maxWidth: '97vw', height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: '#8AF0FF', flexShrink: 0 }}>
-          <div className="flex items-center gap-2" style={{ color: '#111', minWidth: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#8AF0FF)', flexShrink: 0 }}>
+          <div className="flex items-center gap-2" style={{ color: 'var(--on-accent,#111)', minWidth: 0 }}>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', textTransform: 'uppercase' }}>Tinjau Bab {detail?.chapterNumber ?? ''}</span>
             <span className="truncate" style={{ fontSize: '12px', opacity: 0.75 }}>{detail?.title}</span>
             {archived && <span style={{ fontSize: '10px', fontWeight: 800, border: '1.5px solid #111', padding: '0 6px' }}>VERSI SEBELUMNYA DIARSIPKAN</span>}
           </div>
-          <button onClick={() => onClose(changed)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#111', display: 'flex' }}><X size={18} /></button>
+          <button onClick={() => onClose(changed)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></button>
         </div>
 
         {loading && <div className="flex items-center justify-center flex-1 gap-2" style={{ fontSize: '13px' }}><Loader2 size={18} className="animate-spin" /> Memuat bab...</div>}
@@ -166,7 +166,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                 }}>
                   <span style={{ fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>¶{f.para} </span>
                   <code style={{ fontWeight: 700 }}>{f.type}</code>
-                  {f.fix && <span style={{ marginLeft: 4, fontSize: '9px', fontWeight: 800, color: '#28E272' }}>AUTO</span>}
+                  {f.fix && <span style={{ marginLeft: 4, fontSize: '9px', fontWeight: 800, color: 'var(--fg-green,#28E272)' }}>AUTO</span>}
                   <div style={{ color: 'var(--color-text-muted)' }}>{say(f)}</div>
                 </button>
               ))}
@@ -211,9 +211,9 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
 
                         {preview && (
                           <div style={{ marginTop: '8px' }}>
-                            <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: '#28E272' }}>Perbaikan otomatis (tanpa AI)</div>
-                            <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid #28E272' }}>{preview}</div>
-                            <button onClick={() => save(preview)} disabled={busy || disabled} style={{ ...small, marginTop: '4px', background: '#28E272', color: '#111' }}>
+                            <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--fg-green,#28E272)' }}>Perbaikan otomatis (tanpa AI)</div>
+                            <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid var(--fg-green,#28E272)' }}>{preview}</div>
+                            <button onClick={() => save(preview)} disabled={busy || disabled} style={{ ...small, marginTop: '4px', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)' }}>
                               <Wand2 size={12} /> TERAPKAN PERBAIKAN OTOMATIS
                             </button>
                           </div>
@@ -224,13 +224,13 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                           <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={Math.min(12, Math.max(3, Math.ceil(draft.length / 90)))}
                             style={{ width: '100%', fontSize: '14px', lineHeight: 1.6, padding: '6px 8px', border: '2px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', resize: 'vertical', outline: 'none' }} />
                           <div className="flex items-center gap-2 flex-wrap" style={{ marginTop: '4px' }}>
-                            <button onClick={() => save(draft)} disabled={busy || disabled || !draft.trim() || draft === p} style={{ ...small, background: '#28E272', color: '#111', opacity: (!draft.trim() || draft === p) ? 0.5 : 1 }}>
+                            <button onClick={() => save(draft)} disabled={busy || disabled || !draft.trim() || draft === p} style={{ ...small, background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (!draft.trim() || draft === p) ? 0.5 : 1 }}>
                               {busy ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} SIMPAN
                             </button>
-                            <button onClick={() => save('')} disabled={busy || disabled} style={{ ...small, background: '#FF8A8A', color: '#111' }}>
+                            <button onClick={() => save('')} disabled={busy || disabled} style={{ ...small, background: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)' }}>
                               <Trash2 size={12} /> HAPUS PARAGRAF
                             </button>
-                            <button onClick={askAi} disabled={suggesting || busy} style={{ ...small, background: '#C9A7FF', color: '#111' }} title="Satu panggilan ke model worker series ini">
+                            <button onClick={askAi} disabled={suggesting || busy} style={{ ...small, background: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)' }} title="Satu panggilan ke model worker series ini">
                               {suggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} MINTA SARAN AI
                             </button>
                             <button onClick={() => { setSelected(null); setSuggestion(null) }} style={{ ...small, background: 'transparent', marginLeft: 'auto' }}>TUTUP</button>
@@ -239,14 +239,14 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
 
                         {suggestion && (
                           <div style={{ marginTop: '8px' }}>
-                            <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: '#C9A7FF' }}>Saran AI</div>
+                            <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--fg-purple,#C9A7FF)' }}>Saran AI</div>
                             {suggestion.del ? (
-                              <p style={{ fontSize: '13px', padding: '6px 8px', border: '1px solid #C9A7FF' }}>Model menyarankan paragraf ini <strong>dihapus</strong>.</p>
+                              <p style={{ fontSize: '13px', padding: '6px 8px', border: '1px solid var(--fg-purple,#C9A7FF)' }}>Model menyarankan paragraf ini <strong>dihapus</strong>.</p>
                             ) : (
-                              <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid #C9A7FF' }}>{suggestion.text}</div>
+                              <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid var(--fg-purple,#C9A7FF)' }}>{suggestion.text}</div>
                             )}
                             <div className="flex gap-2" style={{ marginTop: '4px' }}>
-                              <button onClick={() => save(suggestion.del ? '' : suggestion.text)} disabled={busy || disabled} style={{ ...small, background: '#C9A7FF', color: '#111' }}>
+                              <button onClick={() => save(suggestion.del ? '' : suggestion.text)} disabled={busy || disabled} style={{ ...small, background: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)' }}>
                                 TERAPKAN SARAN
                               </button>
                               {!suggestion.del && (
@@ -256,7 +256,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                           </div>
                         )}
 
-                        {err && <p style={{ fontSize: '12px', color: '#FF3C3C', fontWeight: 700, marginTop: '6px' }}>{err}</p>}
+                        {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700, marginTop: '6px' }}>{err}</p>}
                       </div>
                     )}
                   </div>
@@ -265,7 +265,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
             </div>
           </div>
         )}
-        {!detail && err && <p style={{ padding: '20px', fontSize: '13px', color: '#FF3C3C' }}>{err}</p>}
+        {!detail && err && <p style={{ padding: '20px', fontSize: '13px', color: 'var(--fg-red,#FF3C3C)' }}>{err}</p>}
       </div>
     </div>
   )

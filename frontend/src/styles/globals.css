@@ -41,23 +41,83 @@
 }
 
 /* ─── Dark Mode Variables ───────────────────────────────────────────────── */
+/*
+ * Dark mode keeps the neobrutalist structure (hard borders, offset shadows) but
+ * drops the glare: borders are a mid stone instead of near-white, shadows fall
+ * into black, and the neon accents become two calm families —
+ *
+ *   --bg-<hue>    deep, muted fills; text on them is light (--on-accent)
+ *   --fg-<hue>    soft tones for text, icons and borders on dark surfaces
+ *   --tint-<hue>  faint washes for highlighted rows
+ *
+ * Components write their accents as var(--bg-cyan, #00F7FF): these tokens exist
+ * only here, so light mode always falls back to the original color.
+ */
 [data-theme="dark"] {
   --color-bg:        #1C1917;
-  --color-surface:   #292524;
-  --color-surface-2: #3C3532;
-  --color-surface-3: #4A4540;
+  --color-surface:   #262220;
+  --color-surface-2: #322D2A;
+  --color-surface-3: #3D3734;
 
-  --color-border:    #D6D3D1;
-  --neo-shadow:      4px 4px 0px rgba(214, 211, 209, 0.35);
-  --neo-shadow-lg:   6px 6px 0px rgba(214, 211, 209, 0.35);
+  --color-border:    #736B65;
+  --neo-shadow:      4px 4px 0px rgba(0, 0, 0, 0.55);
+  --neo-shadow-lg:   6px 6px 0px rgba(0, 0, 0, 0.55);
 
-  --color-text:         #F5F0EB;
-  --color-text-muted:   #A8A29E;
-  --color-text-subtle:  #78716C;
-  --color-separator:    #44403C;
+  --color-text:         #E9E3DC;
+  --color-text-muted:   #A8A19A;
+  --color-text-subtle:  #9A928B;
+  --color-separator:    #3D3734;
 
   --color-topbar:    #141210;
-  --color-topbar-fg: #FFFFFF;
+  --color-topbar-fg: #E9E3DC;
+
+  /* Brand colors used as text/icons (topbar links, highlights) */
+  --color-primary: #6DD3D8;
+  --color-yellow:  #E0CF6E;
+  --color-red:     #EC807B;
+  --color-green:   #74CF9C;
+
+  /* Text on any accent fill */
+  --on-accent: #F2EDE6;
+
+  /* Accent fills */
+  --bg-cyan:   #1D4B4F;
+  --bg-green:  #224A35;
+  --bg-yellow: #4A4320;
+  --bg-orange: #523920;
+  --bg-red:    #552828;
+  --bg-purple: #3A3160;
+  --bg-blue:   #22395A;
+  --bg-lime:   #374A23;
+  --bg-pink:   #522842;
+
+  /* Accent text, icons and borders */
+  --fg-cyan:   #6DD3D8;
+  --fg-green:  #74CF9C;
+  --fg-yellow: #E0CF6E;
+  --fg-orange: #E8AE62;
+  --fg-red:    #EC807B;
+  --fg-purple: #B9A4EE;
+  --fg-blue:   #8BB7EA;
+  --fg-lime:   #B3D886;
+  --fg-pink:   #EA93BD;
+
+  /* Highlighted rows */
+  --tint-cyan:   rgba(109, 211, 216, 0.10);
+  --tint-green:  rgba(116, 207, 156, 0.10);
+  --tint-yellow: rgba(224, 207, 110, 0.10);
+  --tint-orange: rgba(232, 174, 98, 0.10);
+  --tint-red:    rgba(236, 128, 123, 0.10);
+  --tint-purple: rgba(185, 164, 238, 0.10);
+  --tint-blue:   rgba(139, 183, 234, 0.10);
+
+  /* Neutrals that used to be hardcoded for light surfaces */
+  --bg-page:      #1C1917;
+  --bg-surface:   #262220;
+  --bg-surface-2: #322D2A;
+  --fg-muted:     #A8A19A;
+  --fg-subtle:    #9A928B;
+  --line:         #3D3734;
 }
 
 /* ─── Base ──────────────────────────────────────────────────────────────── */
@@ -127,7 +187,7 @@ body, .neo-page {
 
 /* ─── Buttons ───────────────────────────────────────────────────────────── */
 .neo-button {
-  background-color: var(--color-primary);
+  background-color: var(--bg-cyan, var(--color-primary));
   border: 2.5px solid var(--color-border);
   border-radius: 0;
   box-shadow: var(--neo-shadow);
@@ -136,7 +196,7 @@ body, .neo-page {
   font-family: var(--font-display);
   cursor: pointer;
   transition: all 0.1s ease;
-  color: #111111;
+  color: var(--on-accent, #111111);
 }
 
 .neo-button:hover {
@@ -155,10 +215,10 @@ body, .neo-page {
   transform: none;
 }
 
-.neo-button-primary  { background-color: var(--color-primary); }
-.neo-button-success  { background-color: var(--color-green); }
-.neo-button-error    { background-color: var(--color-red); }
-.neo-button-warning  { background-color: var(--color-yellow); }
+.neo-button-primary  { background-color: var(--bg-cyan, var(--color-primary)); }
+.neo-button-success  { background-color: var(--bg-green, var(--color-green)); }
+.neo-button-error    { background-color: var(--bg-red, var(--color-red)); }
+.neo-button-warning  { background-color: var(--bg-yellow, var(--color-yellow)); }
 
 /* ─── Topbar ─────────────────────────────────────────────────────────────── */
 .neo-topbar {
@@ -183,7 +243,7 @@ body, .neo-page {
 
 .neo-card-accent {
   height: 6px;
-  background-color: var(--color-primary);
+  background-color: var(--fg-cyan, var(--color-primary));
   border-bottom: 2.5px solid var(--color-border);
 }
 
@@ -256,10 +316,10 @@ body, .neo-page {
   border-radius: 0;
 }
 
-.neo-badge-primary { background-color: var(--color-primary); }
-.neo-badge-success { background-color: var(--color-green); }
-.neo-badge-warning { background-color: var(--color-yellow); }
-.neo-badge-error   { background-color: var(--color-red); }
+.neo-badge-primary { background-color: var(--bg-cyan, var(--color-primary)); color: var(--on-accent, inherit); }
+.neo-badge-success { background-color: var(--bg-green, var(--color-green)); color: var(--on-accent, inherit); }
+.neo-badge-warning { background-color: var(--bg-yellow, var(--color-yellow)); color: var(--on-accent, inherit); }
+.neo-badge-error   { background-color: var(--bg-red, var(--color-red)); color: var(--on-accent, inherit); }
 .neo-badge-muted   { background-color: var(--color-text-muted); color: var(--color-surface); }
 
 /* ─── Skeleton ──────────────────────────────────────────────────────────── */

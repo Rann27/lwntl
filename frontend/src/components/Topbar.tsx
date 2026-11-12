@@ -41,7 +41,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
             <button
               onClick={() => navigate(-1)}
               className="flex items-center hover:opacity-80 transition-opacity"
-              style={{ color: '#00F7FF' }}
+              style={{ color: 'var(--fg-cyan,#00F7FF)' }}
               title="Back"
             >
               <ArrowLeft size={18} />
@@ -67,7 +67,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 900,
               fontSize: '22px',
-              color: '#00F7FF',
+              color: 'var(--fg-cyan,#00F7FF)',
               letterSpacing: '2px',
             }}
           >
@@ -79,7 +79,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
               fontFamily: "'Inter', sans-serif",
               fontSize: '11px',
               fontWeight: 600,
-              color: '#666666',
+              color: 'var(--fg-muted,#666666)',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
             }}
@@ -110,7 +110,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
                     fontFamily: "'Inter', sans-serif",
                     fontSize: '11px',
                     fontWeight: 700,
-                    color: '#00F7FF',
+                    color: 'var(--fg-cyan,#00F7FF)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                   }}
@@ -130,7 +130,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
           <button
             onClick={() => setProfileOpen((v) => !v)}
             className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-            style={{ color: profileOpen ? '#00F7FF' : '#888', maxWidth: '140px' }}
+            style={{ color: profileOpen ? 'var(--fg-cyan,#00F7FF)' : 'var(--fg-muted,#888)', maxWidth: '140px' }}
             title="Ganti profil"
           >
             <Layers size={14} />
@@ -144,7 +144,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
         <button
           onClick={() => setBatchersOpen(true)}
           className="relative flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
-          style={{ color: activeBatchCount > 0 ? '#00F7FF' : '#444' }}
+          style={{ color: activeBatchCount > 0 ? 'var(--fg-cyan,#00F7FF)' : '#444' }}
           title="Batch aktif"
         >
           <Activity size={20} />
@@ -154,8 +154,8 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
               style={{
                 width: '14px',
                 height: '14px',
-                backgroundColor: '#00F7FF',
-                color: '#111',
+                backgroundColor: 'var(--bg-cyan,#00F7FF)',
+                color: 'var(--on-accent,#111)',
                 fontSize: '8px',
                 fontWeight: 900,
                 fontFamily: 'monospace',
@@ -170,7 +170,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
         <button
           onClick={() => setTemplatesOpen(true)}
           className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
-          style={{ color: '#00F7FF' }}
+          style={{ color: 'var(--fg-cyan,#00F7FF)' }}
           title="Edit template prompt"
         >
           <FileCode2 size={20} />
@@ -180,7 +180,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
         <button
           onClick={() => setLogsOpen(true)}
           className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
-          style={{ color: '#00F7FF' }}
+          style={{ color: 'var(--fg-cyan,#00F7FF)' }}
           title="Worker log"
         >
           <ScrollText size={20} />
@@ -190,7 +190,7 @@ export function Topbar({ showBack, title, subtitle }: TopbarProps) {
         <button
           onClick={() => navigate('/settings')}
           className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
-          style={{ color: '#00F7FF' }}
+          style={{ color: 'var(--fg-cyan,#00F7FF)' }}
           title={t.topbar.settings}
         >
           <Settings size={20} />

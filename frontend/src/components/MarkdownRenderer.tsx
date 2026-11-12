@@ -48,7 +48,7 @@ export function MarkdownRenderer({ content, images = {} }: MarkdownRendererProps
   if (!content) {
     return (
       <div className="flex items-center justify-center h-full p-8">
-        <p style={{ color: '#999', fontSize: '14px', textAlign: 'center' }}>
+        <p style={{ color: 'var(--fg-subtle,#999)', fontSize: '14px', textAlign: 'center' }}>
           Belum ada terjemahan
         </p>
       </div>
@@ -66,7 +66,7 @@ export function MarkdownRenderer({ content, images = {} }: MarkdownRendererProps
         components={{
           // Render *** / --- / ___ as literal "***" text instead of <hr>
           hr: () => (
-            <span style={{ display: 'block', textAlign: 'center', margin: '8px 0', letterSpacing: '4px', color: '#999' }}>
+            <span style={{ display: 'block', textAlign: 'center', margin: '8px 0', letterSpacing: '4px', color: 'var(--fg-subtle,#999)' }}>
               ***
             </span>
           ),
@@ -82,7 +82,7 @@ export function MarkdownRenderer({ content, images = {} }: MarkdownRendererProps
             }
             if (!uri) {
               return (
-                <span style={{ display: 'block', textAlign: 'center', color: '#999', fontSize: '12px', fontStyle: 'italic', margin: '8px 0' }}>
+                <span style={{ display: 'block', textAlign: 'center', color: 'var(--fg-subtle,#999)', fontSize: '12px', fontStyle: 'italic', margin: '8px 0' }}>
                   [{alt || 'image'}]
                 </span>
               )

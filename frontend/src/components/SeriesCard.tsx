@@ -97,7 +97,7 @@ export function SeriesCard({
       onClick={() => navigate(`/series/${series.id}/settings`)}
     >
       {/* Accent Bar */}
-      <div style={{ height: '6px', backgroundColor: '#00F7FF', borderBottom: '2.5px solid var(--color-border)' }} />
+      <div style={{ height: '6px', backgroundColor: 'var(--bg-cyan,#00F7FF)', borderBottom: '2.5px solid var(--color-border)' }} />
 
       <div className="p-4">
         {/* Header row */}
@@ -200,7 +200,7 @@ export function SeriesCard({
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(series) }}
             className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: '#FF3C3C' }}
+            style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--fg-red,#FF3C3C)' }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,60,60,0.08)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >

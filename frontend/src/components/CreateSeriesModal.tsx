@@ -106,7 +106,7 @@ export function CreateSeriesModal({ open, onClose, onSubmit, config, loading }: 
             </div>
 
             <div className="flex justify-end gap-3">
-              <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>
+              <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>
                 {t.common.cancel}
               </button>
               <button

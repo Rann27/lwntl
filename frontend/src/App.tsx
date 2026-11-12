@@ -30,16 +30,16 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   render() {
     if (this.state.error) {
       return (
-        <div style={{ padding: 32, backgroundColor: '#F8F3EA', minHeight: '100vh', fontFamily: 'monospace' }}>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: '#FF3C3C', marginBottom: 8 }}>RENDER ERROR</h1>
-          <pre style={{ fontSize: 13, color: '#111', whiteSpace: 'pre-wrap', background: '#fff', padding: 16, border: '2px solid #111' }}>
+        <div style={{ padding: 32, backgroundColor: 'var(--bg-page,#F8F3EA)', minHeight: '100vh', fontFamily: 'monospace' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 900, color: 'var(--fg-red,#FF3C3C)', marginBottom: 8 }}>RENDER ERROR</h1>
+          <pre style={{ fontSize: 13, color: 'var(--on-accent,#111)', whiteSpace: 'pre-wrap', background: 'var(--bg-surface,#fff)', padding: 16, border: '2px solid #111' }}>
             {this.state.error.message}
             {'\n\n'}
             {this.state.error.stack}
           </pre>
           <button
             onClick={() => this.setState({ error: null })}
-            style={{ marginTop: 16, padding: '8px 16px', border: '2px solid #111', background: '#00F7FF', fontWeight: 700, cursor: 'pointer' }}
+            style={{ marginTop: 16, padding: '8px 16px', border: '2px solid #111', background: 'var(--bg-cyan,#00F7FF)', fontWeight: 700, cursor: 'pointer' }}
           >
             RETRY
           </button>
@@ -209,7 +209,7 @@ function AppInner() {
     return (
       <div
         className="flex items-center justify-center"
-        style={{ height: '100vh', backgroundColor: '#F8F3EA' }}
+        style={{ height: '100vh', backgroundColor: 'var(--bg-page,#F8F3EA)' }}
       >
         <div className="text-center">
           <h1
@@ -217,13 +217,13 @@ function AppInner() {
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 900,
               fontSize: '36px',
-              color: '#111',
+              color: 'var(--on-accent,#111)',
               letterSpacing: '2px',
             }}
           >
             LWNTL
           </h1>
-          <p style={{ color: '#666', fontSize: '14px', marginTop: '8px' }}>
+          <p style={{ color: 'var(--fg-muted,#666)', fontSize: '14px', marginTop: '8px' }}>
             {t.common.loading}
           </p>
         </div>

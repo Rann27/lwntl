@@ -89,7 +89,7 @@ export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: 
             </div>
 
             <div className="flex justify-end gap-3">
-              <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: '#F0F0F0' }}>
+              <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>
                 {t.common.cancel}
               </button>
               <button type="submit" disabled={!number || loading} className="neo-button" style={{ opacity: number && !loading ? 1 : 0.5 }}>

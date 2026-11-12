@@ -15,9 +15,9 @@ interface Props {
 
 const statusDot = (status: string) => {
   switch (status) {
-    case 'done': return 'bg-[#28E272]'
-    case 'processing': return 'bg-[#00F7FF] animate-pulse'
-    case 'error': return 'bg-[#FF3C3C]'
+    case 'done': return 'bg-[var(--bg-green,#28E272)]'
+    case 'processing': return 'bg-[var(--bg-cyan,#00F7FF)] animate-pulse'
+    case 'error': return 'bg-[var(--bg-red,#FF3C3C)]'
     default: return 'bg-[#666666]'
   }
 }
@@ -44,19 +44,19 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#333]">
           <div className="flex items-center gap-3">
-            <div className="w-3 h-3 bg-[#00F7FF] animate-pulse" />
-            <span className="font-space text-sm font-bold tracking-wide text-[#00F7FF]">
+            <div className="w-3 h-3 bg-[var(--bg-cyan,#00F7FF)] animate-pulse" />
+            <span className="font-space text-sm font-bold tracking-wide text-[var(--fg-cyan,#00F7FF)]">
               {isAgent ? 'AGENT RUN' : 'BATCH TRANSLATION'}
             </span>
-            <span className="text-xs text-[#999] font-mono">
+            <span className="text-xs text-[var(--fg-subtle,#999)] font-mono">
               {completed}/{total} bab
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-[#999] font-mono">{progressPct}%</span>
+            <span className="text-xs text-[var(--fg-subtle,#999)] font-mono">{progressPct}%</span>
             <button
               onClick={onCancel}
-              className="px-3 py-1 text-xs font-bold border-2 border-[#FF3C3C] text-[#FF3C3C] hover:bg-[#FF3C3C] hover:text-white transition-colors"
+              className="px-3 py-1 text-xs font-bold border-2 border-[var(--fg-red,#FF3C3C)] text-[var(--fg-red,#FF3C3C)] hover:bg-[var(--bg-red,#FF3C3C)] hover:text-white transition-colors"
             >
               BATAL
             </button>
@@ -66,7 +66,7 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
         {/* Progress bar */}
         <div className="h-2 bg-[#222]">
           <div
-            className="h-full bg-[#00F7FF] transition-all duration-500"
+            className="h-full bg-[var(--bg-cyan,#00F7FF)] transition-all duration-500"
             style={{ width: `${progressPct}%` }}
           />
         </div>
@@ -86,10 +86,10 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
                   }`}
                 >
                   <div className={`w-2 h-2 ${statusDot(ch.status)} shrink-0`} />
-                  <span className={`font-mono w-12 shrink-0 ${isCurrent ? 'text-[#00F7FF]' : 'text-[#666]'}`}>
+                  <span className={`font-mono w-12 shrink-0 ${isCurrent ? 'text-[var(--fg-cyan,#00F7FF)]' : 'text-[var(--fg-muted,#666)]'}`}>
                     Bab {ch.chapterNumber}
                   </span>
-                  <span className={`truncate ${isCurrent ? 'text-white' : 'text-[#999]'}`}>
+                  <span className={`truncate ${isCurrent ? 'text-white' : 'text-[var(--fg-subtle,#999)]'}`}>
                     {ch.title || 'Tanpa Judul'}
                   </span>
                   <span className="ml-auto text-[#444] shrink-0" title={ch.agentReview ? t.agent.reviewedBadge : undefined}>
@@ -102,12 +102,12 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
 
         {/* Current activity */}
         {batch.phase === 'volume' ? (
-          <div className="px-4 py-2 border-t border-[#333] text-xs text-[#C9A7FF]">
+          <div className="px-4 py-2 border-t border-[#333] text-xs text-[var(--fg-purple,#C9A7FF)]">
             {phaseLabel}…
           </div>
         ) : batch.chapterNumber && (
-          <div className="px-4 py-2 border-t border-[#333] text-xs text-[#666]">
-            {phaseLabel}: <span className={isAgent && batch.phase === 'review' ? 'text-[#C9A7FF]' : 'text-[#00F7FF]'}>Bab {batch.chapterNumber}</span>
+          <div className="px-4 py-2 border-t border-[#333] text-xs text-[var(--fg-muted,#666)]">
+            {phaseLabel}: <span className={isAgent && batch.phase === 'review' ? 'text-[var(--fg-purple,#C9A7FF)]' : 'text-[var(--fg-cyan,#00F7FF)]'}>Bab {batch.chapterNumber}</span>
             {batch.chapterTitle ? ` — ${batch.chapterTitle}` : ''}
           </div>
         )}
