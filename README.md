@@ -1,35 +1,79 @@
 # LWNTL — LN/WN Translator
 
-A desktop application for translating Light Novels and Web Novels using AI language models. Built with Python (PyWebView) and React.
+A desktop application for translating Light Novels and Web Novels with AI language models. Built with Python (PyWebView) and React.
 
-> Designed for translators who want AI-assisted translation with glossary management, context memory, and multi-provider LLM support — all in a clean, offline-first desktop app.
+> Designed for translators who want AI-assisted translation that stays consistent across a whole volume — locked glossaries, context memory, built-in translation rules per language pair, a no-token QA pass, and an optional review agent — in an offline-first desktop app.
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Requirements](#requirements)
+- [Quick Start](#quick-start)
+- [Updating](#updating)
+- [Supported LLM Providers](#supported-llm-providers)
+  - [Live model lists](#live-model-lists)
+  - [ChatGPT plan (no API key)](#chatgpt-plan-no-api-key)
+- [Usage Guide](#usage-guide)
+  - [Series, groups and profiles](#series-groups-and-profiles)
+  - [Adding chapters](#adding-chapters)
+  - [Translating](#translating)
+  - [Translation options](#translation-options)
+  - [Glossary](#glossary)
+  - [Prompts and presets](#prompts-and-presets)
+  - [QA Scan](#qa-scan)
+  - [Agent Run (review)](#agent-run-review)
+  - [Version history and backups](#version-history-and-backups)
+  - [Exporting](#exporting)
+- [Recommended pipeline](#recommended-pipeline)
+- [Settings](#settings)
+- [Data and privacy](#data-and-privacy)
+- [Manual Setup (without `run.bat`)](#manual-setup-without-runbat)
+- [Building the executable](#building-the-executable)
+- [Project Structure](#project-structure)
+- [Changelog](#changelog)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ---
 
 ## Features
 
-- **Multi-provider LLM support** — ZhipuAI, Qwen, OpenAI, Google Gemini, Anthropic, xAI (Grok), Moonshot (Kimi), DeepSeek, Xiaomi MiMo, and OpenAI-compatible endpoints
-- **Smart streaming translation** — real-time output with anti-truncation iteration
-- **Glossary management** — per-series term dictionary, auto-extraction after each chapter, pre-filter injection, hover preview, import/export (JSON & CSV)
-- **Context window** — rolling chapter summaries and memory blocks keep the AI consistent across chapters
-- **Translation version history** — every retranslation archives the previous version; restore any past version with one click
-- **Series grouping** — organize series into nested folder-like groups (up to 3 levels), with breadcrumb navigation, color accents, and aggregate progress stats
-- **Drag-and-drop** — drag a series card into any group card (or onto a breadcrumb) to move it instantly
-- **Batch translation** — translate all pending chapters in sequence, with auto-apply glossary and retry-failed support
-- **Batch export** — export all Done chapters as a single merged `.docx` using a custom Word template for consistent formatting
-- **Document import** — paste raw text, or import from `.pdf` or `.docx` files with multi-mode PDF parsing
-- **Workers** — multiple concurrent translation workers, each pinnable to a separate provider/model
-- **Dark mode** — warm dark palette, toggled from Settings and persisted
-- **Bilingual UI** — full Bahasa Indonesia and English interface
-- **Reasoning model support** — Thinking mode, configurable reasoning effort for DeepSeek and MiMo
+**Translation**
+- **Streaming translation** — single chapters or batches, several workers in parallel, each pinned to its own provider and model
+- **Context that carries across chapters** — rolling chapter summaries, long-term memory, and *Look Up* (the previous chapters' finished text)
+- **Revision Pass**, **AutoFix CJK** and **Iteration Lock** per series
+- **Illustration placeholders** survive translation and export; an image folder links them to real images
+
+**Consistency**
+- **Per-series glossary** locked into every prompt, with a pre-filter that recognises terms through furigana, width and variant-kanji differences, name separators, honorifics, partial names and inflections
+- **Terminology pre-pass** builds the glossary from the raw text before chapter 1
+- **Duplicate guards and aliases** — a term already in the glossary is never added again under another spelling
+- **Glossary audit and review** — usage counts, conflicts, duplicates, and one-click fixes
+
+**Prompts**
+- **Built-in prompt presets** for JP/CN/KR → EN/ID, EN → ID and ID → EN; duplicate any preset to edit it
+- **Editable helper prompts** for the revision pass, AutoFix CJK and the pre-pass
+
+**Quality**
+- **QA Scan** — deterministic checks with no AI and no tokens, aware of the source language, with one-click safe fixes
+- **Agent Run** — an optional tool-using reviewer that repairs flagged chapters, with a whole-series backup before every run
+
+**Providers**
+- ZhipuAI, Qwen, OpenAI, Gemini, Anthropic, xAI, Moonshot, DeepSeek, Xiaomi MiMo, OpenRouter, Experiential Labs, UncensoredLLM, any OpenAI-compatible endpoint — and your **ChatGPT plan** without an API key
+- **Model lists fetched from each provider**, so new models appear without an app update
+
+**App**
+- Series groups (nested folders), multiple profiles, `.docx` export with a Word template, light/dark theme, Bahasa Indonesia and English UI
 
 ---
 
 ## Requirements
 
 - **Python 3.10+** — [python.org](https://www.python.org/downloads/)
-- **Node.js 18+** *(first run only, to build the frontend)* — [nodejs.org](https://nodejs.org/)
-- A valid API key from at least one supported LLM provider
+- **Node.js 18+** *(to build the frontend)* — [nodejs.org](https://nodejs.org/)
+- An API key from at least one supported provider, **or** a ChatGPT plan (Go, Plus, Pro, Business)
 
 ---
 
@@ -50,183 +94,212 @@ Double-click `run.bat` or run it from a terminal:
 run.bat
 ```
 
-**What `run.bat` does automatically:**
-- Creates a Python virtual environment (`venv/`) if it doesn't exist
-- Installs all Python dependencies from `requirements.txt`
-- Builds the React frontend (`frontend/dist/`) if not already built
-- Launches the application
+`run.bat` creates the virtual environment (`venv/`), installs `requirements.txt`, builds the frontend into `frontend/dist/` if it is not built yet, and launches the app. The first run takes a few minutes.
 
-> On first run this may take a few minutes. Subsequent runs start immediately.
+### 3. Connect a provider
 
-### 3. Configure your API key
+Open **Settings → Provider & API**. Enter an API key for any provider, or press **Continue with ChatGPT** to use your ChatGPT plan. Then pick a model per worker in **Settings → Worker**.
 
-On first launch, the onboarding screen will prompt you to add an API key. You can also go to **Settings** (gear icon) at any time to add or change keys.
+---
+
+## Updating
+
+```bash
+git pull
+venv\Scripts\pip install -r requirements.txt
+cd frontend && npm install && npm run build && cd ..
+```
+
+`run.bat` only builds the frontend when `frontend/dist/` is missing, so after pulling an update rebuild it as above (or delete `frontend/dist/` and run `run.bat`). Otherwise the new screens will not appear.
 
 ---
 
 ## Supported LLM Providers
 
-| Provider | Models | Notes |
+| Provider | Key | Notes |
 |---|---|---|
-| ZhipuAI (Z.AI) | GLM-5, GLM-4.7, GLM-4.7-FlashX, GLM-4.7-Flash | Thinking toggle |
-| Alibaba Cloud | Qwen3.5-Plus, Qwen3.5-Flash, DeepSeek V3.2 | Via DashScope |
-| OpenAI | GPT-5.4, GPT-4.1, GPT-4o and variants | |
-| Google Gemini | Gemini 2.5 Pro/Flash, 2.0 Flash, 3.x Preview | |
-| Anthropic | Claude Opus/Sonnet/Haiku 4.x | |
-| xAI (Grok) | Grok 4.20, Grok 4.1 Fast, Grok 3 | |
-| Moonshot (Kimi) | Kimi K2.5, Moonshot v1 128k/32k/8k | |
-| DeepSeek | DeepSeek-R1, DeepSeek-V3, DeepSeek-V2.5 | Thinking + Reasoning Effort |
-| Xiaomi MiMo | MiMo-7B-RL | Thinking + Reasoning Effort |
-| ChatGPT (plan) | Models of your ChatGPT plan | No API key — *Continue with ChatGPT* (OpenAI's official Sign in with ChatGPT for local open-source apps) |
-| Experiential Labs | Gateway catalog | OpenAI-compatible gateway |
-| UncensoredLLM | Abliterated open-weight models | OpenAI-compatible |
-| OpenAI Compatible | Any OpenAI-compatible endpoint | Custom base URL + model |
+| ZhipuAI (Z.AI) | API key | Thinking toggle, reasoning effort |
+| Alibaba Cloud (Qwen) | API key | DashScope international; thinking toggle |
+| OpenAI | API key | Reasoning effort (temperature is not sent to reasoning models) |
+| Google Gemini | API key | Thinking level; safety filter can be switched off |
+| Anthropic (Claude) | API key | Effort (temperature is not sent to Claude 5.x) |
+| xAI (Grok) | API key | Reasoning effort |
+| Moonshot (Kimi) | API key | International or China platform; effort and thinking |
+| DeepSeek | API key(s) | Several keys, one per worker; thinking + reasoning effort |
+| Xiaomi MiMo | API key | Thinking + reasoning effort |
+| OpenRouter | API key | Whole OpenRouter catalog; reasoning, routing and data-policy options per model |
+| Experiential Labs | API key | OpenAI-compatible AI gateway |
+| UncensoredLLM | API key | OpenAI-compatible, abliterated open-weight models |
+| ChatGPT (plan) | **none** | Sign in with your ChatGPT account — see below |
+| OpenAI Compatible | optional | Any OpenAI-compatible endpoint (Ollama, LM Studio, LocalAI, …) with a custom base URL |
 
-Model lists are fetched from each provider (its `/models` endpoint, the Gemini and Anthropic model APIs, the OpenRouter catalog, or the ChatGPT plan catalog) and cached for a day; the ⟳ button next to a worker's model refetches. Without a key, or when a provider does not answer, the built-in list is shown. Every provider also accepts a **Custom** model ID.
+Each worker card shows exactly which parameters will be sent for the chosen model (*Dikirim*), and why some are left out.
+
+### Live model lists
+
+Model lists come from the providers themselves: the `/models` endpoint of OpenAI-style APIs, the Gemini and Anthropic model APIs, the OpenRouter catalog, and the ChatGPT plan catalog. Lists are cached for a day; the ⟳ button next to a worker's model fetches them again. The picker shows each model's name, ID and limits where the provider gives them, and labels where the list came from:
+
+| Label | Meaning |
+|---|---|
+| `LIVE` | just fetched from the provider |
+| `CACHE` | fetched within the last day |
+| `BAWAAN` | LWNTL's built-in list — no key yet, or the provider did not answer |
+
+Any model ID can still be typed by hand (**Custom…**).
+
+### ChatGPT plan (no API key)
+
+LWNTL can run translations on your ChatGPT plan instead of API credit, through OpenAI's official [Sign in with ChatGPT](https://developers.openai.com/siwc/token-sharing-open-source) for open-source, locally hosted apps.
+
+1. **Settings → Provider & API → Continue with ChatGPT** opens the sign-in in your browser.
+2. After signing in, the card shows your account and **Using ChatGPT plan · Manage usage**.
+3. Pick a ChatGPT model for a worker in **Settings → Worker**.
+
+Details:
+- Requests use the Responses API. Temperature and output limits are not sent (the plan does not accept them).
+- Reasoning cannot be switched off on plan models; **LOW** is the lightest level. Levels follow each model's own catalog (some reach ULTRA, others stop at MAX).
+- Usage counts against your ChatGPT plan; manage it at [chatgpt.com/settings/usage](https://chatgpt.com/settings/usage).
+- Tokens stay on your computer (`%APPDATA%\lwntl\chatgpt_auth.json`) and are refreshed automatically. **Putuskan** disconnects the account.
 
 ---
 
 ## Usage Guide
 
-### Series Collection & Grouping
+### Series, groups and profiles
 
-The home page shows your series in a grid. You can organize them into **Groups** (nested folders, up to 3 levels deep):
+- **Series** — click **+ Add Series**, enter a title, source language and target language. Source languages include Japanese, Chinese, Korean, English and Indonesian.
+- **Groups** — nested folders up to three levels. Drag a series card onto a group card (or a breadcrumb) to move it; groups show aggregate progress.
+- **Profiles** — separate workspaces with their own series, prompt templates and settings (for example one per language pair). Switch them from the top bar.
 
-- Click **+ New Group** to create a root group
-- Click into a group to drill down — breadcrumb navigation shows your current path
-- Right-click (or use the group menu) to rename, change color, add a sub-group, or delete a group
-- **Drag a series card** onto any group card to move it into that group
-- **Drag onto a breadcrumb** item to move a series back up the hierarchy
-- Use **Move to Group** in the series card menu to pick a target group from a tree picker
+### Adding chapters
 
-Groups show aggregate stats: number of series, chapters, and how many are translated.
+Open a series and click **+ Add Chapter**. Paste raw text, or import a file:
 
-### Creating a Series
-
-1. Click **+ Add Series** on the home page (or inside a group — the series is automatically placed there)
-2. Enter the series title, source language, and target language
-3. Click Create — the series will appear in your collection
-
-### Adding Chapters
-
-1. Open a series → go to the **Chapters** tab (Series Settings)
-2. Click **+ Add Chapter**
-3. Enter a chapter number and optional title
-4. **Paste raw text** or **import a file** (`.pdf`, `.docx`, or `.txt`)
-5. Save
-
-#### PDF Import Modes
-
-| Mode | Description |
+| Source | Notes |
 |---|---|
-| Standard | Simple text extraction — fast, works for most PDFs |
-| Bulk TXT | Treats each line as a separate sentence — good for dense layout |
-| PDF Newline | Preserves original line breaks from the PDF |
-| PDF Paragraph | Merges lines into natural paragraphs |
-| Docx Import | Extract text from `.docx` files |
+| `.txt` | Plain text |
+| `.docx` | Text and embedded illustrations |
+| `.pdf` | Modes: Standard, Bulk TXT, PDF Newline, PDF Paragraph; PDF pre-preview with margin detection |
+| Bulk `.md` | Many Markdown chapters at once, ordered by filename |
 
-### Translating a Chapter
+**Image Source** assigns a folder of images to the series, so `Image PlaceHolder: file.jpg` lines in text imports are linked to the real images for preview and export.
 
-1. Open a chapter from the chapter list
-2. The workspace shows: source text (left), translation output (center), settings (right)
-3. Click **Translate** — the AI will stream the translation in real-time
-4. When done, the chapter status changes to **Done** and the translation is saved automatically
+### Translating
 
-> Translation also auto-generates a chapter summary (for context) and extracts glossary terms.
+- **Single chapter** — open it and press **Translate**; output streams live and is saved when done.
+- **Batch** — **Translate All** processes every pending chapter in order, or **Select** a set of chapters. New glossary terms are applied after each chapter, so the next one already uses them. **Retry failed** re-runs chapters that errored.
+- **Workers** — each worker is a slot with its own provider and model; raise **Max Concurrent** to run several jobs on one worker. A series prefers its chosen worker and falls back to any free one.
 
-If the chapter already has a translation, you will be prompted to confirm before retranslating. The current version is archived in **version history** so you can always restore it.
+After each chapter LWNTL writes a short summary for the rolling memory and reads the glossary table the model appends. When a model writes no table, a fallback extraction reads the whole chapter and keeps only renderings the text actually uses.
 
-### Translation Version History
+### Translation options
 
-Each chapter keeps a history of all past translations.
+Set per series in **Prompt & Model**:
 
-- Click **History** in the workspace to view past versions
-- Click **Restore** on any version to make it current (the active translation is archived first)
-- Versions are labelled `v1`, `v2`, etc. in chronological order
+| Option | What it does |
+|---|---|
+| **Look Up** | Adds the finished text of the last *N* chapters to the prompt, so voice and register carry across chapter boundaries (capped in size). |
+| **Revision Pass** | A second call that revises the draft for prose quality; accepted only when structure checks pass (paragraphs, dialogue, scene markers, placeholders). |
+| **AutoFix CJK** | Replaces Japanese/Chinese/Korean words left in the output, one occurrence at a time. |
+| **Iteration Lock** | One generation per chapter (default). Turn off to allow continuation passes for very long chapters. |
+| **Glossary pre-filter** | Only glossary entries that occur in the chapter go into the prompt (Settings). |
+| **Max tokens / Temperature / Context** | Output budget, sampling temperature (where the model accepts it), and the context window used for the budget indicator. |
 
 ### Glossary
 
-The glossary is per-series and stores source terms with their translations and notes.
+The glossary is per series and **non-negotiable** in the prompt: each entry has a source term, a translation, notes (gender, address form, speech pattern) and optional **aliases** (other source spellings, e.g. a kana form).
 
-- **Auto-extract**: After each translation, the AI suggests new terms found in the chapter. Review them in the **Update Glossary** panel.
-- **Pre-filter**: Only glossary terms that appear in the current chapter are injected into the prompt (toggle in Series Settings).
-- **Manual add**: Go to the series **Glossary** tab to add, edit, or delete entries.
-- **Import/Export**: Load or save as `.json` or `.csv`.
+- **Pre-Pass Terms** scans the raw text of all chapters and proposes terms before you translate, so chapter 1 already uses the final renderings. Review and apply the proposals.
+- **Auto-apply** adds new terms from each chapter's table. A term already in the glossary under any spelling (furigana, width, variant kanji, separators, honorific form) is never added twice; a new spelling of a name or proper term with the same rendering becomes an alias; a part of a name with a different reading is refused.
+- **Pre-filter matching** recognises a term through furigana, half-width katakana, variant kanji, `・`/`＝` separators, brackets, honorifics, inflected verbs, and a character called only by surname or given name — so a term that is in the chapter is not dropped from the prompt.
+- **All Terms** lists what every chapter's table proposed. Only renderings that actually appear in a chapter's text count as inconsistencies; table-only differences are marked **HANYA TABEL**.
+- **Glossary audit** (QA Scan → Glosarium) shows how often each entry occurs in the source and the translation, and flags entries that are unused, single-chapter, conflicting with a related name, duplicated, or sharing a rendering. **Review** walks through them: pick the canonical rendering (rewritten everywhere), merge a duplicate into an alias, mark as correct, or delete.
+- Import and export as `.json` (aliases included) or `.csv`.
 
-### Batch Translation
+### Prompts and presets
 
-On the chapter list, click **Select** to choose chapters, then **Translate** to queue them sequentially. Or use **Translate All** to process every Pending chapter at once.
+- **System prompt** — the translation rules. **Instructions** — optional extra rules, per series or per profile. Both support `{source_language}`, `{target_language}` and `{title}`.
+- **Built-in presets** exist for JP→EN, JP→ID, CN→EN, CN→ID, KR→EN, KR→ID, EN→ID and ID→EN. They are read-only and update with the app. Open **PRESET**, pick one and press **DUPLIKAT** to get an editable copy, shared by every profile.
+- A series or a profile can point at a preset instead of holding its own text. The prompt actually used is resolved in this order:
+  1. the series' own text
+  2. the series' preset
+  3. the profile template text
+  4. the profile preset
+  5. the built-in for the series' language pair — only when nothing above *and* no instructions are set
+- **Helper prompts** (Prompt Templates): the guidance for the revision pass, AutoFix CJK and the pre-pass can be edited per profile; the output format they must follow is fixed.
+- Built-in presets are generated from a Cowork prompt package with `python tools/build_presets.py "<package folder>"`.
 
-- **Retry Failed**: After a batch run, any failed chapters can be retried with one click.
-- **Auto-apply Glossary**: New terms extracted during a batch are automatically added to the glossary.
+### QA Scan
 
-### Exporting Translations
+**QA Scan** checks every translated chapter without AI and without tokens.
 
-- **Single chapter**: Open a chapter → click **Export** → saves as `.docx` (with optional Word template)
-- **Quick export**: In the chapter list, click the download icon next to any Done chapter
-- **Batch export**: Series Settings → **Export All** → all Done chapters merged into one `.docx`, each chapter starting on a new page
+- **Per chapter** — residual source characters and punctuation, romanization (macrons, Pinyin tone marks, Korean diacritics), markup, quotes, scene-marker count and form, missing placeholders, dialogue coverage, sections and gaps much shorter than their source (omissions), duplicate paragraphs, truncation, glossary terms whose locked rendering never appears, glossary variants used in the text, and source-specific leftovers (untranslated address terms and interjections, romanized Korean, untranslated English/Indonesian sentences). English targets also get gender-vs-glossary, acronym and US/UK spelling checks; Indonesian targets get standard spelling and pronoun-register checks.
+- **Per volume** — name variants, spelling consistency, quote style, opener and length outliers, diction density, phrase frequency, glossary health.
+- **Auto-fix** — mechanical findings (typography, source marks, romanization, bold, italics, quotes, spelling, acronyms) are fixed with **PERBAIKI SEMUA AUTO-FIX**, or per category in **Perbaikan Aman**. Previous versions go to each chapter's history.
+- **Tinjau & perbaiki** opens a chapter with its findings next to the source lines; edit a paragraph, or ask the model for a suggested fix.
+- **Ganti Nama** renames a rendering everywhere it can re-enter the model's context (text, summaries, memory, glossary).
+- Findings are shown in the app language (Indonesian or English).
 
-#### Custom Word Template
+### Agent Run (review)
 
-Place a file named `TemplateNew.docx` in any of these locations:
-- `%APPDATA%\lwntl\TemplateNew.docx` *(preferred — survives app updates)*
-- The app root directory (next to `main.py`)
-- Same directory as the compiled `.exe`
+**Run Agent** reviews chapters that are already translated; it never translates. Translate with **Translate All** first.
 
-When a template is found, exports use its styles, fonts, margins, and page setup. If no template is found, a plain document is used as fallback.
+- **Findings only** (recommended) — the agent works only on chapters the QA detectors flag. **Full cross-check** — every chapter, plus a source check at the riskiest spots (short sections, the chapter opening and ending).
+- Safe fixes run first, so the agent spends no tokens on them. A final **volume pass** aligns names and terms across chapters.
+- The agent edits one paragraph at a time through guarded tools (no source characters, no lost placeholders, no destructive rewrites). A chapter whose high-severity findings increase is rolled back automatically.
+- Needs a model with tool calling; others fall back to a single-shot repair.
 
-### Workers
+### Version history and backups
 
-Workers are independent translation slots. Each worker can be assigned a separate provider, model, max tokens, and temperature.
+- Every retranslation, safe fix, agent edit, merge or rename archives the previous text in the chapter's **version history**; restore any version from the chapter.
+- **Agent Run** also saves a **whole-series snapshot** (all translated chapters and the glossary) before it starts. **Run Agent → Backup → Pulihkan** restores a whole run in one step; restoring the glossary is optional. The last ten snapshots are kept.
 
-- Configure workers in **Series Settings → Prompt & Model** 
-- Assign a worker to a series so it always uses that worker's configuration
-- Multiple workers allow translating chapters from different series in parallel
+### Exporting
 
-### System Prompt & Instructions
+- **Single chapter** — **Export** in the chapter workspace, or the download icon in the chapter list.
+- **Whole series** — **Export All** merges every done chapter into one `.docx`, each chapter on a new page, illustrations embedded.
+- **Word template** — place `TemplateNew.docx` in `%APPDATA%\lwntl\` (preferred), the app folder, or next to the `.exe`; exports use its styles, fonts, margins and page setup.
 
-- **System Prompt** — the global translation instruction template. Supports variables: `{source_language}`, `{target_language}`, `{title}`.
-- **Instruction Prompt** — per-series additional instructions (e.g., "keep honorifics -san, -kun intact"). Appended to the system prompt at translation time.
+---
 
-#### Prompt presets
+## Recommended pipeline
 
-LWNTL ships a built-in system prompt for each language pair: JP→EN, JP→ID, CN→EN, CN→ID, KR→EN, KR→ID, EN→ID and ID→EN. Built-ins are read-only and are updated with the app. To change one, open **PRESET** (series panel or Prompt Templates), pick it and press **DUPLIKAT** — the copy is yours to edit, shared by every profile.
-
-A series or a profile can point at any preset instead of holding its own text. The prompt actually used is resolved in this order:
-
-1. the series' own text
-2. the series' preset
-3. the profile template text
-4. the profile preset
-5. the built-in for the series' language pair — only when nothing above *and* no instructions are set
-
-The built-ins are generated from a Cowork prompt package with `python tools/build_presets.py "<package folder>"`; re-run it when the package changes.
+1. Create the series and import chapters; assign an image folder if the raw has illustrations.
+2. Choose the built-in preset for the language pair (or let the series use it automatically), and turn on **Look Up** — optionally **Revision Pass** and **AutoFix CJK**.
+3. **Pre-Pass Terms** → review the glossary (genders, address forms, names).
+4. **Translate All**.
+5. **QA Scan** → **Perbaiki semua auto-fix** → review the remaining findings and the glossary audit.
+6. Optionally **Run Agent** (*Findings only*) — a backup is taken first.
+7. **Export All**.
 
 ---
 
 ## Settings
 
-Accessible via the gear icon (top-right).
+Open with the gear icon. Settings are split into tabs; the last tab you used is remembered.
 
-| Setting | Description |
+| Tab | Contents |
 |---|---|
-| API Keys | Add keys for each provider. Only providers with a key can be selected. |
-| Theme | Light / Dark mode. Persisted across sessions. |
-| App Language | Bahasa Indonesia or English. |
-| Provider & Model | Select active provider and model per worker. |
-| Max Tokens | Maximum output tokens per translation iteration (default: 16,000). |
-| Temperature | Sampling temperature (default: 0.3 — lower = more consistent). |
-| Thinking Mode | Enable extended reasoning for DeepSeek, MiMo, and ZhipuAI models. |
-| Reasoning Effort | Low / Medium / High reasoning depth for DeepSeek and MiMo. |
-| Source / Target Languages | Manage the language list available in series creation. |
-| Glossary Pre-filter | Only inject terms present in the chapter being translated. |
+| **Umum / General** | App language, light/dark theme, source and target language lists |
+| **Provider & API** | One card per provider: API key, provider options (thinking, reasoning effort, region, routing, safety filter), and the ChatGPT sign-in. **Test provider aktif** checks the active provider. |
+| **Worker** | Worker cards: provider, model (live list), DeepSeek key, max concurrent jobs, and the parameters that will be sent |
+
+Per-series options (worker, prompt, translation options) live in the series' **Prompt & Model** panel. Prompt templates per profile live in **Prompt Templates**.
 
 ---
 
-## Manual Setup (Without `run.bat`)
+## Data and privacy
+
+- All data is stored locally in `%APPDATA%\lwntl\` as plain JSON — no database, no server. Each profile has its own folder.
+- API keys are kept in the local config. ChatGPT tokens are kept separately in `chatgpt_auth.json` and are never written to config or logs.
+- Agent backups live next to each series (`agent-backups/`); glossary entries removed by the audit are backed up next to the series as well.
+
+---
+
+## Manual Setup (without `run.bat`)
 
 ```bash
-# 1. Create and activate virtual environment
+# 1. Create and activate a virtual environment
 python -m venv venv
 venv\Scripts\activate        # Windows
 # source venv/bin/activate   # macOS/Linux
@@ -246,100 +319,141 @@ python main.py
 
 ---
 
+## Building the executable
+
+```bat
+build.bat
+```
+
+Builds a portable folder with PyInstaller (`lwntl.spec`) into `dist\LWNTL\`. The built frontend and the built-in prompt presets are bundled.
+
+---
+
 ## Project Structure
 
 ```
 lwntl/
 ├── main.py                  # PyWebView entry point
 ├── api.py                   # Python methods exposed to the frontend
-├── run.bat                  # One-click launcher (Windows)
-├── build.bat                # Build script for PyInstaller
+├── run.bat / build.bat      # Launcher and PyInstaller build (Windows)
 ├── lwntl.spec               # PyInstaller spec
 ├── requirements.txt
+├── tools/
+│   └── build_presets.py     # Generates core/presets from a Cowork prompt package
 ├── core/
-│   ├── llm_client.py        # Unified multi-provider LLM client
-│   ├── translator.py        # Translation logic with streaming + iteration
-│   ├── extractor.py         # Glossary auto-extraction
-│   ├── context_window.py    # Rolling summary + memory context builder
-│   ├── prompt_builder.py    # System/user prompt construction
-│   ├── exporter.py          # .docx export (single + batch + template)
-│   ├── document_parser.py   # PDF / DOCX import with multi-mode parsing
-│   ├── worker_manager.py    # Concurrent translation workers
+│   ├── llm_client.py        # Multi-provider client and per-model request rules
+│   ├── model_catalog.py     # Live model lists per provider (cached)
+│   ├── chatgpt_auth.py      # Sign in with ChatGPT (PKCE, tokens, plan catalog)
+│   ├── openrouter.py        # OpenRouter catalog and per-model parameters
+│   ├── translator.py        # Translation pipeline: streaming, glossary table, revision, AutoFix
+│   ├── worker_manager.py    # Workers and concurrent jobs
+│   ├── prompt_builder.py    # System prompt resolution, glossary pre-filter, user prompt
+│   ├── prompt_presets.py    # Built-in and user prompt presets
+│   ├── presets/             # Built-in system prompts per language pair (+ index.json)
+│   ├── task_prompts.py      # Editable helper prompts (revision, AutoFix, pre-pass)
+│   ├── context_window.py    # Rolling summaries and long-term memory
+│   ├── lookup.py            # Look Up: previous chapters' text in context
+│   ├── reviser.py           # Revision pass with structure checks
+│   ├── cjk_autofix.py       # AutoFix CJK
+│   ├── placeholder.py       # Illustration placeholder preservation
+│   ├── image_sync.py        # Image folder ↔ placeholders
+│   ├── term_match.py        # Shared term matching (pre-filter, duplicates, audit, QA)
+│   ├── glossary_guard.py    # Name-part conflict checks
+│   ├── glossary_audit.py    # Glossary audit and review actions
+│   ├── terminology.py       # Terminology pre-pass
+│   ├── extractor.py         # Glossary table parsing and fallback extraction
+│   ├── chapter_check.py     # Per-chapter QA detectors (source-aware)
+│   ├── qa_scan.py           # Volume QA, safe-fix runs, rename
+│   ├── qa_fix.py            # Safe mechanical fixes
+│   ├── qa_chapter.py        # Chapter review: findings in context, suggested fixes
+│   ├── qa_i18n.py           # Indonesian wording for QA findings
+│   ├── agent.py             # Agent Run (review → repair → volume pass)
+│   ├── agent_tools.py       # Guarded tools the agent edits with
+│   ├── agent_backup.py      # Whole-series snapshots and restore
+│   ├── exporter.py          # .docx export (single, batch, template)
+│   ├── document_parser.py   # PDF / DOCX / Markdown import
 │   └── storage/
-│       ├── config.py        # App config (API keys, settings)
-│       ├── series.py        # Series CRUD
-│       ├── chapters.py      # Chapter CRUD + version history
-│       ├── glossary.py      # Glossary CRUD
-│       └── groups.py        # Group CRUD (nested, up to 3 levels)
-└── frontend/                # React 19 + TypeScript + Tailwind (Vite)
+│       ├── config.py        # App config, profiles
+│       ├── series.py        # Series and glossary (aliases, duplicate guards)
+│       ├── chapters.py      # Chapters and version history
+│       ├── groups.py        # Nested groups
+│       └── templates.py     # Prompt templates per profile
+└── frontend/                # React 19 + TypeScript + Tailwind 4 (Vite)
     └── src/
-        ├── pages/           # HomePage, SeriesSettingsPage, ChapterWorkspacePage, SettingsPage
-        ├── components/      # SeriesCard, GroupCard, GroupFormModal, GroupPickerModal, ...
-        ├── i18n/            # Bilingual translations (id, en)
-        ├── api.ts           # TypeScript wrappers for all Python API calls
-        └── types.ts         # Shared TypeScript types
+        ├── pages/           # Home, Series Settings, Chapter Workspace, Settings
+        ├── components/      # Panels and modals (QA report, glossary review, agent run, presets, …)
+        ├── hooks/           # Translation, batch, model catalog
+        ├── i18n/            # Bahasa Indonesia and English
+        ├── styles/          # Theme tokens (light and dark)
+        ├── api.ts           # Wrappers for the Python API
+        └── types.ts         # Shared types and provider registry
 ```
-
-Data is stored in `%APPDATA%\lwntl\` (Windows) — no database, plain JSON files.
 
 ---
 
 ## Changelog
 
+### 2026-11 — consistency, quality and providers
+- **Built-in prompt presets** for eight language pairs, read-only and duplicable; series/profile preset selection with automatic fallback to the pair's built-in
+- **Glossary term matching** shared by the pre-filter, duplicate checks, audit and QA (furigana, width, variant kanji, separators, brackets, honorifics, name parts, inflections); **aliases**; duplicate merging in the glossary review
+- **Fallback glossary extraction** reads the whole chapter and keeps only renderings the text uses; **All Terms** counts only real inconsistencies
+- **Source-aware QA** for Chinese, Korean, English and Indonesian sources; glossary variants in the text; English gender, acronym and US/UK checks; **fix-all** for safe fixes; findings in Indonesian
+- **Agent Run** reviews translated chapters only, with a whole-series **backup and one-step restore**
+- **Live model lists** from each provider; **ChatGPT plan** via Sign in with ChatGPT; **Experiential Labs** and **UncensoredLLM** providers
+- **Settings** in tabs with a responsive grid; calmer **dark mode** palette
+- English and Indonesian added as source languages
+
+### 2026-10 — review and context
+- **Agent Run** (translate → review → repair loop), **deterministic QA** with safe fixes and chapter review, **Revision Pass**, **Look Up**, glossary guard and audit, **OpenRouter**, editable helper prompts
+
+### Earlier
+- Terminology pre-pass, image folder for text imports, long single-call generations, Gemini safety filter switch, AutoFix CJK, illustration preservation, multiple DeepSeek keys, Iteration Lock, Bulk MD import, multi-profile support, CJK detector, profile templates, PDF pre-preview
+
 ### v1.6.0
-- **Series Grouping** — nested groups (up to 3 levels), breadcrumb navigation, color accents, aggregate stats
-- **Drag-and-drop** — drag series cards into group cards or onto breadcrumbs
-- **Move to Group** — picker modal for moving a series to any group in the tree
-- **Batch Export** — export all Done chapters as a single merged `.docx` with page breaks
-- **Custom Word Template** — `TemplateNew.docx` support for preserving styles/fonts/margins
+- Series grouping, drag-and-drop, Move to Group, batch export, custom Word template
 
 ### v1.5.0
-- **Xiaomi MiMo** provider — thinking mode + configurable reasoning effort
+- Xiaomi MiMo provider
 
 ### v1.4.0
-- **DeepSeek** — configurable reasoning effort (Low / Medium / High)
-- Bug fixes: onboarding display, batch archive race, memory compaction, cancel race condition
+- DeepSeek reasoning effort; onboarding, batch archive, memory and cancel fixes
 
 ### v1.3.0
-- **DeepSeek** provider added
-- **ZhipuAI** thinking mode toggle
-- **Glossary pre-filter** — only inject terms present in the current chapter
-- Consistency fixes across the translation pipeline
+- DeepSeek provider, ZhipuAI thinking toggle, glossary pre-filter
 
 ### v1.2.0
-- **Concurrent translation guard** — prevents double-translating a chapter
-- **Retry failed** chapters after batch translation
-- **Retranslate confirmation** modal before overwriting existing translations
-- **Translation version history** — archive and restore past versions
+- Concurrent translation guard, retry failed, retranslate confirmation, version history
 
 ### v1.1.0
-- **Batch chapter selection** — select and translate/delete multiple chapters at once
-- **Auto-apply glossary** — new terms added automatically after batch translation
-- **Editable raw content** — edit source text inline in the workspace
-- **Copy / Export clean text** — copy or export the translation without markup
-- **Inline glossary form** — add glossary entries without leaving the workspace
+- Batch selection, auto-apply glossary, editable raw content, clean copy/export, inline glossary form
 
 ---
 
 ## Troubleshooting
 
-**DevTools window opens on startup**
-→ Set `debug=False` in `main.py` and restart.
+**New screens don't appear after updating**
+→ The frontend was not rebuilt. Run `npm run build` in `frontend/`, or delete `frontend/dist/` and run `run.bat`.
 
 **"Built frontend not found" error**
-→ Run `run.bat` or manually run `npm run build` in the `frontend/` directory.
+→ Run `run.bat`, or `npm install && npm run build` in `frontend/`.
 
-**Translation hangs for a long time**
-→ Some providers (especially reasoning models) have high latency. Try a faster variant (e.g., GLM-4.7-Flash, DeepSeek-V3) or reduce Reasoning Effort.
+**A worker's model list says `BAWAAN`**
+→ The provider has no key yet or did not answer; the built-in list is shown. Check the key and press ⟳. The hint under the picker shows the provider's error.
 
-**API key not accepted**
-→ Make sure the key is saved (click **Save** in Settings) and the correct provider is selected.
+**ChatGPT sign-in fails**
+→ Press **Continue with ChatGPT** again — an authorization code can only be used once. The page in the browser shows the actual result. If the plan's usage limit is reached, manage it at [chatgpt.com/settings/usage](https://chatgpt.com/settings/usage).
 
-**Batch export produces a plain document (no template styles)**
-→ Place `TemplateNew.docx` in `%APPDATA%\lwntl\` or next to `main.py`. The app logs which path it found (or didn't find) on export.
+**The model often writes no glossary table**
+→ LWNTL falls back to an extraction call and keeps only renderings found in the text (look for `No table found` in the logs). A model that follows the output contract more strictly avoids the extra call.
+
+**Gemini refuses some chapters**
+→ Turn the Gemini **Safety Filter** off in Settings → Provider & API.
+
+**Translation takes a long time**
+→ Reasoning models are slow at high effort. Lower the reasoning effort, or use a faster model.
 
 **Antivirus flags the compiled `.exe`**
-→ Known false positive with PyInstaller. The source code is fully open — build from source if preferred.
+→ Known false positive with PyInstaller. Build from source if preferred.
 
 ---
 
