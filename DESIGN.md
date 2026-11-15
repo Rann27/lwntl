@@ -2,7 +2,7 @@
 
 Desktop translation workspace for long reading and editing sessions. Material-inspired surfaces and restrained elevation, implemented with shadcn/ui and Radix primitives.
 
-Palette: page #f6f8fc, surface #ffffff, text #172033, muted text #58677f, border #dbe2ec, primary #245cce. Dark mode uses cool slate surfaces with brighter blue and semantic status tones.
+Palette: brand/key color #1B365D, page #f6f8fc, surface #ffffff, text #172033, muted text #58677f, border #dbe2ec. Light-mode primary actions, links, and focus use the brand color; secondary/selected surfaces use #e7edf4. Dark mode uses the navy family's lighter tone #b5c7e0 for primary controls, links, and focus, with #243954 tonal surfaces, to retain readable contrast. The canonical --brand token remains #1B365D in both themes. Semantic status tones retain their meanings.
 
 Typography: Segoe UI with system fallbacks for offline Windows use; a readable serif for translated prose. Sentence case, medium-weight labels, and headings that establish the content hierarchy.
 

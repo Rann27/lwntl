@@ -8,7 +8,7 @@ import { useI18n } from '../i18n'
 import type { SeriesGroup, Series, Chapter } from '../types'
 
 export const GROUP_COLORS = [
-  { value: 'var(--fg-cyan,#245cce)', label: 'Blue' }, { value: 'var(--fg-yellow,#805300)', label: 'Amber' },
+  { value: 'var(--fg-cyan,#1b365d)', label: 'Blue' }, { value: 'var(--fg-yellow,#805300)', label: 'Amber' },
   { value: 'var(--fg-green,#17613a)', label: 'Green' }, { value: 'var(--fg-red,#b42336)', label: 'Red' },
   { value: 'var(--fg-orange,#90440e)', label: 'Orange' }, { value: 'var(--fg-purple,#64509d)', label: 'Violet' },
   { value: 'var(--fg-pink,#9e3964)', label: 'Pink' },

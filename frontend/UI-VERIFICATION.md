@@ -2,6 +2,13 @@
 
 Verified on 13 November 2026. Scope: the four application routes, shared controls, navigation, collection cards, editor, settings, and 25 modal/panel components.
 
+## Brand color follow-up: 15 November 2026
+
+- PASS: canonical brand/key color is #1B365D; light primary actions, links, focus, and tonal surfaces use the navy palette. Dark mode uses its lighter #b5c7e0 tone for legibility.
+- PASS: primary text contrast is 12.12:1 in light mode and 8.88:1 in dark mode; tonal accent pairs measure 10.29:1 and 6.83:1 respectively.
+- PASS: rebuilt production frontend and reran all 35 UI/accessibility tests successfully. Reviewed fresh collection screenshots in both themes.
+- PASS: `git diff --check`. Layout, typography, navigation, and semantic status colors are retained.
+
 ## Checks
 
 - PASS: `npm run build`; TypeScript and production bundling complete. Route bundles are split; the largest emitted JavaScript chunk is approximately 221 kB.
