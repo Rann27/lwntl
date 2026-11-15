@@ -21,6 +21,12 @@ export function SeriesCard({ series, chapters, onEdit, onDelete, onMoveToGroup, 
   const done = chapters.filter(c => c.status === 'done').length
   const progress = chapters.length ? Math.round(done / chapters.length * 100) : 0
   const open = () => navigate(`/series/${series.id}/settings`)
+  const id = language === 'id'
+  const status = chapters.length === 0 ? (id ? 'Belum ada bab' : 'No chapters yet')
+    : progress === 100 ? (id ? 'Selesai' : 'Complete')
+    : done === 0 ? (id ? 'Belum dimulai' : 'Not started')
+    : (id ? 'Sedang berjalan' : 'In progress')
+
   return (
     <Card className="group gap-0 overflow-hidden py-0 shadow-xs transition-colors hover:border-primary/40" draggable
       style={{ opacity: isDragging ? 0.4 : 1 }}
@@ -52,7 +58,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete, onMoveToGroup, 
         </div>
         <Progress value={progress} aria-label={language === 'id' ? 'Progres terjemahan' : 'Translation progress'} className="h-1.5" />
         <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
-          <Badge variant="secondary" className="text-[11px] font-normal">{progress === 100 && chapters.length > 0 ? (language === 'id' ? 'Selesai' : 'Complete') : (language === 'id' ? 'Dalam koleksi' : 'In library')}</Badge>
+          <Badge variant="secondary" className="text-[11px] font-normal">{status}</Badge>
           <Button variant="ghost" size="sm" className="-mr-2 text-primary" onClick={open}>{language === 'id' ? 'Buka series' : 'Open series'}<ArrowRight className="size-3.5" /></Button>
         </div>
       </CardContent>

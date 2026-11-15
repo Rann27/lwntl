@@ -223,7 +223,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
                   </select>
                   <Button variant="ghost" type="button" onClick={() => setLibraryOpen(true)} className="flex items-center gap-1"
                     style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, border: '1px solid var(--border)', background: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', padding: '4px 10px', cursor: 'pointer' }}>
-                    <Library size={12} /> PRESET
+                    <Library size={12} /> Preset
                   </Button>
                 </div>
                 {chosenPreset && (
@@ -316,7 +316,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
           </div>
           <div className="flex gap-3">
             <Button variant="outline" onClick={onClose} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--color-surface-2)', fontSize: '12px' }}>
-              TUTUP
+              Tutup
             </Button>
             <Button variant="default"
               onClick={handleSave}
@@ -325,7 +325,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
               style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-orange,#FFCF77)', fontSize: '12px', opacity: (saving || loading) ? 0.5 : 1 }}
             >
               <Save size={13} />
-              {saving ? 'MENYIMPAN...' : 'SIMPAN'}
+              {saving ? 'Menyimpan...' : 'Simpan'}
             </Button>
           </div>
         </div>

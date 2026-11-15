@@ -115,7 +115,7 @@ function RenamePanel({ seriesId, disabled, initial, onApplied }: {
         <span style={{ fontWeight: 600 }}>→</span>
         <Input aria-label="Bentuk benar, mis. Touma" value={newText} onChange={e => { setNewText(e.target.value); setPreview(null) }} placeholder="Bentuk benar, mis. Touma" style={input} />
         <Button variant="outline" onClick={runPreview} disabled={busy || !oldText.trim() || !newText.trim()} className="" style={{ color: 'var(--foreground)',  fontSize: '12px', backgroundColor: 'var(--color-surface-2)', opacity: (!oldText.trim() || !newText.trim()) ? 0.5 : 1 }}>
-          PRATINJAU
+          Pratinjau
         </Button>
       </div>
       {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{err}</p>}
@@ -144,7 +144,7 @@ function RenamePanel({ seriesId, disabled, initial, onApplied }: {
               className="flex items-center gap-1.5"
               style={{ backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', fontSize: '12px', opacity: (busy || disabled || preview.total + preview.glossary.length === 0) ? 0.5 : 1 }}>
               {busy ? <Loader2 size={13} className="animate-spin" /> : <Replace size={13} />}
-              GANTI SEMUA
+              Ganti semua
             </Button>
           </div>
         </div>
@@ -248,7 +248,7 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
         {checkItems.length > 0 && (
           <Button variant="ghost" onClick={() => setReviewing(checkItems)} disabled={disabled}
             style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, padding: '3px 10px', cursor: 'pointer', border: '1px solid var(--border)', backgroundColor: 'var(--bg-orange,#FFB020)', color: 'var(--on-accent,#111)', boxShadow: 'var(--shadow-sm)' }}>
-            TINJAU & PERBAIKI ({checkItems.length})
+            Tinjau & perbaiki ({checkItems.length})
           </Button>
         )}
         <Button aria-label="Audit ulang" variant="ghost" onClick={load} title="Audit ulang" style={{ borderRadius: 'var(--radius)',  marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', display: 'flex' }}>
@@ -277,7 +277,7 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
               <td style={{ padding: '4px 0' }}><Input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} /></td>
               <td style={{ padding: '4px 6px', fontWeight: 600 }}>
                 {r.sourceTerm}
-                {r.character && <span style={{ borderRadius: 'var(--radius)',  marginLeft: 4, fontSize: '9px', padding: '0 4px', border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple,#C9A7FF)' }}>TOKOH</span>}
+                {r.character && <span style={{ borderRadius: 'var(--radius)',  marginLeft: 4, fontSize: '9px', padding: '0 4px', border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple,#C9A7FF)' }}>Tokoh</span>}
               </td>
               <td style={{ padding: '4px 6px' }}>{r.translatedTerm}</td>
               <td style={{ padding: '4px 6px', fontFamily: 'monospace' }}>{r.srcChapters}</td>
@@ -304,13 +304,13 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
         {confirming ? (
           <>
             <span style={{ fontSize: '12px', fontWeight: 600 }}>Hapus {visibleSelected} entri? Cadangan JSON dibuat dulu.</span>
-            <Button variant="outline" onClick={() => setConfirming(false)} className="" style={{ color: 'var(--foreground)',  fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}>BATAL</Button>
-            <Button variant="default" onClick={remove} className="" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF3C3C)', color: 'var(--fg-red)' }}>YA, HAPUS</Button>
+            <Button variant="outline" onClick={() => setConfirming(false)} className="" style={{ color: 'var(--foreground)',  fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}>Batal</Button>
+            <Button variant="default" onClick={remove} className="" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF3C3C)', color: 'var(--fg-red)' }}>Ya, hapus</Button>
           </>
         ) : (
           <Button variant="default" onClick={() => setConfirming(true)} disabled={disabled || visibleSelected === 0} className=""
             style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF3C3C)', color: 'var(--fg-red)', opacity: (disabled || visibleSelected === 0) ? 0.5 : 1 }}>
-            HAPUS TERPILIH
+            Hapus terpilih
           </Button>
         )}
       </div>
@@ -436,7 +436,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
           <div className="flex items-center gap-2">
             <ShieldCheck size={17} color="var(--foreground)" />
             <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'none', letterSpacing: '0.05em' }}>QA Scan</span>
-            <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--on-accent,#111)', border: '1px solid var(--border)', padding: '0 6px' }}>TANPA AI · 0 TOKEN</span>
+            <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--on-accent,#111)', border: '1px solid var(--border)', padding: '0 6px' }}>Tanpa AI · 0 token</span>
             {report && (
               <span className="flex items-center gap-1" style={{ marginLeft: '6px' }}>
                 <SevBadge sev="high" n={report.totals.high} />
@@ -491,7 +491,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                   <span><strong>{autoFixCount}</strong> temuan bisa diperbaiki otomatis tanpa AI ({autoFixCats.map(c => FIX_LABELS[c]?.label ?? c).join(', ')}).</span>
                   <Button variant="default" onClick={fixAll} disabled={applying || disabled} className="flex items-center gap-1.5"
                     style={{ marginLeft: 'auto', fontSize: '11px', padding: '4px 10px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (applying || disabled) ? 0.5 : 1 }}>
-                    {applying ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} PERBAIKI SEMUA AUTO-FIX
+                    {applying ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} Perbaiki semua auto-fix
                   </Button>
                 </div>
               )}
@@ -721,7 +721,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                   className="flex items-center gap-1.5"
                   style={{ backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', fontSize: '12px', opacity: (applying || disabled || !preview || preview.chapters.length === 0) ? 0.5 : 1 }}>
                   {applying ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
-                  TERAPKAN PERBAIKAN
+                  Terapkan perbaikan
                 </Button>
               </div>
             </div>

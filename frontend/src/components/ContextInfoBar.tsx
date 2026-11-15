@@ -30,7 +30,7 @@ export default function ContextInfoBar({ info }: Props) {
     }}>
       <div className="flex items-center justify-between mb-2">
         <span style={{ fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', letterSpacing: '0.05em', color: 'var(--color-text)' }}>
-          CONTEXT WINDOW
+          Context window
         </span>
         <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 600, color: warnColor }}>
           {formatTokens(info.totalTokens)} / {formatTokens(info.availableTokens)} tokens ({utilization}%)

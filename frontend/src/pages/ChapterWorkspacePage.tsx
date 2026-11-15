@@ -332,10 +332,10 @@ export function ChapterWorkspacePage() {
       >
         <div className="flex items-center gap-2">
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
-            {t.chapter.chapter} {chapter.chapterNumber}
+            {t.chapter.chapter} {chapter.chapterNumber}{chapter.title ? ':' : ''}
           </span>
           {chapter.title && (
-            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>: {chapter.title}</span>
+            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{chapter.title}</span>
           )}
         </div>
 

@@ -206,7 +206,7 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
                 style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
               />
               <Button variant="default" onClick={browse} className="flex items-center gap-1" style={{ fontSize: '11px', flexShrink: 0 }}>
-                <FolderOpen size={13} /> BROWSE
+                <FolderOpen size={13} /> Browse
               </Button>
             </div>
             {path.trim() && info && (
@@ -307,8 +307,8 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
             style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-blue,#9AD5FF)', opacity: syncing || !hasSource ? 0.5 : 1 }}
           >
             {syncing
-              ? <><Loader2 size={14} className="animate-spin" /> MEMASANG...</>
-              : <><RefreshCw size={14} /> PASANG KE CHAPTER</>}
+              ? <><Loader2 size={14} className="animate-spin" /> Memasang...</>
+              : <><RefreshCw size={14} /> Pasang ke chapter</>}
           </Button>
         </div>
       </div>

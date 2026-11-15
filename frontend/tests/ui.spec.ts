@@ -154,7 +154,7 @@ test('nested preset dialog stays above its parent and restores focus', async ({ 
   await installMockApi(page)
   await page.goto('/')
   await page.getByRole('button', { name: 'Template prompt', exact: true }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'PRESET', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Preset', exact: true }).click()
   const library = page.getByRole('dialog', { name: 'Prompt preset library' })
   await expect(library).toBeVisible()
   const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze()

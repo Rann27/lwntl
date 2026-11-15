@@ -47,7 +47,7 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-[var(--bg-cyan,#00F7FF)] animate-pulse" />
             <span className="font-space text-sm font-semibold tracking-wide text-[var(--fg-cyan,#00F7FF)]">
-              {isAgent ? 'AGENT RUN' : 'BATCH TRANSLATION'}
+              {isAgent ? 'Agent run' : 'Batch translation'}
             </span>
             <span className="text-xs text-[var(--fg-subtle,#999)] font-mono">
               {completed}/{total} bab
@@ -59,7 +59,7 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
               onClick={onCancel}
               className="px-3 py-1 text-xs font-semibold border-2 border-[var(--fg-red,#FF3C3C)] text-[var(--fg-red,#FF3C3C)] hover:bg-[var(--bg-red,#FF3C3C)] hover:text-white transition-colors"
             >
-              BATAL
+              Batal
             </Button>
           </div>
         </div>

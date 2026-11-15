@@ -86,7 +86,7 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
         <div className="flex items-center gap-2">
           {hasError && (
             <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, color: 'var(--fg-red,#FF3C3C)', padding: '2px 6px', border: '1px solid var(--fg-red,#FF3C3C)', textTransform: 'none' }}>
-              ERROR
+              Error
             </span>
           )}
           {pendingEntries.length > 0 && !expanded && (

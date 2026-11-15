@@ -163,7 +163,7 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
     return (
       <div className="flex flex-col gap-3">
         <p style={{ fontSize: '13px' }}>Tidak ada entri untuk ditinjau.</p>
-        <Button variant="default" onClick={() => onExit(changed)} className="" style={{ fontSize: '12px', alignSelf: 'flex-start' }}>KEMBALI</Button>
+        <Button variant="default" onClick={() => onExit(changed)} className="" style={{ fontSize: '12px', alignSelf: 'flex-start' }}>Kembali</Button>
       </div>
     )
   }
@@ -173,7 +173,7 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
       {/* Top bar */}
       <div className="flex items-center gap-2">
         <Button variant="ghost" onClick={() => onExit(changed)} className="flex items-center gap-1" style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '3px 8px', cursor: 'pointer' }}>
-          <ArrowLeft size={12} /> DAFTAR
+          <ArrowLeft size={12} /> Daftar
         </Button>
         <span style={{ fontSize: '12px', fontWeight: 600, fontFamily: 'monospace' }}>{index + 1} / {items.length}</span>
         <div style={{ flex: 1, height: 6, background: 'var(--color-surface-2)' }}>
@@ -184,7 +184,7 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
             title="Terapkan otomatis pilihan bawaan yang aman: pembersihan huruf kembar, bagian nama yang mengikuti nama lengkapnya, dan duplikat yang terjemahannya sudah sama"
             style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, border: '1px solid var(--border)', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', padding: '3px 8px', cursor: 'pointer', opacity: (bulk || disabled) ? 0.5 : 1 }}>
             {bulk ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
-            {bulk ? `${bulk.done}/${bulk.total}` : `TERAPKAN SARAN YAKIN (${confident.length})`}
+            {bulk ? `${bulk.done}/${bulk.total}` : `Terapkan saran yakin (${confident.length})`}
           </Button>
         )}
       </div>
@@ -194,7 +194,7 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
         <div className="flex items-baseline gap-3 flex-wrap">
           <span style={{ fontSize: '20px', fontWeight: 600 }}>{entry.sourceTerm}</span>
           <span style={{ fontSize: '14px' }}>= {entry.translatedTerm}</span>
-          {entry.character && <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', padding: '0 5px', border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple,#C9A7FF)', fontWeight: 600 }}>TOKOH</span>}
+          {entry.character && <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', padding: '0 5px', border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple,#C9A7FF)', fontWeight: 600 }}>Tokoh</span>}
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>{entry.srcChapters} bab raw · dipakai {entry.usedCount}×</span>
         </div>
         {entry.notes && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{entry.notes}</p>}
@@ -262,24 +262,24 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
           <Button variant="default" onClick={merge} disabled={busy || disabled || !canonical} className="flex items-center gap-1.5"
             style={{ fontSize: '12px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (busy || disabled || !canonical) ? 0.5 : 1 }}>
             {busy ? <Loader2 size={13} className="animate-spin" /> : <Merge size={13} />}
-            GABUNGKAN & LANJUT
+            Gabungkan & lanjut
           </Button>
         ) : (
           <Button variant="default" onClick={applyCanonical} disabled={busy || disabled || !canonical} className="flex items-center gap-1.5"
             style={{ fontSize: '12px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (busy || disabled || !canonical) ? 0.5 : 1 }}>
             {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-            {canonical === entry.translatedTerm && replaceable.length === 0 ? 'SIMPAN & LANJUT' : 'TERAPKAN & LANJUT'}
+            {canonical === entry.translatedTerm && replaceable.length === 0 ? 'Simpan & lanjut' : 'Terapkan & lanjut'}
           </Button>
         )}
         <Button aria-label="Bentuk sekarang sudah benar: masalah ini tidak akan ditandai lagi untuk terjemahan ini" variant="outline" onClick={accept} disabled={busy || disabled} className="flex items-center gap-1.5" style={{ color: 'var(--foreground)',  fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}
           title="Bentuk sekarang sudah benar: masalah ini tidak akan ditandai lagi untuk terjemahan ini">
-          <ShieldCheck size={13} /> SUDAH BENAR
+          <ShieldCheck size={13} /> Sudah benar
         </Button>
         <Button variant="default" onClick={remove} disabled={busy || disabled} className="flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)' }}>
-          <Trash2 size={13} /> HAPUS ENTRI
+          <Trash2 size={13} /> Hapus entri
         </Button>
         <Button variant="outline" onClick={() => goTo(index + 1)} disabled={busy} className="flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'transparent' }}>
-          <SkipForward size={13} /> LEWATI
+          <SkipForward size={13} /> Lewati
         </Button>
         {index > 0 && (
           <Button variant="ghost" onClick={() => goTo(index - 1)} disabled={busy} style={{ borderRadius: 'var(--radius)',  marginLeft: 'auto', fontSize: '11px', background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}>

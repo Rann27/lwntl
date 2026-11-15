@@ -54,7 +54,7 @@ export function DeleteConfirmModal({
 
   if (!open) return null
 
-  const typeLabel = entityType === 'series' ? 'SERIES' : entityType === 'chapter' ? 'BAB' : entityType === 'group' ? 'GRUP' : 'ENTRI'
+  const typeLabel = entityType === 'series' ? 'series' : entityType === 'chapter' ? 'bab' : entityType === 'group' ? 'grup' : 'entri'
 
   return (
     <ModalSurface label="Confirm deletion" onClose={onClose} dismissible={!loading}

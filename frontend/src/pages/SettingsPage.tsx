@@ -205,7 +205,7 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
     <div className="p-6" style={{ borderRadius: 'var(--radius)',  backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
       <div className="flex items-center justify-between mb-2">
         <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px', color: 'var(--color-text)' }}>
-          WORKERS
+          Workers
         </h2>
         <Button variant="default" onClick={addWorker} className="flex items-center gap-1" style={{ padding: '6px 12px', fontSize: '12px' }}>
           <Plus size={14} /> {t.common.add}
@@ -304,7 +304,7 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
       </div>
 
       <Button variant="default" onClick={handleSave} disabled={saving || workers.some(w => !w.model.trim())} className="w-full mt-4" style={{ opacity: saving ? 0.5 : 1 }}>
-        {saving ? t.common.saving : 'SIMPAN WORKERS'}
+        {saving ? t.common.saving : 'Simpan workers'}
       </Button>
     </div>
   )
@@ -604,7 +604,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                     }}
                     style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,var(--color-primary))', cursor: 'pointer', textTransform: 'none' }}
                   >
-                    <Plus size={11} /> ADD KEY
+                    <Plus size={11} /> Add key
                   </Button>
                 </div>
                 <div className="space-y-2">
@@ -635,7 +635,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                         </Button>
                       </div>
                       {idx === 0 && (
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--fg-muted,#888)', whiteSpace: 'nowrap' }}>DEFAULT</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--fg-muted,#888)', whiteSpace: 'nowrap' }}>Default</span>
                       )}
                       <Button aria-label="Close" variant="ghost"
                         onClick={() => setDeepseekApiKeys(prev => prev.filter(k => k.id !== entry.id))}
@@ -648,7 +648,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                   ))}
                   {deepseekApiKeys.length === 0 && (
                     <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', fontStyle: 'italic' }}>
-                      Belum ada key. Klik ADD KEY untuk menambahkan.
+                      Belum ada key. Klik Add key untuk menambahkan.
                     </p>
                   )}
                 </div>
@@ -663,61 +663,61 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                   <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px', maxWidth: '420px', lineHeight: 1.5 }}>
                     {geminiSafetyFilter
                       ? 'Default Google: konten fanservice/ecchi kadang ditolak.'
-                      : 'Mode paling longgar: threshold OFF untuk harassment, hate speech, seksual, dan dangerous content. Proteksi inti Google tetap berlaku.'}
+                      : 'Mode paling longgar: threshold Off untuk harassment, hate speech, seksual, dan dangerous content. Proteksi inti Google tetap berlaku.'}
                   </p>
                 </div>
                 <Switch aria-label="Gemini safety filter" checked={geminiSafetyFilter} onCheckedChange={value => { setGeminiSafetyFilter(value); setTestResult(null) }} className="ml-3" />
               </div>
             )}
             {provider === 'zhipuai' && (
-              <OptionRow title="Reasoning Effort" desc="Mulai GLM-5.2. GLM-5.3 / 5.3-Flash hanya LOW/HIGH/MAX (MED dan XHIGH dipetakan otomatis); GLM-5.2 dan 5.3-FlashX menerima semua level. DEFAULT = MAX. Tidak dikirim saat thinking OFF."
+              <OptionRow title="Reasoning Effort" desc="Mulai GLM-5.2. GLM-5.3 / 5.3-Flash hanya Low/High/Max (Med dan XHigh dipetakan otomatis); GLM-5.2 dan 5.3-FlashX menerima semua level. Default = Max. Tidak dikirim saat thinking Off."
                 value={zhipuaiReasoningEffort} onChange={v => { setZhipuaiReasoningEffort(v as EffortSetting); setTestResult(null) }}
-                options={[['default', 'DEFAULT'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
+                options={[['default', 'Default'], ['low', 'Low'], ['medium', 'Med'], ['high', 'High'], ['xhigh', 'XHigh'], ['max', 'Max']]} />
             )}
             {provider === 'xai' && (
-              <OptionRow title="Reasoning Effort" desc="Grok selalu berpikir. Grok 4.6/4.7 menerima XHIGH; 4.5 maksimal HIGH; 4.3 dan 4.20 tidak menerima effort (otomatis tidak dikirim)."
+              <OptionRow title="Reasoning Effort" desc="Grok selalu berpikir. Grok 4.6/4.7 menerima XHigh; 4.5 maksimal High; 4.3 dan 4.20 tidak menerima effort (otomatis tidak dikirim)."
                 value={xaiReasoningEffort} onChange={v => { setXaiReasoningEffort(v as AppConfig['xaiReasoningEffort']); setTestResult(null) }}
-                options={[['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH']]} />
+                options={[['low', 'Low'], ['medium', 'Med'], ['high', 'High'], ['xhigh', 'XHigh']]} />
             )}
             {provider === 'openai' && (
-              <OptionRow title="Reasoning Effort" desc="GPT-6 selalu reasoning dan tidak menerima temperature. NONE hanya ada di GPT-6 Luna (model lain otomatis ke LOW). DEFAULT = bawaan model (medium)."
+              <OptionRow title="Reasoning Effort" desc="GPT-6 selalu reasoning dan tidak menerima temperature. None hanya ada di GPT-6 Luna (model lain otomatis ke Low). Default = bawaan model (medium)."
                 value={openaiReasoningEffort} onChange={v => { setOpenaiReasoningEffort(v as EffortSetting); setTestResult(null) }}
-                options={[['default', 'DEFAULT'], ['none', 'NONE'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
+                options={[['default', 'Default'], ['none', 'None'], ['low', 'Low'], ['medium', 'Med'], ['high', 'High'], ['xhigh', 'XHigh'], ['max', 'Max']]} />
             )}
             {provider === 'anthropic' && (
-              <OptionRow title="Effort" desc="Claude 5.x berpikir adaptif dan menolak temperature: effort mengatur kedalaman sekaligus biaya. DEFAULT = medium (Opus/Haiku 5.5) atau high (Sonnet 5.5, Fable 5.1)."
+              <OptionRow title="Effort" desc="Claude 5.x berpikir adaptif dan menolak temperature: effort mengatur kedalaman sekaligus biaya. Default = medium (Opus/Haiku 5.5) atau high (Sonnet 5.5, Fable 5.1)."
                 value={anthropicEffort} onChange={v => { setAnthropicEffort(v as EffortSetting); setTestResult(null) }}
-                options={[['default', 'DEFAULT'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
+                options={[['default', 'Default'], ['low', 'Low'], ['medium', 'Med'], ['high', 'High'], ['xhigh', 'XHigh'], ['max', 'Max']]} />
             )}
             {provider === 'gemini' && (
-              <OptionRow title="Thinking Level" desc="Gemini 3 tidak bisa mematikan thinking; LOW/MED/HIGH mengatur kedalamannya. DEFAULT = bawaan model."
+              <OptionRow title="Thinking Level" desc="Gemini 3 tidak bisa mematikan thinking; Low/Med/High mengatur kedalamannya. Default = bawaan model."
                 value={geminiReasoningEffort} onChange={v => { setGeminiReasoningEffort(v as EffortSetting); setTestResult(null) }}
-                options={[['default', 'DEFAULT'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH']]} />
+                options={[['default', 'Default'], ['low', 'Low'], ['medium', 'Med'], ['high', 'High']]} />
             )}
             {provider === 'qwen' && (
-              <ToggleRow title="Thinking" desc="Qwen 3.7/3.8 berpikir secara default. OFF = jawab langsung (lebih cepat dan murah)."
+              <ToggleRow title="Thinking" desc="Qwen 3.7/3.8 berpikir secara default. Off = jawab langsung (lebih cepat dan murah)."
                 on={qwenThinking} onToggle={() => { setQwenThinking(v => !v); setTestResult(null) }} />
             )}
             {provider === 'moonshot' && (
               <>
                 <OptionRow title="Region" desc="Key dari platform internasional (platform.kimi.ai) atau China (platform.moonshot.cn): tidak bisa dipertukarkan."
                   value={moonshotRegion} onChange={v => { setMoonshotRegion(v as AppConfig['moonshotRegion']); setTestResult(null) }}
-                  options={[['international', 'INTL'], ['china', 'CHINA']]} />
-                <OptionRow title="Effort (Kimi K3)" desc="Temperature Kimi dikunci 1.0 oleh provider (tidak dikirim). DEFAULT = MAX."
+                  options={[['international', 'Intl'], ['china', 'China']]} />
+                <OptionRow title="Effort (Kimi K3)" desc="Temperature Kimi dikunci 1.0 oleh provider (tidak dikirim). Default = Max."
                   value={moonshotReasoningEffort} onChange={v => { setMoonshotReasoningEffort(v as EffortSetting); setTestResult(null) }}
-                  options={[['default', 'DEFAULT'], ['low', 'LOW'], ['high', 'HIGH'], ['max', 'MAX']]} />
+                  options={[['default', 'Default'], ['low', 'Low'], ['high', 'High'], ['max', 'Max']]} />
                 <ToggleRow title="Thinking (Kimi K2.6)" desc="K2.6 bisa menjawab tanpa berpikir. K2.7 Code selalu berpikir."
                   on={moonshotThinking} onToggle={() => { setMoonshotThinking(v => !v); setTestResult(null) }} />
               </>
             )}
             {provider === 'openrouter' && (
               <>
-                <OptionRow title="Reasoning" desc="Diterjemahkan per model dari katalog OpenRouter: level yang tidak ada dipetakan ke yang terdekat, model berbasis anggaran (Qwen) diberi token budget, dan OFF diabaikan bila reasoning wajib. Lihat baris 'Dikirim' di tiap worker."
+                <OptionRow title="Reasoning" desc="Diterjemahkan per model dari katalog OpenRouter: level yang tidak ada dipetakan ke yang terdekat, model berbasis anggaran (Qwen) diberi token budget, dan Off diabaikan bila reasoning wajib. Lihat baris 'Dikirim' di tiap worker."
                   value={openrouterReasoning} onChange={v => { setOpenrouterReasoning(v as AppConfig['openrouterReasoning']); setTestResult(null) }}
-                  options={[['default', 'DEFAULT'], ['off', 'OFF'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
-                <OptionRow title="Routing" desc="Satu model bisa dilayani beberapa penyedia. DEFAULT = OpenRouter menyeimbangkan harga & uptime."
+                  options={[['default', 'Default'], ['off', 'Off'], ['low', 'Low'], ['medium', 'Med'], ['high', 'High'], ['xhigh', 'XHigh'], ['max', 'Max']]} />
+                <OptionRow title="Routing" desc="Satu model bisa dilayani beberapa penyedia. Default = OpenRouter menyeimbangkan harga & uptime."
                   value={openrouterSort} onChange={v => { setOpenrouterSort(v as AppConfig['openrouterSort']); setTestResult(null) }}
-                  options={[['', 'DEFAULT'], ['price', 'MURAH'], ['throughput', 'CEPAT'], ['latency', 'LATENSI']]} />
+                  options={[['', 'Default'], ['price', 'Murah'], ['throughput', 'Cepat'], ['latency', 'Latensi']]} />
                 <ToggleRow title="Tolak penyedia yang menyimpan data" desc="Hanya pakai penyedia yang tidak menyimpan/melatih dari prompt. Pilihan penyedia jadi lebih sedikit (kadang lebih mahal)."
                   on={openrouterDeny} onToggle={() => { setOpenrouterDeny(v => !v); setTestResult(null) }} />
               </>
@@ -748,14 +748,14 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
               }
               const EFFORT_OPTIONS = isDeepseek
                 ? [
-                    { value: 'low',  label: 'LOW',  color: 'var(--fg-green,#28E272)' },
-                    { value: 'high', label: 'HIGH', color: 'var(--fg-yellow,#FFD600)' },
-                    { value: 'max',  label: 'MAX',  color: 'var(--fg-red,#FF3C3C)' },
+                    { value: 'low',  label: 'Low',  color: 'var(--fg-green,#28E272)' },
+                    { value: 'high', label: 'High', color: 'var(--fg-yellow,#FFD600)' },
+                    { value: 'max',  label: 'Max',  color: 'var(--fg-red,#FF3C3C)' },
                   ]
                 : [
-                    { value: 'low',    label: 'LOW',  color: 'var(--fg-green,#28E272)' },
-                    { value: 'medium', label: 'MED',  color: 'var(--fg-yellow,#FFD600)' },
-                    { value: 'high',   label: 'HIGH', color: 'var(--fg-red,#FF3C3C)' },
+                    { value: 'low',    label: 'Low',  color: 'var(--fg-green,#28E272)' },
+                    { value: 'medium', label: 'Med',  color: 'var(--fg-yellow,#FFD600)' },
+                    { value: 'high',   label: 'High', color: 'var(--fg-red,#FF3C3C)' },
                   ]
               return (
                 <>
@@ -783,7 +783,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                         letterSpacing: '0.4px',
                       }}
                     >
-                      {thinkingOn ? 'ON' : 'OFF'}
+                      {thinkingOn ? 'On' : 'Off'}
                     </Button>
                   </div>
                   {hasEffort && (

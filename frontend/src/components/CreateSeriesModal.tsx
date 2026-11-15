@@ -66,7 +66,7 @@ export function CreateSeriesModal({ open, onClose, onSubmit, config, loading }: 
             <div className="flex items-center gap-2">
               <Plus size={20} />
               <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px' }}>
-                {t.home.addSeries.replace('+ ', '')}
+                {t.home.addSeries}
               </h2>
             </div>
             <Button aria-label="Close" variant="ghost" onClick={onClose} className="hover:opacity-70" style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer' }}>

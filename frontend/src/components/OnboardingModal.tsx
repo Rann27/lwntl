@@ -168,7 +168,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
           {step === 1 && (
             <div>
               <h2 className="text-center mb-4" style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '18px' }}>
-                API KEY
+                API key
               </h2>
               <p className="text-center mb-5" style={{ fontSize: '13px', color: 'var(--fg-muted,#666)' }}>
                 {providerInfo[provider].name}

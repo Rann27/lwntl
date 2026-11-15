@@ -934,7 +934,7 @@ export function CreateChapterModal({
                           className="flex items-center gap-1"
                           style={{ fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
                         >
-                          <ScanSearch size={13} /> PRE-PREVIEW
+                          <ScanSearch size={13} /> Pre-preview
                         </Button>
                         <Button variant="default"
                           onClick={() => parseAllPdfEntries(topM, botM)}
@@ -942,7 +942,7 @@ export function CreateChapterModal({
                           className=""
                           style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-cyan,#00F7FF)', fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
                         >
-                          PARSE ALL {docQueuedCount}
+                          Parse all {docQueuedCount}
                         </Button>
                       </>
                     )

@@ -127,7 +127,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
           <div className="flex items-center gap-2" style={{ color: 'var(--on-accent,#111)', minWidth: 0 }}>
             <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '15px', textTransform: 'none' }}>Tinjau Bab {detail?.chapterNumber ?? ''}</span>
             <span className="truncate" style={{ fontSize: '12px', opacity: 0.75 }}>{detail?.title}</span>
-            {archived && <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, border: '1px solid var(--border)', padding: '0 6px' }}>VERSI SEBELUMNYA DIARSIPKAN</span>}
+            {archived && <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, border: '1px solid var(--border)', padding: '0 6px' }}>Versi sebelumnya diarsipkan</span>}
           </div>
           <Button aria-label="Close" variant="ghost" onClick={() => onClose(changed)} style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></Button>
         </div>
@@ -171,7 +171,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                 }}>
                   <span style={{ fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>¶{f.para} </span>
                   <code style={{ fontWeight: 600 }}>{f.type}</code>
-                  {f.fix && <span style={{ marginLeft: 4, fontSize: '9px', fontWeight: 600, color: 'var(--fg-green,#28E272)' }}>AUTO</span>}
+                  {f.fix && <span style={{ marginLeft: 4, fontSize: '9px', fontWeight: 600, color: 'var(--fg-green,#28E272)' }}>Auto</span>}
                   <div style={{ color: 'var(--color-text-muted)' }}>{say(f)}</div>
                 </Button>
               ))}
@@ -219,7 +219,7 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                             <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', color: 'var(--fg-green,#28E272)' }}>Perbaikan otomatis (tanpa AI)</div>
                             <div style={{ borderRadius: 'var(--radius)',  fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid var(--fg-green,#28E272)' }}>{preview}</div>
                             <Button variant="ghost" onClick={() => save(preview)} disabled={busy || disabled} style={{ ...small, marginTop: '4px', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)' }}>
-                              <Wand2 size={12} /> TERAPKAN PERBAIKAN OTOMATIS
+                              <Wand2 size={12} /> Terapkan perbaikan otomatis
                             </Button>
                           </div>
                         )}
@@ -230,15 +230,15 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                             style={{ borderRadius: 'var(--radius)',  width: '100%', fontSize: '14px', lineHeight: 1.6, padding: '6px 8px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', resize: 'vertical', outline: 'none' }} />
                           <div className="flex items-center gap-2 flex-wrap" style={{ marginTop: '4px' }}>
                             <Button variant="ghost" onClick={() => save(draft)} disabled={busy || disabled || !draft.trim() || draft === p} style={{ ...small, background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (!draft.trim() || draft === p) ? 0.5 : 1 }}>
-                              {busy ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} SIMPAN
+                              {busy ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Simpan
                             </Button>
                             <Button variant="ghost" onClick={() => save('')} disabled={busy || disabled} style={{ ...small, background: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)' }}>
-                              <Trash2 size={12} /> HAPUS PARAGRAF
+                              <Trash2 size={12} /> Hapus paragraf
                             </Button>
                             <Button aria-label="Satu panggilan ke model worker series ini" variant="ghost" onClick={askAi} disabled={suggesting || busy} style={{ ...small, background: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)' }} title="Satu panggilan ke model worker series ini">
-                              {suggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} MINTA SARAN AI
+                              {suggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} Minta saran AI
                             </Button>
-                            <Button variant="ghost" onClick={() => { setSelected(null); setSuggestion(null) }} style={{ ...small, background: 'transparent', marginLeft: 'auto' }}>TUTUP</Button>
+                            <Button variant="ghost" onClick={() => { setSelected(null); setSuggestion(null) }} style={{ ...small, background: 'transparent', marginLeft: 'auto' }}>Tutup</Button>
                           </div>
                         </div>
 
@@ -252,10 +252,10 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                             )}
                             <div className="flex gap-2" style={{ marginTop: '4px' }}>
                               <Button variant="ghost" onClick={() => save(suggestion.del ? '' : suggestion.text)} disabled={busy || disabled} style={{ ...small, background: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)' }}>
-                                TERAPKAN SARAN
+                                Terapkan saran
                               </Button>
                               {!suggestion.del && (
-                                <Button variant="ghost" onClick={() => setDraft(suggestion.text)} style={{ ...small, background: 'transparent' }}>SALIN KE EDITOR</Button>
+                                <Button variant="ghost" onClick={() => setDraft(suggestion.text)} style={{ ...small, background: 'transparent' }}>Salin ke editor</Button>
                               )}
                             </div>
                           </div>

@@ -74,7 +74,7 @@ export function BatchersListPanel({ open, onClose }: Props) {
                 color: 'var(--color-text)',
               }}
             >
-              BATCH AKTIF
+              Batch aktif
             </h2>
             {entries.length > 0 && (
               <span
@@ -150,10 +150,10 @@ export function BatchersListPanel({ open, onClose }: Props) {
                     <div className="flex items-center gap-2 shrink-0">
                       {isActive && <div className="w-2 h-2 bg-[var(--bg-cyan,#00F7FF)] animate-pulse" />}
                       {isDone && (
-                        <span style={{ fontSize: '10px', color: 'var(--fg-green,#28E272)', fontWeight: 600 }}>✓ SELESAI</span>
+                        <span style={{ fontSize: '10px', color: 'var(--fg-green,#28E272)', fontWeight: 600 }}>✓ Selesai</span>
                       )}
                       {isCancelled && (
-                        <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>DIBATALKAN</span>
+                        <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>Dibatalkan</span>
                       )}
                       {isActive && (
                         <Button variant="ghost"
@@ -168,7 +168,7 @@ export function BatchersListPanel({ open, onClose }: Props) {
                             cursor: 'pointer',
                           }}
                         >
-                          BATAL
+                          Batal
                         </Button>
                       )}
                     </div>

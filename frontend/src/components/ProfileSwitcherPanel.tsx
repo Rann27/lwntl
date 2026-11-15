@@ -116,7 +116,7 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
           <div className="flex items-center gap-2">
             <Layers size={15} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
             <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '14px', color: 'var(--color-text)' }}>
-              PROFIL
+              Profil
             </span>
           </div>
           <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
@@ -184,7 +184,7 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
                   {isRenaming ? (
                     <>
                       <Button variant="ghost" onClick={() => handleRenameSubmit(name)} style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--fg-green,#28E272)', border: '1px solid var(--fg-green,#28E272)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>OK</Button>
-                      <Button variant="ghost" onClick={() => setRenamingProfile(null)} style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--fg-muted,#888)', border: '1px solid var(--fg-muted,#888)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>BATAL</Button>
+                      <Button variant="ghost" onClick={() => setRenamingProfile(null)} style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--fg-muted,#888)', border: '1px solid var(--fg-muted,#888)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>Batal</Button>
                     </>
                   ) : (
                     <>
@@ -234,7 +234,7 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
                 style={{ borderRadius: 'var(--radius)',  flex: 1, fontSize: '12px', fontWeight: 600, padding: '5px 8px', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
               />
               <Button variant="default" onClick={handleCreate} disabled={!creatingName.trim() || !!loading} className="" style={{ color: 'var(--foreground)',  fontSize: '11px', backgroundColor: 'var(--bg-orange,#FFCF77)', opacity: (!creatingName.trim() || !!loading) ? 0.5 : 1 }}>
-                BUAT
+                Buat
               </Button>
             </div>
           ) : (

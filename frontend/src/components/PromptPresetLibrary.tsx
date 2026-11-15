@@ -124,7 +124,7 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
             <div style={groupLabel}>Milikku</div>
             {mine.length === 0 && (
               <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', padding: '0 8px 8px', lineHeight: 1.5 }}>
-                Belum ada. Pilih preset bawaan lalu tekan DUPLIKAT untuk membuat versi yang bisa diedit.
+                Belum ada. Pilih preset bawaan lalu tekan Duplikat untuk membuat versi yang bisa diedit.
               </p>
             )}
             {mine.map(item)}
@@ -154,7 +154,7 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
                 </div>
                 {selected.builtin && (
                   <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5, borderLeft: '1px solid var(--fg-cyan,#00F7FF)', paddingLeft: '8px' }}>
-                    Preset bawaan diperbarui bersama LWNTL, jadi tidak bisa diedit langsung. Tekan DUPLIKAT untuk membuat salinan milikmu: salinan itu bisa diedit dan dipilih di series maupun profil mana pun.
+                    Preset bawaan diperbarui bersama LWNTL, jadi tidak bisa diedit langsung. Tekan Duplikat untuk membuat salinan milikmu: salinan itu bisa diedit dan dipilih di series maupun profil mana pun.
                   </p>
                 )}
                 <Textarea aria-label="Preset prompt" value={text} readOnly={selected.builtin} onChange={e => { setText(e.target.value); setDirty(true) }}
@@ -163,16 +163,16 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
                 {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{err}</p>}
                 <div className="flex items-center gap-2">
                   <Button variant="default" onClick={duplicate} disabled={busy} className="flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)' }}>
-                    {busy ? <Loader2 size={13} className="animate-spin" /> : <Copy size={13} />} DUPLIKAT
+                    {busy ? <Loader2 size={13} className="animate-spin" /> : <Copy size={13} />} Duplikat
                   </Button>
                   {!selected.builtin && (
                     <>
                       <Button variant="default" onClick={save} disabled={busy || !dirty || !name.trim()} className="flex items-center gap-1.5"
                         style={{ fontSize: '12px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (busy || !dirty || !name.trim()) ? 0.5 : 1 }}>
-                        <Save size={13} /> SIMPAN
+                        <Save size={13} /> Simpan
                       </Button>
                       <Button variant="default" onClick={remove} disabled={busy} className="flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)', marginLeft: 'auto' }}>
-                        <Trash2 size={13} /> HAPUS
+                        <Trash2 size={13} /> Hapus
                       </Button>
                     </>
                   )}

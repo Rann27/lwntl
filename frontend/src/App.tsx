@@ -43,7 +43,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
             onClick={() => this.setState({ error: null })}
             style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  marginTop: 16, padding: '8px 16px', border: '1px solid var(--border)', background: 'var(--bg-cyan,#00F7FF)', fontWeight: 600, cursor: 'pointer' }}
           >
-            RETRY
+            Retry
           </Button>
         </div>
       )

@@ -114,7 +114,7 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
             <div className="flex items-center gap-2">
               <Settings size={20} style={{ color: 'var(--color-text)' }} />
               <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px', color: 'var(--color-text)' }}>
-                PENGATURAN APLIKASI
+                Pengaturan aplikasi
               </h2>
             </div>
             <Button aria-label="Close" variant="ghost" onClick={onClose} className="hover:opacity-70" style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)' }}>
@@ -184,7 +184,7 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
                   </Label>
                   {isActive && (
                     <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, backgroundColor: 'var(--bg-cyan,var(--color-primary))', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1px solid var(--color-border)', textTransform: 'none' }}>
-                      AKTIF
+                      Aktif
                     </span>
                   )}
                   {docsUrl && (
@@ -233,7 +233,7 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
               style={{ padding: '8px 16px', fontSize: '12px', opacity: testing ? 0.5 : 1 }}
             >
               {testing ? <Loader2 size={13} className="animate-spin" /> : <TestTube size={13} />}
-              TEST PROVIDER AKTIF
+              Test provider aktif
             </Button>
           </div>
 
@@ -262,10 +262,10 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
               className=""
               style={{ backgroundColor: 'var(--color-surface-2)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
             >
-              BATAL
+              Batal
             </Button>
             <Button variant="default" onClick={handleSave} className="">
-              SIMPAN
+              Simpan
             </Button>
           </div>
         </div>

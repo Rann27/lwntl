@@ -279,7 +279,7 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
         </span>
         <div className="flex items-center gap-2">
           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-            {entries.length} {t.seriesSettings.addEntry.replace('+ ', '').toLowerCase()}
+            {entries.length} {t.seriesSettings.addEntry.toLowerCase()}
           </span>
 
           {/* Import */}

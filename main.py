@@ -57,6 +57,16 @@ def get_html_file():
         return html_file.as_uri()
 
 
+def _window_background() -> str:
+    """Match the window background to the saved theme so the first paint does not flash."""
+    try:
+        from core.storage.config import get_config
+        dark = get_config().get('theme') == 'dark'
+    except Exception:
+        dark = False
+    return '#101722' if dark else '#F6F8FC'
+
+
 def main():
     """Main entry point for PyWebView application"""
     
@@ -93,7 +103,7 @@ def main():
         js_api=api,
         width=WINDOW_WIDTH,
         height=WINDOW_HEIGHT,
-        background_color="#F8F3EA"
+        background_color=_window_background()
     )
     
     # Set window reference on API after creation

@@ -349,7 +349,7 @@ export function PromptModelPanel({
             </select>
             <Button aria-label="Lihat, duplikat, dan edit preset" variant="default" type="button" onClick={() => setLibraryOpen(true)} className="flex items-center gap-1"
               style={{ fontSize: '12px', padding: '4px 10px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)' }} title="Lihat, duplikat, dan edit preset">
-              <Library size={12} /> PRESET
+              <Library size={12} /> Preset
             </Button>
           </div>
           <Textarea aria-label={loadingDefault ? t.common.loading : 'System prompt...'}
@@ -408,7 +408,7 @@ export function PromptModelPanel({
               {t.seriesSettings.instructionPrompt}
               {!instructionsActive && (
                 <span style={{ borderRadius: 'var(--radius)',  marginLeft: '8px', fontSize: '12px', fontWeight: 600, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-separator)', color: 'var(--color-text-subtle)', letterSpacing: 'normal' }}>
-                  TIDAK DIPAKAI
+                  Tidak dipakai
                 </span>
               )}
             </Label>
@@ -461,7 +461,7 @@ export function PromptModelPanel({
                 </Button>
               </div>
               <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', margin: 0, lineHeight: 1.5 }}>
-                Untuk mematikan instructions di SEMUA series pada profil ini, kosongkan
+                Untuk mematikan instructions di Semua series pada profil ini, kosongkan
                 Instructions Template lewat menu Profile Templates.
               </p>
             </div>
@@ -583,7 +583,7 @@ export function PromptModelPanel({
                   title={deepseekThinkingOn ? 'DeepSeek thinking mode aktif: temperature tidak berpengaruh' : (reqParams?.notes.join(' · ') || 'Model ini tidak menerima temperature')}
                   style={{ fontSize: '12px', fontWeight: 600, padding: '1px 6px', backgroundColor: 'var(--bg-yellow,#FFEF33)', color: 'var(--on-accent,#111)', letterSpacing: 'normal' }}
                 >
-                  {deepseekThinkingOn ? 'diabaikan · thinking ON' : 'tidak dikirim · model'}
+                  {deepseekThinkingOn ? 'diabaikan · thinking On' : 'tidak dikirim · model'}
                 </span>
               )}
             </div>

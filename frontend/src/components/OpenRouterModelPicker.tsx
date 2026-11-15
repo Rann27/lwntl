@@ -73,7 +73,7 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
           {current.priceCacheRead !== null && ` · cache ${fmtPrice(current.priceCacheRead)}`}
           {current.reasoning && ` · reasoning ${current.efforts.length ? current.efforts.join('/') : current.budgetReasoning ? 'budget' : 'on'}${current.reasoningMandatory ? ' (wajib)' : ''}`}
           {!current.temperature && ' · temperature tidak diterima'}
-          {!current.tools && ' · TANPA tool calling (agent pakai mode cadangan)'}
+          {!current.tools && ' · Tanpa tool calling (agent pakai mode cadangan)'}
         </div>
       )}
 
@@ -84,7 +84,7 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
             <Input aria-label="cari: kimi, gemini, deepseek…" autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="cari: kimi, gemini, deepseek…"
               style={{ borderRadius: 'var(--radius)',  flex: 1, border: 'none', outline: 'none', fontSize: '13px', background: 'transparent', color: 'var(--color-text)' }} />
             <Label className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}>
-              <Input type="checkbox" checked={onlyTools} onChange={e => setOnlyTools(e.target.checked)} /> TOOLS
+              <Input type="checkbox" checked={onlyTools} onChange={e => setOnlyTools(e.target.checked)} /> Tools
             </Label>
             <Button aria-label="Muat ulang katalog" variant="ghost" type="button" onClick={() => load(true)} title="Muat ulang katalog" style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', display: 'flex' }}>
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
@@ -107,8 +107,8 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
                   {m.reasoning && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-purple,#C9A7FF)', color: '#9B6BFF', padding: '0 4px', fontWeight: 600 }}>
                     R {m.efforts.length ? m.efforts.join('/') : m.budgetReasoning ? 'budget' : ''}
                   </span>}
-                  {m.tools && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-green,#28E272)', color: '#1BA556', padding: '0 4px', fontWeight: 600 }}>TOOLS</span>}
-                  {!m.temperature && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', padding: '0 4px', fontWeight: 600 }}>NO TEMP</span>}
+                  {m.tools && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-green,#28E272)', color: '#1BA556', padding: '0 4px', fontWeight: 600 }}>Tools</span>}
+                  {!m.temperature && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', padding: '0 4px', fontWeight: 600 }}>No temp</span>}
                   {m.expires && <span style={{ color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>pensiun {m.expires}</span>}
                 </div>
               </Button>

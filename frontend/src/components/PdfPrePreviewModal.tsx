@@ -130,7 +130,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
           <div className="flex items-center gap-2">
             <ScanSearch size={16} />
             <span style={{ fontWeight: 600, fontSize: '14px', textTransform: 'none', letterSpacing: '0.4px' }}>
-              PDF PRE-PREVIEW
+              PDF pre-preview
             </span>
             {file && (
               <span style={{ fontSize: '12px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
@@ -224,7 +224,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                   backgroundColor: 'var(--bg-surface,#fff)', padding: '1px 4px', border: '1px solid var(--fg-red,#FF3C3C)',
                   userSelect: 'none',
                 }}>
-                  TOP CUT {topMargin}pt
+                  Top cut {topMargin}pt
                 </div>
               </div>
 
@@ -243,7 +243,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                   backgroundColor: 'var(--bg-surface,#fff)', padding: '1px 4px', border: '1px solid var(--fg-red,#FF3C3C)',
                   userSelect: 'none',
                 }}>
-                  BOTTOM CUT {bottomMargin}pt
+                  Bottom cut {bottomMargin}pt
                 </div>
               </div>
 
@@ -287,7 +287,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
 
           <div className="flex gap-3">
             <Button variant="outline" onClick={onClose} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-surface-2,#F0F0F0)', fontSize: '12px' }}>
-              CANCEL
+              Cancel
             </Button>
             <Button variant="default"
               onClick={() => onParseAll(topMargin, bottomMargin)}
@@ -295,7 +295,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
               className=""
               style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-orange,#FFCF77)', fontSize: '12px', opacity: isLoading ? 0.5 : 1 }}
             >
-              PARSE {queuedCount} FILE{queuedCount !== 1 ? 'S' : ''}
+              Parse {queuedCount} file{queuedCount !== 1 ? 's' : ''}
             </Button>
           </div>
         </div>

@@ -104,8 +104,8 @@ export function ChatGPTCard({ config, onSave }: { config: AppConfig; onSave: (c:
     <div className="flex flex-col gap-3 p-4" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', boxShadow: 'var(--shadow-sm)' }}>
       <div className="flex items-center gap-2 flex-wrap">
         <span style={{ fontSize: '13px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px' }}>ChatGPT</span>
-        <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, padding: '1px 6px', border: '1px solid var(--color-border)' }}>TANPA API KEY</span>
-        {status?.connected && <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, padding: '1px 6px', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', border: '1px solid var(--color-border)' }}>TERHUBUNG</span>}
+        <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, padding: '1px 6px', border: '1px solid var(--color-border)' }}>Tanpa API key</span>
+        {status?.connected && <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, padding: '1px 6px', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', border: '1px solid var(--color-border)' }}>Terhubung</span>}
       </div>
       <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
         Pakai paket ChatGPT-mu (Go, Plus, Pro, Business) untuk menerjemahkan: fitur resmi OpenAI <em>Sign in with ChatGPT</em> untuk aplikasi open-source yang berjalan lokal. Login terjadi di browser; token tersimpan hanya di komputer ini.
@@ -122,17 +122,17 @@ export function ChatGPTCard({ config, onSave }: { config: AppConfig; onSave: (c:
           <div className="flex items-center gap-2 flex-wrap">
             <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'none' }}>Reasoning</span>
             <div className="flex gap-1 flex-wrap">
-              {effortBtn('default', 'DEFAULT')}{effortBtn('low', 'LOW')}{effortBtn('medium', 'MED')}{effortBtn('high', 'HIGH')}{effortBtn('xhigh', 'XHIGH')}{effortBtn('max', 'MAX')}{effortBtn('ultra', 'ULTRA')}
+              {effortBtn('default', 'Default')}{effortBtn('low', 'Low')}{effortBtn('medium', 'Med')}{effortBtn('high', 'High')}{effortBtn('xhigh', 'XHigh')}{effortBtn('max', 'Max')}{effortBtn('ultra', 'Ultra')}
             </div>
           </div>
           <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', lineHeight: 1.5 }}>
-            Model paket ChatGPT tidak bisa mematikan reasoning: LOW adalah yang paling ringan (dan bawaan sebagian besar model).
-            Level yang tidak ada di model terpilih dipetakan ke yang terdekat (mis. ULTRA → MAX di Luna).
+            Model paket ChatGPT tidak bisa mematikan reasoning: Low adalah yang paling ringan (dan bawaan sebagian besar model).
+            Level yang tidak ada di model terpilih dipetakan ke yang terdekat (mis. Ultra → Max di Luna).
             Temperature dan batas output tidak dikirim; daftar model mengikuti paketmu (pilih di tab Worker).
           </p>
           <Button variant="ghost" onClick={disconnect} className="flex items-center gap-1.5 self-start"
             style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '4px 10px', cursor: 'pointer' }}>
-            <LogOut size={12} /> PUTUSKAN
+            <LogOut size={12} /> Putuskan
           </Button>
         </>
       ) : pending ? (

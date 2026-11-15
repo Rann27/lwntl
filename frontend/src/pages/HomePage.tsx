@@ -334,7 +334,7 @@ export function HomePage() {
             </Button>
             <Button onClick={() => setCreateOpen(true)}>
               <Plus size={18} />
-              {t.home.addSeries.replace('+ ', '')}
+              {t.home.addSeries}
             </Button>
           </div>
         </div>
@@ -407,12 +407,12 @@ export function HomePage() {
           ) : loadError ? (
             <div className="flex flex-col items-center justify-center py-20" style={{ gridColumn: '1 / -1' }}>
               <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '18px', color: 'var(--fg-red,#FF3C3C)', marginBottom: '8px' }}>
-                GAGAL MEMUAT SERIES
+                Gagal memuat series
               </h2>
               <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
                 {loadError}
               </p>
-              <Button variant="default" onClick={loadData} className="">RETRY</Button>
+              <Button variant="default" onClick={loadData} className="">Retry</Button>
             </div>
           ) : isEmpty ? (
             <div className="flex flex-col items-center justify-center py-20" style={{ gridColumn: '1 / -1' }}>
@@ -435,7 +435,7 @@ export function HomePage() {
               </p>
               <Button variant="default" onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
                 <Plus size={16} />
-                {t.home.addSeries.replace('+ ', '')}
+                {t.home.addSeries}
               </Button>
             </div>
           ) : (
@@ -488,7 +488,7 @@ export function HomePage() {
                       {t.group.addSubGroup}
                     </Button>
                     <Button variant="default" onClick={() => setCreateOpen(true)} className="" style={{ fontSize: '12px', padding: '6px 14px' }}>
-                      {t.home.addSeries.replace('+ ', '')}
+                      {t.home.addSeries}
                     </Button>
                   </div>
                 </div>

@@ -47,11 +47,11 @@ export function WorkerLogPanel({ open, onClose }: Props) {
       <div style={{ borderRadius: 'var(--radius)',  width: 'min(980px, 100%)', maxHeight: '85vh', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-lg)', display: 'flex', flexDirection: 'column' }}>
         <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '18px', color: 'var(--color-text)' }}>
-            WORKER LOG
+            Worker log
           </h2>
           <div className="flex items-center gap-2">
             <Button variant="default" onClick={load} className="flex items-center gap-1" style={{ padding: '5px 10px', fontSize: '11px', opacity: loading ? 0.5 : 1 }}>
-              <RefreshCw size={13} /> REFRESH
+              <RefreshCw size={13} /> Refresh
             </Button>
             <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
               <X size={20} />

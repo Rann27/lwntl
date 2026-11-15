@@ -118,7 +118,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
           <div className="flex items-center gap-3">
             <BookText size={16} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
             <span style={{ fontFamily: 'var(--font-body)', fontWeight: 650, fontSize: '14px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--foreground)' }}>
-              ROLLING MEMORY
+              Rolling memory
             </span>
             <span style={{ fontSize: '11px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
               {chaptersWithSummary.length} / {chapters.length} chapters summarized
@@ -192,7 +192,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                                 letterSpacing: 'normal',
                               }}
                             >
-                              {hasSummary ? 'EDIT' : '+ ADD'}
+                              {hasSummary ? 'Edit' : '+ Add'}
                             </Button>
                           )}
                           {!isEditing && hasSummary && (
@@ -211,7 +211,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                                 opacity: saving ? 0.5 : 1,
                               }}
                             >
-                              CLEAR
+                              Clear
                             </Button>
                           )}
                           {isEditing && (
@@ -235,7 +235,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                                 }}
                               >
                                 <Save size={10} />
-                                {saving ? 'SAVING...' : 'SAVE'}
+                                {saving ? 'Saving...' : 'Save'}
                               </Button>
                               <Button variant="ghost"
                                 onClick={cancelEdit}
@@ -250,7 +250,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                                   letterSpacing: 'normal',
                                 }}
                               >
-                                CANCEL
+                                Cancel
                               </Button>
                             </>
                           )}
@@ -328,7 +328,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
               cursor: 'pointer',
             }}
           >
-            CLOSE
+            Close
           </Button>
         </div>
       </div>

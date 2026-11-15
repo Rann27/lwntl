@@ -630,7 +630,7 @@ export function SeriesSettingsPage() {
             title="Periksa seluruh terjemahan tanpa AI: sisa huruf Jepang, omisi, varian nama, ejaan, dan lainnya"
           >
             <ShieldCheck size={14} />
-            QA SCAN
+            QA scan
           </Button>
 
           {/* Terminology pre-pass: build the glossary before translating */}
@@ -641,7 +641,7 @@ export function SeriesSettingsPage() {
             title="Pindai raw semua chapter untuk mengunci istilah sebelum menerjemahkan"
           >
             <ScanSearch size={14} />
-            PRE-PASS TERMS
+            Pre-pass terms
           </Button>
 
           {/* Image source: link placeholder lines to real images */}
@@ -652,7 +652,7 @@ export function SeriesSettingsPage() {
             title="Tetapkan folder gambar untuk mengisi Image Placeholder"
           >
             <ImageIcon size={14} />
-            IMAGE SOURCE
+            Image source
           </Button>
 
           {/* All Extracted Terms */}
@@ -663,7 +663,7 @@ export function SeriesSettingsPage() {
               style={{ color: 'var(--foreground)',  backgroundColor: inconsistencyCount > 0 ? 'var(--bg-red,#FFE0E0)' : 'var(--bg-purple,#E8D5FF)' }}
             >
               <BookOpen size={14} />
-              ALL TERMS ({chapters.reduce((n, c) => n + (c.glossaryUpdates?.entries?.length ?? 0), 0)})
+              All terms ({chapters.reduce((n, c) => n + (c.glossaryUpdates?.entries?.length ?? 0), 0)})
             </Button>
             {inconsistencyCount > 0 && (
               <span
@@ -694,7 +694,7 @@ export function SeriesSettingsPage() {
             style={{ color: 'var(--fg-cyan,#00F7FF)' }}
           >
             <BookText size={14} />
-            ROLLING MEMORY ({chapters.filter(c => c.summary).length}/{chapters.length})
+            Rolling memory ({chapters.filter(c => c.summary).length}/{chapters.length})
           </Button>
 
           {/* Memory toggle */}
@@ -718,7 +718,7 @@ export function SeriesSettingsPage() {
             className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm bg-card active:shadow-none transition-all"
           >
             <ScrollText size={14} />
-            LOGS {seriesLogLines.length > 0 && <span className="font-normal">({seriesLogLines.length})</span>}
+            Logs {seriesLogLines.length > 0 && <span className="font-normal">({seriesLogLines.length})</span>}
           </Button>
 
           {showLogs && (

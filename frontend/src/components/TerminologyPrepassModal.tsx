@@ -138,7 +138,7 @@ export function TerminologyPrepassModal({
                   </p>
                   <Button variant="default" onClick={run}>
                     <ScanSearch size={14} style={{ display: 'inline', marginRight: '6px' }} />
-                    MULAI PEMINDAIAN
+                    Mulai pemindaian
                   </Button>
                 </>
               )}
@@ -150,7 +150,7 @@ export function TerminologyPrepassModal({
               <AlertCircle size={30} color="var(--fg-red,#FF3C3C)" />
               <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--fg-red,#FF3C3C)' }}>Gagal</p>
               <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', maxWidth: '520px' }}>{error}</p>
-              <Button variant="default" onClick={run} className="">COBA LAGI</Button>
+              <Button variant="default" onClick={run} className="">Coba lagi</Button>
             </div>
           )}
 
@@ -208,10 +208,10 @@ export function TerminologyPrepassModal({
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setSelected(new Set(terms.map((_, i) => i)))} className="" style={{ color: 'var(--foreground)',  fontSize: '11px', backgroundColor: 'var(--color-surface-2)' }}>
-                PILIH SEMUA
+                Pilih semua
               </Button>
               <Button variant="outline" onClick={() => setSelected(new Set())} className="" style={{ color: 'var(--foreground)',  fontSize: '11px', backgroundColor: 'var(--color-surface-2)' }}>
-                KOSONGKAN
+                Kosongkan
               </Button>
               <Button variant="default"
                 onClick={apply}
@@ -220,8 +220,8 @@ export function TerminologyPrepassModal({
                 style={{ backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: selected.size === 0 || phase === 'applying' ? 0.5 : 1 }}
               >
                 {phase === 'applying'
-                  ? <><Loader2 size={13} className="animate-spin" style={{ display: 'inline', marginRight: '6px' }} /> MENYIMPAN...</>
-                  : <><Check size={13} style={{ display: 'inline', marginRight: '6px' }} /> TAMBAHKAN {selected.size}</>}
+                  ? <><Loader2 size={13} className="animate-spin" style={{ display: 'inline', marginRight: '6px' }} /> Menyimpan...</>
+                  : <><Check size={13} style={{ display: 'inline', marginRight: '6px' }} /> Tambahkan {selected.size}</>}
               </Button>
             </div>
           </div>
