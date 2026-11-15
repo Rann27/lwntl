@@ -1,3 +1,8 @@
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Switch } from '@/components/ui/switch'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * LWNTL Settings Page
  * Tabs: General (app language, theme, language lists), Providers & API (one card
@@ -62,7 +67,8 @@ const gridStyle = (min: number): React.CSSProperties => ({
 })
 
 const cardStyle: React.CSSProperties = {
-  backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)', minWidth: 0,
+  borderRadius: '12px', overflow: 'hidden',
+  backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', minWidth: 0,
 }
 
 export function SettingsPage() {
@@ -96,36 +102,32 @@ export function SettingsPage() {
         <div className="flex flex-col gap-5" style={{ width: '100%', maxWidth: '1320px', margin: '0 auto', padding: 'clamp(12px, 3vw, 32px)' }}>
 
           {/* Tabs */}
-          <div className="flex flex-wrap self-start" style={{ ...cardStyle }}>
-            {tabs.map(([key, label], i) => (
-              <button key={key} onClick={() => setTab(key)} style={{
-                padding: '9px 18px', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px',
-                border: 'none', borderLeft: i ? '2.5px solid var(--color-border)' : 'none', cursor: 'pointer',
-                backgroundColor: tab === key ? 'var(--bg-cyan,var(--color-primary))' : 'transparent', color: tab === key ? 'var(--on-accent,#111)' : 'var(--color-text)',
-              }}>{label}</button>
-            ))}
-          </div>
+          <div><h1 className="ui-h1 mb-2">{t.settings.title}</h1><p className="text-sm text-muted-foreground">{config?.uiLanguage === 'en' ? 'Customize the app, provider connections, and translation workers.' : 'Sesuaikan aplikasi, koneksi provider, dan worker terjemahan.'}</p></div>
+          <Tabs value={tab} onValueChange={value => setTab(value as SettingsTab)}>
+            <TabsList aria-label={t.settings.title}>
+              {tabs.map(([key, label]) => <TabsTrigger key={key} value={key}>{label}</TabsTrigger>)}
+            </TabsList>
 
           {!config && <p style={{ color: 'var(--color-text-subtle)', fontSize: '14px' }}>{t.common.loading}</p>}
 
           {config && tab === 'general' && (
-            <div style={gridStyle(380)}>
+            <TabsContent value="general" className="mt-4" style={gridStyle(380)}>
               <AppLanguageSection config={config} onSave={handleSave} />
               <ThemeSection config={config} onSave={handleSave} />
               <div className="p-6" style={cardStyle}>
-                <h2 className="flex items-center gap-2 mb-5" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+                <h2 className="flex items-center gap-2 mb-5" style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px', color: 'var(--color-text)' }}>
                   <Languages size={20} />
                   {t.settings.languages}
                 </h2>
                 <LanguageForm config={config} onSave={handleSave} />
               </div>
-            </div>
+            </TabsContent>
           )}
 
           {config && tab === 'providers' && (
-            <>
+            <TabsContent value="providers" className="mt-4 space-y-5">
               <div>
-                <h2 className="mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+                <h2 className="mb-1" style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px', color: 'var(--color-text)' }}>
                   {t.settings.apiKeys}
                 </h2>
                 <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -133,10 +135,11 @@ export function SettingsPage() {
                 </p>
               </div>
               <ApiKeysForm config={config} onSave={handleSave} />
-            </>
+            </TabsContent>
           )}
 
-          {config && tab === 'workers' && <WorkerSection config={config} onSave={handleSave} />}
+          {config && tab === 'workers' && <TabsContent value="workers" className="mt-4"><WorkerSection config={config} onSave={handleSave} /></TabsContent>}
+          </Tabs>
         </div>
       </main>
     </div>
@@ -199,46 +202,47 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
   }
 
   return (
-    <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
+    <div className="p-6" style={{ borderRadius: 'var(--radius)',  backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
       <div className="flex items-center justify-between mb-2">
-        <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+        <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px', color: 'var(--color-text)' }}>
           WORKERS
         </h2>
-        <button onClick={addWorker} className="neo-button flex items-center gap-1" style={{ padding: '6px 12px', fontSize: '12px' }}>
+        <Button variant="default" onClick={addWorker} className="flex items-center gap-1" style={{ padding: '6px 12px', fontSize: '12px' }}>
           <Plus size={14} /> {t.common.add}
-        </button>
+        </Button>
       </div>
       <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
-        Setiap worker adalah slot AI terpisah. Worker tidak terkunci ke satu series — setiap request menggunakan worker dengan slot tersedia (prioritas ke worker pilihan series). Naikkan <strong>Max Concurrent</strong> untuk menjalankan beberapa translasi sekaligus dalam satu worker.
+        Setiap worker adalah slot AI terpisah. Worker tidak terkunci ke satu series: setiap request menggunakan worker dengan slot tersedia (prioritas ke worker pilihan series). Naikkan <strong>Max Concurrent</strong> untuk menjalankan beberapa translasi sekaligus dalam satu worker.
       </p>
 
       <div style={gridStyle(340)}>
         {workers.map((worker, index) => {
           return (
-            <div key={worker.id} className="p-3" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+            <div key={worker.id} className="p-3" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
               <div className="flex items-center gap-2 mb-3">
-                <input
+                <Input aria-label={`worker ${index + 1}`}
                   value={worker.label}
                   onChange={(e) => updateWorker(worker.id, { label: e.target.value })}
                   placeholder={`worker ${index + 1}`}
-                  className="neo-input flex-1"
+                  className="ui-input flex-1"
                   style={{ padding: '6px 10px', fontSize: '13px' }}
                 />
-                <button
+                <Button aria-label="Remove worker" variant="ghost"
                   onClick={() => removeWorker(worker.id)}
                   disabled={workers.length <= 1}
-                  style={{ border: '2px solid var(--color-border)', background: 'var(--bg-red,#FF3C3C)', color: '#fff', padding: '7px', opacity: workers.length <= 1 ? 0.4 : 1, cursor: workers.length <= 1 ? 'not-allowed' : 'pointer' }}
+                  style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', background: 'var(--bg-red,#FF3C3C)', color: 'var(--fg-red)', padding: '7px', opacity: workers.length <= 1 ? 0.4 : 1, cursor: workers.length <= 1 ? 'not-allowed' : 'pointer' }}
                   title="Remove worker"
                 >
                   <X size={14} />
-                </button>
+                </Button>
               </div>
 
               <div className="flex flex-col gap-2">
                 <select
                   value={worker.provider}
+                  aria-label={`Provider worker ${index + 1}`}
                   onChange={(e) => updateWorker(worker.id, { provider: e.target.value as WorkerProfile['provider'] })}
-                  className="neo-input"
+                  className="ui-input"
                   style={{ padding: '6px 10px', fontSize: '13px', backgroundColor: 'var(--color-surface)' }}
                 >
                   {Object.entries(PROVIDERS).map(([key, provider]) => {
@@ -260,13 +264,13 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
 
               {worker.provider === 'deepseek' && config.deepseekApiKeys?.length > 1 && (
                 <div className="flex items-center gap-2 mt-2">
-                  <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                  <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
                     DeepSeek Key
-                  </label>
-                  <select
+                  </Label>
+                  <select aria-label="DeepSeek Key"
                     value={worker.deepseekApiKeyId || ''}
                     onChange={e => updateWorker(worker.id, { deepseekApiKeyId: e.target.value || undefined })}
-                    className="neo-input flex-1"
+                    className="ui-input flex-1"
                     style={{ padding: '4px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)' }}
                   >
                     <option value="">Default ({config.deepseekApiKeys[0]?.label})</option>
@@ -278,19 +282,19 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
               )}
 
               <div className="flex items-center gap-2 mt-2">
-                <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
+                <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>
                   Max Concurrent
-                </label>
-                <input
+                </Label>
+                <Input aria-label="Max Concurrent"
                   type="number"
                   min={1}
                   max={10}
                   value={worker.maxConcurrent ?? 1}
                   onChange={(e) => updateWorker(worker.id, { maxConcurrent: Math.max(1, Math.min(10, parseInt(e.target.value) || 1)) })}
-                  className="neo-input"
+                  className="ui-input"
                   style={{ width: '70px', padding: '4px 8px', fontSize: '13px', backgroundColor: 'var(--color-surface)', textAlign: 'center' }}
                 />
-                <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)' }}>
+                <span style={{ fontSize: '12px', color: 'var(--color-text-subtle)' }}>
                   jobs sekaligus (1–10)
                 </span>
               </div>
@@ -299,9 +303,9 @@ function WorkerSection({ config, onSave }: { config: AppConfig; onSave: (c: AppC
         })}
       </div>
 
-      <button onClick={handleSave} disabled={saving || workers.some(w => !w.model.trim())} className="neo-button w-full mt-4" style={{ opacity: saving ? 0.5 : 1 }}>
+      <Button variant="default" onClick={handleSave} disabled={saving || workers.some(w => !w.model.trim())} className="w-full mt-4" style={{ opacity: saving ? 0.5 : 1 }}>
         {saving ? t.common.saving : 'SIMPAN WORKERS'}
-      </button>
+      </Button>
     </div>
   )
 }
@@ -320,8 +324,8 @@ function AppLanguageSection({ config, onSave }: { config: AppConfig; onSave: (c:
   }
 
   return (
-    <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
-      <h2 className="flex items-center gap-2 mb-2" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+    <div className="p-6" style={{ borderRadius: 'var(--radius)',  backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+      <h2 className="flex items-center gap-2 mb-2" style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px', color: 'var(--color-text)' }}>
         <Globe size={20} />
         {t.settings.appLanguage}
       </h2>
@@ -330,19 +334,19 @@ function AppLanguageSection({ config, onSave }: { config: AppConfig; onSave: (c:
       </p>
       <div className="flex items-center gap-3">
         {LANGUAGE_OPTIONS.map((opt) => (
-          <button
+          <Button variant="ghost"
             key={opt.value}
             onClick={() => handleChange(opt.value)}
             disabled={saving}
-            style={{
+            style={{ borderRadius: 'var(--radius)',
               flex: 1,
               padding: '14px',
-              border: `2.5px solid var(--color-border)`,
-              boxShadow: language === opt.value ? 'var(--neo-shadow)' : 'none',
+              border: `1px solid var(--color-border)`,
+              boxShadow: language === opt.value ? 'var(--shadow-sm)' : 'none',
               backgroundColor: language === opt.value ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface-2)',
               cursor: 'pointer',
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 700,
+              fontFamily: 'var(--font-body)',
+              fontWeight: 600,
               fontSize: '13px',
               color: 'var(--color-text)',
               display: 'flex',
@@ -351,11 +355,11 @@ function AppLanguageSection({ config, onSave }: { config: AppConfig; onSave: (c:
               gap: '8px',
             }}
           >
-            {opt.flag} {opt.label}
-          </button>
+            {opt.label}
+          </Button>
         ))}
       </div>
-      {saving && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '8px' }}>{t.common.saving}</p>}
+      {saving && <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '8px' }}>{t.common.saving}</p>}
     </div>
   )
 }
@@ -379,23 +383,23 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
   }
 
   return (
-    <div className="p-6" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
-      <h2 className="mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+    <div className="p-6" style={{ borderRadius: 'var(--radius)',  backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+      <h2 className="mb-4" style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px', color: 'var(--color-text)' }}>
         {t.settings.appearance}
       </h2>
       <div className="flex items-center gap-3">
-        <button
+        <Button variant="ghost"
           onClick={() => handleSave('light')}
           disabled={saving}
-          style={{
+          style={{ borderRadius: 'var(--radius)',
             flex: 1,
             padding: '14px',
-            border: `2.5px solid var(--color-border)`,
-            boxShadow: theme === 'light' ? 'var(--neo-shadow)' : 'none',
+            border: `1px solid var(--color-border)`,
+            boxShadow: theme === 'light' ? 'var(--shadow-sm)' : 'none',
             backgroundColor: theme === 'light' ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface-2)',
             cursor: 'pointer',
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 700,
+            fontFamily: 'var(--font-body)',
+            fontWeight: 600,
             fontSize: '13px',
             color: 'var(--color-text)',
             display: 'flex',
@@ -405,19 +409,19 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
           }}
         >
           <Sun size={16} /> {t.settings.lightMode}
-        </button>
-        <button
+        </Button>
+        <Button variant="ghost"
           onClick={() => handleSave('dark')}
           disabled={saving}
-          style={{
+          style={{ borderRadius: 'var(--radius)',
             flex: 1,
             padding: '14px',
-            border: `2.5px solid var(--color-border)`,
-            boxShadow: theme === 'dark' ? 'var(--neo-shadow)' : 'none',
+            border: `1px solid var(--color-border)`,
+            boxShadow: theme === 'dark' ? 'var(--shadow-sm)' : 'none',
             backgroundColor: theme === 'dark' ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface-2)',
             cursor: 'pointer',
-            fontFamily: "'Space Grotesk', sans-serif",
-            fontWeight: 700,
+            fontFamily: 'var(--font-body)',
+            fontWeight: 600,
             fontSize: '13px',
             color: 'var(--color-text)',
             display: 'flex',
@@ -427,9 +431,9 @@ function ThemeSection({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
           }}
         >
           <Moon size={16} /> {t.settings.darkMode}
-        </button>
+        </Button>
       </div>
-      {saving && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '8px' }}>{t.common.saving}</p>}
+      {saving && <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '8px' }}>{t.common.saving}</p>}
     </div>
   )
 }
@@ -533,56 +537,56 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
         return (
           <div key={field} style={{ ...cardStyle, padding: '14px 16px' }}>
             <div className="flex items-center gap-2 mb-1.5">
-              <label style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
+              <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
                 {label} API Key
-              </label>
+              </Label>
               {isActive && (
-                <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--bg-cyan,var(--color-primary))', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
+                <span style={{ borderRadius: 'var(--radius)',  fontSize: '12px', fontWeight: 600, backgroundColor: 'var(--bg-cyan,var(--color-primary))', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1px solid var(--color-border)', textTransform: 'none' }}>
                   {t.common.active}
                 </span>
               )}
               {hasKey && !isActive && (
-                <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
+                <span style={{ borderRadius: 'var(--radius)',  fontSize: '12px', fontWeight: 600, backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1px solid var(--color-border)', textTransform: 'none' }}>
                   ✓
                 </span>
               )}
               {docsUrl && (
-                <a href={docsUrl} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--color-text-muted)', textDecoration: 'none', fontWeight: 600 }}>
+                <a href={docsUrl} target="_blank" rel="noreferrer" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '12px', color: 'var(--color-text-muted)', textDecoration: 'none', fontWeight: 600 }}>
                   <ExternalLink size={10} /> {t.settings.seeModels}
                 </a>
               )}
             </div>
             <div className="relative">
-              <input
+              <Input aria-label={t.settings.enterApiKey.replace('{label}', label)}
                 type={showKey[field] ? 'text' : 'password'}
                 value={keys[field] || ''}
                 onChange={(e) => { setKeys(prev => ({ ...prev, [field]: e.target.value })); setTestResult(null) }}
                 placeholder={t.settings.enterApiKey.replace('{label}', label)}
-                className="neo-input"
+                className="ui-input"
                 style={{ paddingRight: '40px', fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: isActive ? 'var(--color-border)' : 'var(--color-separator)' }}
               />
-              <button
+              <Button aria-label="Show or hide API key" variant="ghost"
                 onClick={() => setShowKey(prev => ({ ...prev, [field]: !prev[field] }))}
                 className="absolute right-2 top-1/2 -translate-y-1/2"
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
               >
                 {showKey[field] ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
+              </Button>
             </div>
             {hasBaseUrl && (
               <div className="mt-2">
-                <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+                <Label style={{ display: 'block', fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
                   Base URL
-                </label>
-                <input
+                </Label>
+                <Input aria-label="Base URL"
                   type="text"
                   value={baseUrl}
                   onChange={(e) => { setBaseUrl(e.target.value); setTestResult(null) }}
                   placeholder="http://localhost:11434/v1"
-                  className="neo-input"
+                  className="ui-input"
                   style={{ fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: isActive ? 'var(--color-border)' : 'var(--color-separator)' }}
                 />
-                <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
+                <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
                   Compatible with Ollama, LM Studio, LocalAI, or any OpenAI-compatible endpoint.
                 </p>
               </div>
@@ -590,60 +594,60 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
             {provider === 'deepseek' && (
               <div className="mt-3">
                 <div className="flex items-center justify-between mb-2">
-                  <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)' }}>
+                  <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text-muted)' }}>
                     API Keys ({deepseekApiKeys.length})
-                  </label>
-                  <button
+                  </Label>
+                  <Button variant="ghost"
                     onClick={() => {
                       const newEntry: DeepSeekApiKeyEntry = { id: crypto.randomUUID(), label: `Key ${deepseekApiKeys.length + 1}`, key: '' }
                       setDeepseekApiKeys(prev => [...prev, newEntry])
                     }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 10px', fontSize: '10px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,var(--color-primary))', cursor: 'pointer', textTransform: 'uppercase' }}
+                    style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  display: 'flex', alignItems: 'center', gap: '4px', padding: '3px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,var(--color-primary))', cursor: 'pointer', textTransform: 'none' }}
                   >
                     <Plus size={11} /> ADD KEY
-                  </button>
+                  </Button>
                 </div>
                 <div className="space-y-2">
                   {deepseekApiKeys.map((entry, idx) => (
                     <div key={entry.id} className="flex items-center gap-2">
-                      <input
+                      <Input aria-label="Label"
                         value={entry.label}
                         onChange={e => setDeepseekApiKeys(prev => prev.map(k => k.id === entry.id ? { ...k, label: e.target.value } : k))}
                         placeholder="Label"
-                        className="neo-input"
+                        className="ui-input"
                         style={{ width: '110px', flexShrink: 0, padding: '5px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
                       />
                       <div className="relative flex-1">
-                        <input
+                        <Input aria-label="sk-..."
                           type={showKey[`ds_${entry.id}`] ? 'text' : 'password'}
                           value={entry.key}
                           onChange={e => setDeepseekApiKeys(prev => prev.map(k => k.id === entry.id ? { ...k, key: e.target.value } : k))}
                           placeholder="sk-..."
-                          className="neo-input"
+                          className="ui-input"
                           style={{ paddingRight: '36px', fontSize: '12px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
                         />
-                        <button
+                        <Button aria-label="Show or hide API key" variant="ghost"
                           onClick={() => setShowKey(prev => ({ ...prev, [`ds_${entry.id}`]: !prev[`ds_${entry.id}`] }))}
                           className="absolute right-2 top-1/2 -translate-y-1/2"
-                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                          style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
                         >
                           {showKey[`ds_${entry.id}`] ? <EyeOff size={13} /> : <Eye size={13} />}
-                        </button>
+                        </Button>
                       </div>
                       {idx === 0 && (
-                        <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--fg-muted,#888)', whiteSpace: 'nowrap' }}>DEFAULT</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--fg-muted,#888)', whiteSpace: 'nowrap' }}>DEFAULT</span>
                       )}
-                      <button
+                      <Button aria-label="Close" variant="ghost"
                         onClick={() => setDeepseekApiKeys(prev => prev.filter(k => k.id !== entry.id))}
                         disabled={deepseekApiKeys.length <= 1}
-                        style={{ border: '2px solid var(--color-border)', background: 'var(--bg-red,#FF3C3C)', color: '#fff', padding: '5px', cursor: deepseekApiKeys.length <= 1 ? 'not-allowed' : 'pointer', opacity: deepseekApiKeys.length <= 1 ? 0.4 : 1, flexShrink: 0 }}
+                        style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', background: 'var(--bg-red,#FF3C3C)', color: 'var(--fg-red)', padding: '5px', cursor: deepseekApiKeys.length <= 1 ? 'not-allowed' : 'pointer', opacity: deepseekApiKeys.length <= 1 ? 0.4 : 1, flexShrink: 0 }}
                       >
                         <X size={12} />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                   {deepseekApiKeys.length === 0 && (
-                    <p style={{ fontSize: '11px', color: 'var(--color-text-subtle)', fontStyle: 'italic' }}>
+                    <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', fontStyle: 'italic' }}>
                       Belum ada key. Klik ADD KEY untuk menambahkan.
                     </p>
                   )}
@@ -651,29 +655,18 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
               </div>
             )}
             {provider === 'gemini' && (
-              <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+              <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
                 <div>
-                  <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px' }}>
                     Safety Filter
                   </span>
-                  <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', maxWidth: '420px', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px', maxWidth: '420px', lineHeight: 1.5 }}>
                     {geminiSafetyFilter
-                      ? 'Default Google — konten fanservice/ecchi kadang ditolak.'
+                      ? 'Default Google: konten fanservice/ecchi kadang ditolak.'
                       : 'Mode paling longgar: threshold OFF untuk harassment, hate speech, seksual, dan dangerous content. Proteksi inti Google tetap berlaku.'}
                   </p>
                 </div>
-                <button
-                  onClick={() => { setGeminiSafetyFilter(v => !v); setTestResult(null) }}
-                  style={{
-                    flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700,
-                    border: '2px solid var(--color-border)', cursor: 'pointer',
-                    textTransform: 'uppercase', letterSpacing: '0.4px',
-                    backgroundColor: geminiSafetyFilter ? 'var(--bg-green,#28E272)' : 'var(--bg-red,#FF3C3C)',
-                    color: '#fff',
-                  }}
-                >
-                  {geminiSafetyFilter ? 'ON' : 'OFF'}
-                </button>
+                <Switch aria-label="Gemini safety filter" checked={geminiSafetyFilter} onCheckedChange={value => { setGeminiSafetyFilter(value); setTestResult(null) }} className="ml-3" />
               </div>
             )}
             {provider === 'zhipuai' && (
@@ -692,7 +685,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                 options={[['default', 'DEFAULT'], ['none', 'NONE'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
             )}
             {provider === 'anthropic' && (
-              <OptionRow title="Effort" desc="Claude 5.x berpikir adaptif dan menolak temperature — effort mengatur kedalaman sekaligus biaya. DEFAULT = medium (Opus/Haiku 5.5) atau high (Sonnet 5.5, Fable 5.1)."
+              <OptionRow title="Effort" desc="Claude 5.x berpikir adaptif dan menolak temperature: effort mengatur kedalaman sekaligus biaya. DEFAULT = medium (Opus/Haiku 5.5) atau high (Sonnet 5.5, Fable 5.1)."
                 value={anthropicEffort} onChange={v => { setAnthropicEffort(v as EffortSetting); setTestResult(null) }}
                 options={[['default', 'DEFAULT'], ['low', 'LOW'], ['medium', 'MED'], ['high', 'HIGH'], ['xhigh', 'XHIGH'], ['max', 'MAX']]} />
             )}
@@ -707,7 +700,7 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
             )}
             {provider === 'moonshot' && (
               <>
-                <OptionRow title="Region" desc="Key dari platform internasional (platform.kimi.ai) atau China (platform.moonshot.cn) — tidak bisa dipertukarkan."
+                <OptionRow title="Region" desc="Key dari platform internasional (platform.kimi.ai) atau China (platform.moonshot.cn): tidak bisa dipertukarkan."
                   value={moonshotRegion} onChange={v => { setMoonshotRegion(v as AppConfig['moonshotRegion']); setTestResult(null) }}
                   options={[['international', 'INTL'], ['china', 'CHINA']]} />
                 <OptionRow title="Effort (Kimi K3)" desc="Temperature Kimi dikunci 1.0 oleh provider (tidak dikirim). DEFAULT = MAX."
@@ -766,62 +759,62 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
                   ]
               return (
                 <>
-                  <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+                  <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
                     <div>
-                      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px' }}>
                         {t.settings.deepseekThinking}
                       </span>
-                      <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
                         {thinkingDesc}
                       </p>
                     </div>
-                    <button
+                    <Button variant="ghost"
                       onClick={toggle}
-                      style={{
+                      style={{ borderRadius: 'var(--radius)',
                         flexShrink: 0,
                         padding: '4px 12px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        border: '2px solid var(--color-border)',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        border: '1px solid var(--color-border)',
                         backgroundColor: thinkingOn ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface)',
                         color: thinkingOn ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
                         cursor: 'pointer',
-                        textTransform: 'uppercase',
+                        textTransform: 'none',
                         letterSpacing: '0.4px',
                       }}
                     >
                       {thinkingOn ? 'ON' : 'OFF'}
-                    </button>
+                    </Button>
                   </div>
                   {hasEffort && (
-                    <div className="mt-1 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', borderTop: 'none', backgroundColor: 'var(--color-surface-2)' }}>
+                    <div className="mt-1 flex items-center justify-between px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', borderTop: 'none', backgroundColor: 'var(--color-surface-2)' }}>
                       <div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px' }}>
                           {t.settings.deepseekReasoningEffort}
                         </span>
-                        <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+                        <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
                           {effortDesc}
                         </p>
                       </div>
                       <div className="flex gap-1 flex-wrap justify-end" style={{ marginLeft: '12px' }}>
                         {EFFORT_OPTIONS.map(opt => (
-                          <button
+                          <Button variant="ghost"
                             key={opt.value}
                             onClick={() => setEffort(opt.value)}
-                            style={{
+                            style={{ borderRadius: 'var(--radius)',
                               padding: '4px 10px',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              border: '2px solid var(--color-border)',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              border: '1px solid var(--color-border)',
                               backgroundColor: currentEffort === opt.value ? opt.color : 'var(--color-surface)',
                               color: currentEffort === opt.value ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
                               cursor: 'pointer',
-                              textTransform: 'uppercase',
+                              textTransform: 'none',
                               letterSpacing: '0.4px',
                             }}
                           >
                             {opt.label}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     </div>
@@ -835,17 +828,17 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
 
       </div>
 
-      {/* Test + Save — stays in view while scrolling through the provider cards */}
-      <div className="flex items-center gap-3 flex-wrap" style={{ position: 'sticky', bottom: 0, zIndex: 5, padding: '10px 0', backgroundColor: 'var(--color-bg)', borderTop: '2px solid var(--color-separator)' }}>
-        <button onClick={handleTest} disabled={testing} className="neo-button flex items-center gap-2" style={{ padding: '8px 16px', fontSize: '12px', opacity: testing ? 0.5 : 1 }}>
+      {/* Test + Save: stays in view while scrolling through the provider cards */}
+      <div className="flex items-center gap-3 flex-wrap" style={{ position: 'sticky', bottom: 0, zIndex: 5, padding: '10px 0', backgroundColor: 'var(--color-bg)', borderTop: '1px solid var(--color-separator)' }}>
+        <Button variant="default" onClick={handleTest} disabled={testing} className="flex items-center gap-2" style={{ padding: '8px 16px', fontSize: '12px', opacity: testing ? 0.5 : 1 }}>
           {testing ? <Loader2 size={13} className="animate-spin" /> : <TestTube size={13} />}
           {t.settings.testProvider}
-        </button>
-        <button onClick={handleSave} disabled={saving} className="neo-button flex items-center gap-2" style={{ padding: '8px 16px', fontSize: '12px', opacity: saving ? 0.5 : 1 }}>
+        </Button>
+        <Button variant="default" onClick={handleSave} disabled={saving} className="flex items-center gap-2" style={{ padding: '8px 16px', fontSize: '12px', opacity: saving ? 0.5 : 1 }}>
           {saving ? t.common.saving : t.settings.saveApiKeys}
-        </button>
+        </Button>
         {testResult && (
-          <div className="flex items-center gap-2 px-3 py-2" style={{ flex: '1 1 260px', minWidth: 0, border: `2px solid ${testResult === 'success' ? 'var(--fg-green,#28E272)' : 'var(--fg-red,#FF3C3C)'}`, backgroundColor: testResult === 'success' ? 'rgba(40,226,114,0.08)' : 'rgba(255,60,60,0.08)', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
+          <div className="flex items-center gap-2 px-3 py-2" style={{ borderRadius: 'var(--radius)',  flex: '1 1 260px', minWidth: 0, border: `1px solid ${testResult === 'success' ? 'var(--fg-green,#28E272)' : 'var(--fg-red,#FF3C3C)'}`, backgroundColor: testResult === 'success' ? 'rgba(40,226,114,0.08)' : 'rgba(255,60,60,0.08)', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
             {testResult === 'success' ? <CheckCircle size={14} style={{ color: 'var(--fg-green,#28E272)', flexShrink: 0 }} /> : <XCircle size={14} style={{ color: 'var(--fg-red,#FF3C3C)', flexShrink: 0 }} />}
             <span style={{ overflowWrap: 'anywhere' }}>{testMsg}</span>
           </div>
@@ -882,55 +875,55 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
     setSaving(false)
   }
 
-  const chipStyle = { padding: '4px 10px', border: '2px solid var(--color-border)', background: 'var(--color-surface-2)', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }
+  const chipStyle = { padding: '4px 10px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }
 
   return (
     <div>
       {/* Source Languages */}
       <div className="mb-5">
-        <label className="flex items-center gap-1.5 mb-2" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+        <Label className="flex items-center gap-1.5 mb-2" style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
           <Globe size={12} /> {t.settings.sourceLang}
-        </label>
+        </Label>
         <div className="flex flex-wrap gap-2 mb-2">
           {sourceLangs.map(lang => (
             <span key={lang} className="flex items-center gap-1" style={chipStyle}>
               {lang}
-              <button type="button" onClick={() => removeSourceLang(lang)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-subtle)', padding: 0, lineHeight: 1 }} disabled={sourceLangs.length <= 1}>
+              <Button aria-label="Close" variant="ghost" type="button" onClick={() => removeSourceLang(lang)} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-subtle)', padding: 0, lineHeight: 1 }} disabled={sourceLangs.length <= 1}>
                 <X size={12} />
-              </button>
+              </Button>
             </span>
           ))}
         </div>
         <div className="flex gap-2">
-          <input type="text" value={newSource} onChange={(e) => setNewSource(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSourceLang() } }} placeholder={t.settings.addLanguage} className="neo-input flex-1" style={{ padding: '6px 10px', fontSize: '13px' }} />
-          <button type="button" onClick={addSourceLang} className="neo-button" style={{ padding: '6px 12px', fontSize: '12px' }}><Plus size={14} /></button>
+          <Input aria-label={t.settings.addLanguage} type="text" value={newSource} onChange={(e) => setNewSource(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSourceLang() } }} placeholder={t.settings.addLanguage} className="ui-input flex-1" style={{ padding: '6px 10px', fontSize: '13px' }} />
+          <Button aria-label="Add" variant="default" type="button" onClick={addSourceLang} className="" style={{ padding: '6px 12px', fontSize: '12px' }}><Plus size={14} /></Button>
         </div>
       </div>
 
       {/* Target Languages */}
       <div className="mb-5">
-        <label className="flex items-center gap-1.5 mb-2" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+        <Label className="flex items-center gap-1.5 mb-2" style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
           <Languages size={12} /> {t.settings.targetLang}
-        </label>
+        </Label>
         <div className="flex flex-wrap gap-2 mb-2">
           {targetLangs.map(lang => (
             <span key={lang} className="flex items-center gap-1" style={chipStyle}>
               {lang}
-              <button type="button" onClick={() => removeTargetLang(lang)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-subtle)', padding: 0, lineHeight: 1 }} disabled={targetLangs.length <= 1}>
+              <Button aria-label="Close" variant="ghost" type="button" onClick={() => removeTargetLang(lang)} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-subtle)', padding: 0, lineHeight: 1 }} disabled={targetLangs.length <= 1}>
                 <X size={12} />
-              </button>
+              </Button>
             </span>
           ))}
         </div>
         <div className="flex gap-2">
-          <input type="text" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTargetLang() } }} placeholder={t.settings.addLanguage} className="neo-input flex-1" style={{ padding: '6px 10px', fontSize: '13px' }} />
-          <button type="button" onClick={addTargetLang} className="neo-button" style={{ padding: '6px 12px', fontSize: '12px' }}><Plus size={14} /></button>
+          <Input aria-label={t.settings.addLanguage} type="text" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTargetLang() } }} placeholder={t.settings.addLanguage} className="ui-input flex-1" style={{ padding: '6px 10px', fontSize: '13px' }} />
+          <Button aria-label="Add" variant="default" type="button" onClick={addTargetLang} className="" style={{ padding: '6px 12px', fontSize: '12px' }}><Plus size={14} /></Button>
         </div>
       </div>
 
-      <button onClick={handleSave} disabled={saving} className="neo-button w-full" style={{ opacity: saving ? 0.5 : 1 }}>
+      <Button variant="default" onClick={handleSave} disabled={saving} className="w-full" style={{ opacity: saving ? 0.5 : 1 }}>
         {saving ? t.common.saving : t.settings.saveLanguages}
-      </button>
+      </Button>
     </div>
   )
 }
@@ -938,7 +931,7 @@ function LanguageForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCo
 
 // ─── Option rows ─────────────────────────────────────────────────────────────
 
-const OPTION_COLORS = ['#E0E0E0', 'var(--fg-green,#28E272)', 'var(--fg-green,#9BF0B8)', 'var(--fg-yellow,#FFD600)', 'var(--fg-orange,#FFB020)', 'var(--fg-orange,#FF8A3C)', 'var(--fg-red,#FF3C3C)']
+const OPTION_COLORS = ['var(--bg-cyan)']
 
 function OptionRow({ title, desc, options, value, onChange }: {
   title: string
@@ -948,17 +941,17 @@ function OptionRow({ title, desc, options, value, onChange }: {
   onChange: (v: string) => void
 }) {
   return (
-    <div className="mt-2 px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
-      <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</span>
-      <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>{desc}</p>
+    <div className="mt-2 px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px' }}>{title}</span>
+      <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>{desc}</p>
       <div className="flex gap-1 flex-wrap" style={{ marginTop: '6px' }}>
         {options.map(([v, label], i) => (
-          <button key={v || 'default'} onClick={() => onChange(v)} style={{
-            padding: '4px 10px', fontSize: '10px', fontWeight: 700, border: '2px solid var(--color-border)', cursor: 'pointer',
-            textTransform: 'uppercase', letterSpacing: '0.4px',
+          <Button variant="ghost" key={v || 'default'} onClick={() => onChange(v)} style={{ borderRadius: 'var(--radius)',
+            padding: '4px 10px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--color-border)', cursor: 'pointer',
+            textTransform: 'none', letterSpacing: '0.4px',
             backgroundColor: value === v ? OPTION_COLORS[Math.min(i, OPTION_COLORS.length - 1)] : 'var(--color-surface)',
             color: value === v ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
-          }}>{label}</button>
+          }}>{label}</Button>
         ))}
       </div>
     </div>
@@ -967,15 +960,12 @@ function OptionRow({ title, desc, options, value, onChange }: {
 
 function ToggleRow({ title, desc, on, onToggle }: { title: string; desc: string; on: boolean; onToggle: () => void }) {
   return (
-    <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+    <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
       <div>
-        <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{title}</span>
-        <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5, maxWidth: '420px' }}>{desc}</p>
+        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px' }}>{title}</span>
+        <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5, maxWidth: '420px' }}>{desc}</p>
       </div>
-      <button onClick={onToggle} style={{
-        flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)',
-        cursor: 'pointer', textTransform: 'uppercase', backgroundColor: on ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface)', color: on ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
-      }}>{on ? 'ON' : 'OFF'}</button>
+      <Switch checked={on} onCheckedChange={onToggle} aria-label={title} className="ml-3" />
     </div>
   )
 }

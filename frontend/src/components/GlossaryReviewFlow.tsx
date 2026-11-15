@@ -1,3 +1,6 @@
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * GlossaryReviewFlow
  *
@@ -44,7 +47,7 @@ function problemText(e: GlossaryAuditEntry): string {
   const kind = e.resolution?.kind
   switch (kind) {
     case 'duplicate':
-      return `Istilah yang sama sudah ada dengan ejaan lain: ${e.duplicateOf?.sourceTerm} = ${e.duplicateOf?.translatedTerm}. Gabungkan — ejaan entri ini menjadi ejaan lain dari entri lama, lalu entri ini dihapus.`
+      return `Istilah yang sama sudah ada dengan ejaan lain: ${e.duplicateOf?.sourceTerm} = ${e.duplicateOf?.translatedTerm}. Gabungkan: ejaan entri ini menjadi ejaan lain dari entri lama, lalu entri ini dihapus.`
     case 'same_rendering':
       return `Terjemahannya sama persis dengan ${e.duplicateOf?.sourceTerm} = ${e.duplicateOf?.translatedTerm}. Gabungkan agar menjadi satu entri dengan dua ejaan sumber, atau pilih "Sudah benar" jika keduanya memang istilah berbeda.`
     case 'homoglyph':
@@ -54,9 +57,9 @@ function problemText(e: GlossaryAuditEntry): string {
     case 'variants':
       return 'Teks memakai lebih dari satu bentuk untuk istilah ini.'
     case 'conflict':
-      return `Bertentangan dengan entri terkait ${e.conflictWith}. Sering kali ini wajar — istilah majemuk tidak harus mengandung terjemahan bagiannya. Pilih "Sudah benar" jika keduanya tepat, atau ketik bentuk yang menyamakan keduanya.`
+      return `Bertentangan dengan entri terkait ${e.conflictWith}. Sering kali ini wajar: istilah majemuk tidak harus mengandung terjemahan bagiannya. Pilih "Sudah benar" jika keduanya tepat, atau ketik bentuk yang menyamakan keduanya.`
     default:
-      return `Istilah ini muncul di ${e.srcChapters} bab raw, tapi terjemahan terkuncinya tidak pernah muncul di teks — teks memakai bentuk lain yang tidak tercatat. Ketik bentuk yang dipakai teks, tandai sudah benar (bab berikutnya akan mengikuti glosarium), atau hapus.`
+      return `Istilah ini muncul di ${e.srcChapters} bab raw, tapi terjemahan terkuncinya tidak pernah muncul di teks: teks memakai bentuk lain yang tidak tercatat. Ketik bentuk yang dipakai teks, tandai sudah benar (bab berikutnya akan mengikuti glosarium), atau hapus.`
   }
 }
 
@@ -154,13 +157,13 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
     onExit(true)
   }
 
-  const box: React.CSSProperties = { border: '2px solid var(--color-border)', padding: '12px 14px', backgroundColor: 'var(--color-surface)' }
+  const box: React.CSSProperties = { border: '1px solid var(--color-border)', padding: '12px 14px', backgroundColor: 'var(--color-surface)' }
 
   if (!entry || !res) {
     return (
       <div className="flex flex-col gap-3">
         <p style={{ fontSize: '13px' }}>Tidak ada entri untuk ditinjau.</p>
-        <button onClick={() => onExit(changed)} className="neo-button" style={{ fontSize: '12px', alignSelf: 'flex-start' }}>KEMBALI</button>
+        <Button variant="default" onClick={() => onExit(changed)} className="" style={{ fontSize: '12px', alignSelf: 'flex-start' }}>KEMBALI</Button>
       </div>
     )
   }
@@ -169,80 +172,80 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
     <div className="flex flex-col gap-3">
       {/* Top bar */}
       <div className="flex items-center gap-2">
-        <button onClick={() => onExit(changed)} className="flex items-center gap-1" style={{ fontSize: '11px', fontWeight: 800, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '3px 8px', cursor: 'pointer' }}>
+        <Button variant="ghost" onClick={() => onExit(changed)} className="flex items-center gap-1" style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '3px 8px', cursor: 'pointer' }}>
           <ArrowLeft size={12} /> DAFTAR
-        </button>
-        <span style={{ fontSize: '12px', fontWeight: 800, fontFamily: 'monospace' }}>{index + 1} / {items.length}</span>
+        </Button>
+        <span style={{ fontSize: '12px', fontWeight: 600, fontFamily: 'monospace' }}>{index + 1} / {items.length}</span>
         <div style={{ flex: 1, height: 6, background: 'var(--color-surface-2)' }}>
           <div style={{ width: `${(index / items.length) * 100}%`, height: '100%', background: 'var(--bg-orange,#FFB020)' }} />
         </div>
         {confident.length > 0 && (
-          <button onClick={applyConfident} disabled={!!bulk || busy || disabled} className="flex items-center gap-1"
+          <Button aria-label="Terapkan otomatis pilihan bawaan yang aman: pembersihan huruf kembar, bagian nama yang mengikuti nama lengkapnya, dan duplikat yang terjemahannya sudah sama" variant="ghost" onClick={applyConfident} disabled={!!bulk || busy || disabled} className="flex items-center gap-1"
             title="Terapkan otomatis pilihan bawaan yang aman: pembersihan huruf kembar, bagian nama yang mengikuti nama lengkapnya, dan duplikat yang terjemahannya sudah sama"
-            style={{ fontSize: '11px', fontWeight: 800, border: '2px solid #111', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', padding: '3px 8px', cursor: 'pointer', opacity: (bulk || disabled) ? 0.5 : 1 }}>
+            style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, border: '1px solid var(--border)', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', padding: '3px 8px', cursor: 'pointer', opacity: (bulk || disabled) ? 0.5 : 1 }}>
             {bulk ? <Loader2 size={12} className="animate-spin" /> : <Zap size={12} />}
             {bulk ? `${bulk.done}/${bulk.total}` : `TERAPKAN SARAN YAKIN (${confident.length})`}
-          </button>
+          </Button>
         )}
       </div>
 
       {/* Card */}
       <div style={box}>
         <div className="flex items-baseline gap-3 flex-wrap">
-          <span style={{ fontSize: '20px', fontWeight: 800 }}>{entry.sourceTerm}</span>
+          <span style={{ fontSize: '20px', fontWeight: 600 }}>{entry.sourceTerm}</span>
           <span style={{ fontSize: '14px' }}>= {entry.translatedTerm}</span>
-          {entry.character && <span style={{ fontSize: '10px', padding: '0 5px', border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple,#C9A7FF)', fontWeight: 800 }}>TOKOH</span>}
+          {entry.character && <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', padding: '0 5px', border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple,#C9A7FF)', fontWeight: 600 }}>TOKOH</span>}
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: 'auto' }}>{entry.srcChapters} bab raw · dipakai {entry.usedCount}×</span>
         </div>
         {entry.notes && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '2px' }}>{entry.notes}</p>}
-        <p style={{ fontSize: '12px', marginTop: '10px', lineHeight: 1.5, borderLeft: '3px solid var(--fg-orange,#FFB020)', paddingLeft: '8px' }}>{problemText(entry)}</p>
+        <p style={{ fontSize: '12px', marginTop: '10px', lineHeight: 1.5, borderLeft: '1px solid var(--fg-orange,#FFB020)', paddingLeft: '8px' }}>{problemText(entry)}</p>
         {entry.duplicateOf && (
           <p style={{ fontSize: '11px', marginTop: '6px', color: 'var(--color-text-muted)' }}>
             Entri lama: <strong>{entry.duplicateOf.sourceTerm} = {entry.duplicateOf.translatedTerm}</strong>
-            {entry.duplicateOf.notes ? ` — ${entry.duplicateOf.notes}` : ''}
+            {entry.duplicateOf.notes ? `: ${entry.duplicateOf.notes}` : ''}
           </p>
         )}
         {entry.conflictEntry && (
           <p style={{ fontSize: '11px', marginTop: '6px', color: 'var(--color-text-muted)' }}>
             Entri terkait: <strong>{entry.conflictEntry.sourceTerm} = {entry.conflictEntry.translatedTerm}</strong>
-            {entry.conflictEntry.notes ? ` — ${entry.conflictEntry.notes}` : ''}
+            {entry.conflictEntry.notes ? `: ${entry.conflictEntry.notes}` : ''}
           </p>
         )}
       </div>
 
       {/* Choice */}
       <div style={box}>
-        <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', marginBottom: '6px' }}>Pilih bentuk utama</div>
+        <div style={{ fontSize: '11px', fontWeight: 600, textTransform: 'none', marginBottom: '6px' }}>Pilih bentuk utama</div>
         {res.reason && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>Pilihan bawaan: {res.reason}{res.confident ? ' (yakin)' : ''}</p>}
         <div className="flex flex-col gap-1">
           {res.candidates.map(c => (
-            <label key={c.form} className="flex items-center gap-2" style={{ fontSize: '13px', cursor: 'pointer', padding: '4px 6px', background: choice === c.form ? 'var(--color-surface-2)' : 'transparent' }}>
-              <input type="radio" checked={choice === c.form} onChange={() => setChoice(c.form)} style={{ accentColor: 'var(--fg-orange,#FFB020)' }} />
+            <Label key={c.form} className="flex items-center gap-2" style={{ fontSize: '13px', cursor: 'pointer', padding: '4px 6px', background: choice === c.form ? 'var(--color-surface-2)' : 'transparent' }}>
+              <Input type="radio" checked={choice === c.form} onChange={() => setChoice(c.form)} style={{ accentColor: 'var(--fg-orange,#FFB020)' }} />
               <strong>{c.form}</strong>
               <span style={{ fontSize: '11px', fontFamily: 'monospace' }}>×{c.count}</span>
-              <span style={{ fontSize: '10px', fontWeight: 800, padding: '0 5px', border: '1px solid var(--color-border)' }}>{ORIGIN_LABEL[c.origin]}</span>
+              <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, padding: '0 5px', border: '1px solid var(--color-border)' }}>{ORIGIN_LABEL[c.origin]}</span>
               {c.note && <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{c.note}</span>}
-            </label>
+            </Label>
           ))}
-          <label className="flex items-center gap-2" style={{ fontSize: '13px', cursor: 'pointer', padding: '4px 6px', background: choice === '__custom' ? 'var(--color-surface-2)' : 'transparent' }}>
-            <input type="radio" checked={choice === '__custom'} onChange={() => setChoice('__custom')} style={{ accentColor: 'var(--fg-orange,#FFB020)' }} />
+          <Label className="flex items-center gap-2" style={{ fontSize: '13px', cursor: 'pointer', padding: '4px 6px', background: choice === '__custom' ? 'var(--color-surface-2)' : 'transparent' }}>
+            <Input type="radio" checked={choice === '__custom'} onChange={() => setChoice('__custom')} style={{ accentColor: 'var(--fg-orange,#FFB020)' }} />
             <span>Lainnya:</span>
-            <input value={custom} onChange={e => { setCustom(e.target.value); setChoice('__custom') }} placeholder="ketik bentuk yang benar"
-              style={{ flex: 1, border: '2px solid var(--color-border)', padding: '3px 6px', fontSize: '13px', background: 'var(--color-surface)', color: 'var(--color-text)', outline: 'none' }} />
-          </label>
+            <Input aria-label="ketik bentuk yang benar" value={custom} onChange={e => { setCustom(e.target.value); setChoice('__custom') }} placeholder="ketik bentuk yang benar"
+              style={{ borderRadius: 'var(--radius)',  flex: 1, border: '1px solid var(--color-border)', padding: '3px 6px', fontSize: '13px', background: 'var(--color-surface)', color: 'var(--color-text)', outline: 'none' }} />
+          </Label>
         </div>
 
         {canonical && (replaceable.length > 0 || entry.translatedTerm !== canonical) && (
           <div style={{ marginTop: '10px', fontSize: '12px' }}>
-            <div style={{ fontWeight: 700, marginBottom: '4px' }}>
+            <div style={{ fontWeight: 600, marginBottom: '4px' }}>
               Diganti menjadi «{canonical}» di teks, ringkasan bab, memori, dan glosarium:
             </div>
             {replaceable.map(c => (
-              <label key={c.form} className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
-                <input type="checkbox" checked={!replaceOff.has(c.form)} disabled={c.form === entry.translatedTerm}
+              <Label key={c.form} className="flex items-center gap-2" style={{ cursor: 'pointer' }}>
+                <Input type="checkbox" checked={!replaceOff.has(c.form)} disabled={c.form === entry.translatedTerm}
                   onChange={e => setReplaceOff(prev => { const n = new Set(prev); e.target.checked ? n.delete(c.form) : n.add(c.form); return n })} />
                 <span>{c.form} <span style={{ fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>×{c.count}</span></span>
-              </label>
+              </Label>
             ))}
             {entry.translatedTerm !== canonical && !replaceable.some(c => c.form === entry.translatedTerm) && (
               <div style={{ color: 'var(--color-text-muted)' }}>✓ entri glosarium: {entry.translatedTerm} → {canonical}</div>
@@ -251,37 +254,37 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
         )}
       </div>
 
-      {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700 }}>{err}</p>}
+      {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{err}</p>}
 
       {/* Actions */}
       <div className="flex items-center gap-2 flex-wrap">
         {isMerge(entry) ? (
-          <button onClick={merge} disabled={busy || disabled || !canonical} className="neo-button flex items-center gap-1.5"
+          <Button variant="default" onClick={merge} disabled={busy || disabled || !canonical} className="flex items-center gap-1.5"
             style={{ fontSize: '12px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (busy || disabled || !canonical) ? 0.5 : 1 }}>
             {busy ? <Loader2 size={13} className="animate-spin" /> : <Merge size={13} />}
             GABUNGKAN & LANJUT
-          </button>
+          </Button>
         ) : (
-          <button onClick={applyCanonical} disabled={busy || disabled || !canonical} className="neo-button flex items-center gap-1.5"
+          <Button variant="default" onClick={applyCanonical} disabled={busy || disabled || !canonical} className="flex items-center gap-1.5"
             style={{ fontSize: '12px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (busy || disabled || !canonical) ? 0.5 : 1 }}>
             {busy ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
             {canonical === entry.translatedTerm && replaceable.length === 0 ? 'SIMPAN & LANJUT' : 'TERAPKAN & LANJUT'}
-          </button>
+          </Button>
         )}
-        <button onClick={accept} disabled={busy || disabled} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}
-          title="Bentuk sekarang sudah benar — masalah ini tidak akan ditandai lagi untuk terjemahan ini">
+        <Button aria-label="Bentuk sekarang sudah benar: masalah ini tidak akan ditandai lagi untuk terjemahan ini" variant="outline" onClick={accept} disabled={busy || disabled} className="flex items-center gap-1.5" style={{ color: 'var(--foreground)',  fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}
+          title="Bentuk sekarang sudah benar: masalah ini tidak akan ditandai lagi untuk terjemahan ini">
           <ShieldCheck size={13} /> SUDAH BENAR
-        </button>
-        <button onClick={remove} disabled={busy || disabled} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)' }}>
+        </Button>
+        <Button variant="default" onClick={remove} disabled={busy || disabled} className="flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)' }}>
           <Trash2 size={13} /> HAPUS ENTRI
-        </button>
-        <button onClick={() => goTo(index + 1)} disabled={busy} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'transparent' }}>
+        </Button>
+        <Button variant="outline" onClick={() => goTo(index + 1)} disabled={busy} className="flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'transparent' }}>
           <SkipForward size={13} /> LEWATI
-        </button>
+        </Button>
         {index > 0 && (
-          <button onClick={() => goTo(index - 1)} disabled={busy} style={{ marginLeft: 'auto', fontSize: '11px', background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
+          <Button variant="ghost" onClick={() => goTo(index - 1)} disabled={busy} style={{ borderRadius: 'var(--radius)',  marginLeft: 'auto', fontSize: '11px', background: 'none', border: 'none', color: 'var(--color-text-muted)', cursor: 'pointer' }}>
             ← sebelumnya
-          </button>
+          </Button>
         )}
       </div>
 

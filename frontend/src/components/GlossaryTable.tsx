@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 /**
  * LWNTL Glossary Table Component
  * Inline-editable table with search, hover preview, import/export
@@ -30,12 +32,12 @@ function AliasChips({ aliases, onRemove }: { aliases?: string[]; onRemove?: (ali
     <div className="flex flex-wrap gap-1" style={{ marginTop: '3px' }}>
       {aliases.map(a => (
         <span key={a} className="flex items-center gap-0.5"
-          style={{ fontSize: '10px', fontWeight: 600, padding: '0 4px', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-surface-2)' }}>
+          style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, padding: '0 4px', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', backgroundColor: 'var(--color-surface-2)' }}>
           {a}
           {onRemove && (
-            <button onClick={() => onRemove(a)} title="×" style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--color-text-muted)' }}>
+            <Button aria-label="×" variant="ghost" onClick={() => onRemove(a)} title="×" style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--color-text-muted)' }}>
               <X size={9} />
-            </button>
+            </Button>
           )}
         </span>
       ))}
@@ -49,7 +51,7 @@ interface TooltipPos { x: number; y: number }
 
 function GlossaryTooltip({ entry, pos }: { entry: GlossaryEntry | null; pos: TooltipPos | null }) {
   if (!entry || !pos) return null
-  const date = entry.updatedAt ? new Date(entry.updatedAt).toLocaleDateString('id-ID') : '—'
+  const date = entry.updatedAt ? new Date(entry.updatedAt).toLocaleDateString('id-ID') : ': '
 
   // Position to the left of the cursor, vertically centered around it
   const W = 240
@@ -58,36 +60,36 @@ function GlossaryTooltip({ entry, pos }: { entry: GlossaryEntry | null; pos: Too
 
   return (
     <div
-      style={{
+      style={{ borderRadius: 'var(--radius)',
         position: 'fixed',
         left,
         top,
         zIndex: 9999,
         backgroundColor: 'var(--color-surface)',
-        border: '2.5px solid var(--color-border)',
-        boxShadow: 'var(--neo-shadow)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-sm)',
         padding: '10px 12px',
         width: `${W}px`,
         pointerEvents: 'none',
       }}
     >
-      <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.5px' }}>
+      <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'none', marginBottom: '6px', letterSpacing: 'normal' }}>
         Preview
       </div>
       <div style={{ marginBottom: '4px' }}>
-        <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Asli: </span>
-        <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text)' }}>{entry.sourceTerm}</span>
+        <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 600, textTransform: 'none' }}>Asli: </span>
+        <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>{entry.sourceTerm}</span>
         {entry.aliases && entry.aliases.length > 0 && (
           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}> / {entry.aliases.join(' / ')}</span>
         )}
       </div>
       <div style={{ marginBottom: '4px' }}>
-        <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Terjemahan: </span>
+        <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 600, textTransform: 'none' }}>Terjemahan: </span>
         <span style={{ fontSize: '13px', color: 'var(--color-text)' }}>{entry.translatedTerm}</span>
       </div>
       {entry.notes && (
         <div style={{ marginBottom: '4px' }}>
-          <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 700, textTransform: 'uppercase' }}>Catatan: </span>
+          <span style={{ fontSize: '10px', color: 'var(--color-text-subtle)', fontWeight: 600, textTransform: 'none' }}>Catatan: </span>
           <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{entry.notes}</span>
         </div>
       )}
@@ -268,11 +270,11 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
   }
 
   return (
-    <div className="flex flex-col h-full" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: 'var(--neo-shadow)' }}>
+    <div className="flex flex-col h-full" style={{ borderRadius: 'var(--radius)',  backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
 
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '2.5px solid var(--color-border)' }}>
-        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '14px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text)' }}>
           {t.seriesSettings.glossary}
         </span>
         <div className="flex items-center gap-2">
@@ -281,16 +283,16 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
           </span>
 
           {/* Import */}
-          <button
+          <Button aria-label="Import glossary (JSON/CSV)" variant="ghost"
             onClick={() => fileInputRef.current?.click()}
             title="Import glossary (JSON/CSV)"
-            style={{ border: '1.5px solid var(--color-border)', background: 'transparent', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}
+            style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'none' }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <Upload size={11} /> Import
-          </button>
-          <input
+          </Button>
+          <Input
             ref={fileInputRef}
             type="file"
             accept=".json,.csv"
@@ -300,45 +302,45 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
 
           {/* Export */}
           <div ref={exportRef} className="relative">
-            <button
+            <Button aria-label="Export glossary" variant="ghost"
               onClick={() => setShowExportMenu(!showExportMenu)}
               title="Export glossary"
-              style={{ border: '1.5px solid var(--color-border)', background: 'transparent', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}
+              style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'none' }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <Download size={11} /> Export
-            </button>
+            </Button>
             {showExportMenu && (
               <div
                 className="absolute right-0 top-full z-50"
-                style={{ backgroundColor: 'var(--color-surface)', border: '2px solid var(--color-border)', boxShadow: 'var(--neo-shadow)', minWidth: '130px' }}
+                style={{ borderRadius: 'var(--radius)',  backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)', minWidth: '130px' }}
               >
-                <button
+                <Button variant="ghost"
                   onClick={async () => {
                     setShowExportMenu(false)
                     await exportGlossaryFile(seriesId, 'json', buildJSON(entries))
                   }}
                   className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}
+                  style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <FileJson size={12} /> Export JSON
-                </button>
+                </Button>
                 <div style={{ height: '1px', backgroundColor: 'var(--color-separator)' }} />
-                <button
+                <Button variant="ghost"
                   onClick={async () => {
                     setShowExportMenu(false)
                     await exportGlossaryFile(seriesId, 'csv', buildCSV(entries))
                   }}
                   className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
-                  style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}
+                  style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}
                   onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
                   <FileText size={12} /> Export CSV
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -349,13 +351,13 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
       <div className="px-3 py-2" style={{ borderBottom: `1px solid var(--color-separator)` }}>
         <div className="flex items-center gap-2">
           <Search size={14} style={{ color: 'var(--color-text-subtle)', flexShrink: 0 }} />
-          <input
+          <Input aria-label={t.seriesSettings.searchGlossary}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t.seriesSettings.searchGlossary}
             className="flex-1 text-sm outline-none"
-            style={{ border: 'none', padding: '4px 0', fontFamily: "'Inter', sans-serif", background: 'transparent', color: 'var(--color-text)' }}
+            style={{ borderRadius: 'var(--radius)',  border: 'none', padding: '4px 0', fontFamily: 'var(--font-body)', background: 'transparent', color: 'var(--color-text)' }}
           />
         </div>
       </div>
@@ -364,10 +366,10 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
       <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
-            <tr style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
-              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.sourceTerm}</th>
-              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.translatedTerm}</th>
-              <th className="text-left px-3 py-2" style={{ fontWeight: 700, fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.notes}</th>
+            <tr style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+              <th className="text-left px-3 py-2" style={{ fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>{t.seriesSettings.sourceTerm}</th>
+              <th className="text-left px-3 py-2" style={{ fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>{t.seriesSettings.translatedTerm}</th>
+              <th className="text-left px-3 py-2" style={{ fontWeight: 600, fontSize: '11px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>{t.seriesSettings.notes}</th>
               <th className="px-2 py-2" style={{ width: '80px' }}></th>
             </tr>
           </thead>
@@ -399,34 +401,34 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
                 {editingId === entry.id ? (
                   <>
                     <td className="px-2 py-1.5">
-                      <input value={editSource} onChange={(e) => setEditSource(e.target.value)} className="neo-input" style={{ padding: '4px 8px', fontSize: '12px' }} />
+                      <Input value={editSource} onChange={(e) => setEditSource(e.target.value)} className="ui-input" style={{ padding: '4px 8px', fontSize: '12px' }} />
                       <AliasChips aliases={entry.aliases} onRemove={onRemoveAlias ? (a) => onRemoveAlias(entry, a) : undefined} />
                       {onAddAlias && (
-                        <input
+                        <Input aria-label={t.seriesSettings.aliasHint}
                           value={newAlias}
                           onChange={(e) => setNewAlias(e.target.value)}
                           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submitAlias(entry) } }}
                           placeholder={t.seriesSettings.aliasPlaceholder}
                           title={t.seriesSettings.aliasHint}
-                          className="neo-input"
+                          className="ui-input"
                           style={{ padding: '2px 6px', fontSize: '11px', marginTop: '4px' }}
                         />
                       )}
                     </td>
                     <td className="px-2 py-1.5">
-                      <input value={editTranslated} onChange={(e) => setEditTranslated(e.target.value)} className="neo-input" style={{ padding: '4px 8px', fontSize: '12px' }} />
+                      <Input value={editTranslated} onChange={(e) => setEditTranslated(e.target.value)} className="ui-input" style={{ padding: '4px 8px', fontSize: '12px' }} />
                     </td>
                     <td className="px-2 py-1.5">
-                      <input value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="neo-input" style={{ padding: '4px 8px', fontSize: '12px' }} />
+                      <Input value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="ui-input" style={{ padding: '4px 8px', fontSize: '12px' }} />
                     </td>
                     <td className="px-1 py-1.5">
                       <div className="flex items-center gap-1">
-                        <button onClick={saveEdit} className="flex items-center justify-center w-7 h-7" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--bg-green,#28E272)', cursor: 'pointer' }}>
+                        <Button aria-label="Confirm" variant="ghost" onClick={saveEdit} className="flex items-center justify-center w-7 h-7" style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--bg-green,#28E272)', cursor: 'pointer' }}>
                           <Check size={12} />
-                        </button>
-                        <button onClick={cancelEdit} className="flex items-center justify-center w-7 h-7" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', cursor: 'pointer' }}>
+                        </Button>
+                        <Button aria-label="Close" variant="ghost" onClick={cancelEdit} className="flex items-center justify-center w-7 h-7" style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', cursor: 'pointer' }}>
                           <X size={12} style={{ color: 'var(--color-text)' }} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </>
@@ -437,25 +439,25 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
                       <AliasChips aliases={entry.aliases} />
                     </td>
                     <td className="px-3 py-2" style={{ color: 'var(--color-text)' }}>{entry.translatedTerm}</td>
-                    <td className="px-3 py-2" style={{ color: 'var(--color-text-muted)' }}>{entry.notes || '—'}</td>
+                    <td className="px-3 py-2" style={{ color: 'var(--color-text-muted)' }}>{entry.notes || ': '}</td>
                     <td className="px-1 py-2">
                       <div className="flex items-center gap-1 justify-end">
-                        <button
+                        <Button aria-label="Edit" variant="ghost"
                           onClick={() => startEdit(entry)}
                           className="flex items-center justify-center w-7 h-7"
-                          style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                          style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer' }}
                           title="Edit"
                         >
                           <Edit2 size={12} style={{ color: 'var(--color-text-muted)' }} />
-                        </button>
-                        <button
+                        </Button>
+                        <Button aria-label="Hapus" variant="ghost"
                           onClick={() => onDelete(entry)}
                           className="flex items-center justify-center w-7 h-7"
-                          style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
+                          style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer' }}
                           title="Hapus"
                         >
                           <Trash2 size={12} style={{ color: 'var(--fg-red,#FF3C3C)' }} />
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </>
@@ -466,72 +468,72 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
         </table>
       </div>
 
-      {/* Add entry — toggle between button and inline form */}
-      <div style={{ borderTop: '2.5px solid var(--color-border)' }}>
+      {/* Add entry: toggle between button and inline form */}
+      <div style={{ borderTop: '1px solid var(--color-border)' }}>
         {!showAddForm ? (
-          <button
+          <Button variant="ghost"
             onClick={handleOpenAddForm}
-            className="flex items-center justify-center gap-2 w-full py-3 font-bold transition-colors"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: "'Space Grotesk', sans-serif", fontSize: '13px', color: 'var(--color-text)' }}
+            className="flex items-center justify-center gap-2 w-full py-3 font-semibold transition-colors"
+            style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--color-text)' }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
             <Plus size={16} />
             {t.seriesSettings.addEntry}
-          </button>
+          </Button>
         ) : (
           <div style={{ padding: '10px 12px', backgroundColor: 'var(--color-surface-2)' }}>
             {/* Header row */}
             <div className="flex items-center justify-between mb-2">
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+              <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
                 {t.seriesSettings.addEntry}
               </span>
-              <button
+              <Button aria-label="Collapse" variant="ghost"
                 onClick={handleCancelAdd}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-subtle)', padding: 0 }}
+                style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-subtle)', padding: 0 }}
               >
                 <ChevronUp size={14} />
-              </button>
+              </Button>
             </div>
             {/* Inputs */}
             <div className="flex flex-col gap-1.5 mb-2">
-              <input
+              <Input aria-label={t.seriesSettings.sourceTerm}
                 ref={newSourceRef}
                 type="text"
                 value={newSource}
                 onChange={(e) => setNewSource(e.target.value)}
                 placeholder={t.seriesSettings.sourceTerm}
-                className="neo-input"
+                className="ui-input"
                 style={{ padding: '5px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmitAdd() } if (e.key === 'Escape') handleCancelAdd() }}
               />
-              <input
+              <Input aria-label={t.seriesSettings.translatedTerm}
                 type="text"
                 value={newTranslated}
                 onChange={(e) => setNewTranslated(e.target.value)}
                 placeholder={t.seriesSettings.translatedTerm}
-                className="neo-input"
+                className="ui-input"
                 style={{ padding: '5px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmitAdd() } if (e.key === 'Escape') handleCancelAdd() }}
               />
-              <input
+              <Input aria-label={t.seriesSettings.notes + ' (opsional)'}
                 type="text"
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
                 placeholder={t.seriesSettings.notes + ' (opsional)'}
-                className="neo-input"
+                className="ui-input"
                 style={{ padding: '5px 8px', fontSize: '12px', backgroundColor: 'var(--color-surface)' }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSubmitAdd() } if (e.key === 'Escape') handleCancelAdd() }}
               />
             </div>
             {/* Submit */}
-            <button
+            <Button variant="ghost"
               onClick={handleSubmitAdd}
               disabled={adding || !newSource.trim() || !newTranslated.trim()}
-              className="flex items-center justify-center gap-1.5 w-full py-2 font-bold"
-              style={{
-                fontSize: '12px', fontFamily: "'Space Grotesk', sans-serif",
-                border: '2px solid var(--color-border)',
+              className="flex items-center justify-center gap-1.5 w-full py-2 font-semibold"
+              style={{ borderRadius: 'var(--radius)',
+                fontSize: '12px', fontFamily: 'var(--font-body)',
+                border: '1px solid var(--color-border)',
                 backgroundColor: (!newSource.trim() || !newTranslated.trim() || adding) ? 'var(--color-surface)' : 'var(--bg-green,#28E272)',
                 color: (!newSource.trim() || !newTranslated.trim() || adding) ? 'var(--color-text-muted)' : 'var(--on-accent,#111)',
                 cursor: (!newSource.trim() || !newTranslated.trim() || adding) ? 'not-allowed' : 'pointer',
@@ -541,12 +543,12 @@ export function GlossaryTable({ entries, seriesId, onAdd, onEdit, onDelete, onIm
             >
               <Plus size={13} />
               {adding ? t.common.saving : t.common.add}
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Fixed-position tooltip — renders outside overflow context */}
+      {/* Fixed-position tooltip: renders outside overflow context */}
       <GlossaryTooltip entry={tooltipEntry} pos={tooltipPos} />
     </div>
   )

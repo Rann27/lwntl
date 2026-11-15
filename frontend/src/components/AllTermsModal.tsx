@@ -1,3 +1,6 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { X, Search, AlertTriangle, Copy, Check } from 'lucide-react'
 import type { Chapter, GlossaryEntry } from '../types'
@@ -11,7 +14,7 @@ interface TermRow {
   inGlossary: boolean
   isMain: boolean       // source + translation both match glossary = canonical
   isInconsistent: boolean
-  /** Differs from the glossary only in the chapter's table — the text itself follows the glossary. */
+  /** Differs from the glossary only in the chapter's table: the text itself follows the glossary. */
   tableOnly: boolean
   /** Came from the fallback AI extraction (the model wrote no table), not from the model's own table. */
   extracted: boolean
@@ -113,7 +116,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
@@ -135,7 +138,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
       const entries = ch.glossaryUpdates?.entries ?? []
       if (!entries.length) continue
       const label = ch.title
-        ? `Ch ${ch.chapterNumber} — ${ch.title}`
+        ? `Ch ${ch.chapterNumber}: ${ch.title}`
         : `Chapter ${ch.chapterNumber}`
       const text = chapterText(ch)
       for (const e of entries) {
@@ -208,7 +211,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
   if (!open) return null
 
   return (
-    <div
+    <ModalSurface label="Extracted terms" onClose={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
@@ -216,22 +219,22 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
       <style>{`.copy-icon { transition: opacity 0.1s } tr:hover .copy-icon { opacity: 1 !important }`}</style>
       <div
         className="flex flex-col"
-        style={{
+        style={{ borderRadius: 'var(--radius)',
           width: '900px',
           maxWidth: '96vw',
           maxHeight: '88vh',
           backgroundColor: 'var(--bg-page,#F8F3EA)',
-          border: '3px solid #111',
-          boxShadow: '6px 6px 0px #111',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-3"
-          style={{ borderBottom: '2.5px solid #111', flexShrink: 0 }}
+          style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}
         >
           <div className="flex items-center gap-3">
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 650, fontSize: '14px', textTransform: 'none', letterSpacing: 'normal' }}>
               ALL EXTRACTED TERMS
             </span>
             <span style={{ fontSize: '12px', color: 'var(--fg-muted,#888)', fontWeight: 600 }}>
@@ -240,22 +243,22 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
             {inconsistentCount > 0 && (
               <span
                 className="flex items-center gap-1"
-                style={{ padding: '2px 8px', fontSize: '11px', fontWeight: 800, backgroundColor: 'var(--bg-red,#FF3C3C)', color: '#fff', border: '2px solid #111', letterSpacing: '0.3px' }}
+                style={{ borderRadius: 'var(--radius)',  padding: '2px 8px', fontSize: '11px', fontWeight: 600, backgroundColor: 'var(--bg-red,#FF3C3C)', color: 'var(--fg-red)', border: '1px solid var(--border)', letterSpacing: 'normal' }}
               >
                 <AlertTriangle size={11} />
                 {inconsistentCount} INCONSISTENC{inconsistentCount === 1 ? 'Y' : 'IES'}
               </span>
             )}
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--on-accent,#111)' }}>
+          <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--on-accent,#111)' }}>
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Filter tabs + Search */}
-        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '2px solid var(--line,#eee)', flexShrink: 0 }}>
-          <div className="flex" style={{ border: '2px solid #111', flexShrink: 0 }}>
-            <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')} color="#111">
+        <div className="px-4 py-3 flex items-center gap-3" style={{ borderBottom: '1px solid var(--line,var(--border))', flexShrink: 0 }}>
+          <div className="flex" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--border)', flexShrink: 0 }}>
+            <FilterBtn active={filter === 'all'} onClick={() => setFilter('all')} color="var(--foreground)">
               ALL ({allRows.length})
             </FilterBtn>
             <FilterBtn active={filter === 'main'} onClick={() => setFilter('main')} color="var(--fg-blue,#1565C0)" borderRight>
@@ -267,77 +270,77 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
             </FilterBtn>
           </div>
 
-          <div className="flex items-center gap-2 flex-1" style={{ border: '2px solid #111', backgroundColor: 'var(--bg-surface,#fff)', padding: '5px 10px' }}>
+          <div className="flex items-center gap-2 flex-1" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--border)', backgroundColor: 'var(--bg-surface,#fff)', padding: '5px 10px' }}>
             <Search size={13} style={{ color: 'var(--fg-muted,#888)', flexShrink: 0 }} />
-            <input
+            <Input aria-label="Search source term, translation, notes, or chapter..."
               ref={inputRef}
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Search source term, translation, notes, or chapter..."
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', fontFamily: "'Inter', sans-serif" }}
+              style={{ borderRadius: 'var(--radius)',  flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: '13px', fontFamily: 'var(--font-body)' }}
             />
             {query && (
-              <button onClick={() => setQuery('')} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-subtle,#aaa)', padding: 0 }}>
+              <Button aria-label="Close" variant="ghost" onClick={() => setQuery('')} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-subtle,#aaa)', padding: 0 }}>
                 <X size={12} />
-              </button>
+              </Button>
             )}
           </div>
         </div>
 
         {/* Options row: sort + collapse */}
-        <div className="flex items-center gap-4 px-4 py-2" style={{ borderBottom: '1px solid var(--line,#eee)', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
+        <div className="flex items-center gap-4 px-4 py-2" style={{ borderBottom: '1px solid var(--line,var(--border))', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
           {/* Sort */}
           <div className="flex items-center gap-2">
-            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', color: 'var(--fg-muted,#888)' }}>Sort:</span>
-            <div className="flex" style={{ border: '1.5px solid var(--line,#ccc)' }}>
-              <button
+            <span style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--fg-muted,#888)' }}>Sort:</span>
+            <div className="flex" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--line,#ccc)' }}>
+              <Button variant="ghost"
                 onClick={() => setSortBy('chapter')}
-                style={{ padding: '3px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', border: 'none', borderRight: '1.5px solid var(--line,#ccc)', cursor: 'pointer', backgroundColor: sortBy === 'chapter' ? '#111' : 'transparent', color: sortBy === 'chapter' ? '#fff' : 'var(--fg-muted,#666)' }}
+                style={{ borderRadius: 'var(--radius)',  padding: '3px 10px', fontSize: '10px', fontWeight: 600, textTransform: 'none', border: 'none', borderRight: '1px solid var(--line,#ccc)', cursor: 'pointer', backgroundColor: sortBy === 'chapter' ? 'var(--accent)' : 'transparent', color: sortBy === 'chapter' ? 'var(--foreground)' : 'var(--fg-muted,#666)' }}
               >
                 By Chapter
-              </button>
-              <button
+              </Button>
+              <Button variant="ghost"
                 onClick={() => setSortBy('source')}
-                style={{ padding: '3px 10px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', border: 'none', cursor: 'pointer', backgroundColor: sortBy === 'source' ? '#111' : 'transparent', color: sortBy === 'source' ? '#fff' : 'var(--fg-muted,#666)' }}
+                style={{ borderRadius: 'var(--radius)',  padding: '3px 10px', fontSize: '10px', fontWeight: 600, textTransform: 'none', border: 'none', cursor: 'pointer', backgroundColor: sortBy === 'source' ? 'var(--accent)' : 'transparent', color: sortBy === 'source' ? 'var(--foreground)' : 'var(--fg-muted,#666)' }}
               >
                 By Source Term
-              </button>
+              </Button>
             </div>
           </div>
 
           {/* Collapse MAIN toggle */}
           <div className="flex items-center gap-2" style={{ marginLeft: 'auto' }}>
-            <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', color: 'var(--fg-muted,#888)' }}>
+            <span style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--fg-muted,#888)' }}>
               Collapse MAIN duplicates:
             </span>
-            <button
+            <Button variant="ghost"
               onClick={() => setCollapseMain(v => !v)}
-              style={{
+              style={{ borderRadius: 'var(--radius)',
                 padding: '3px 12px',
                 fontSize: '10px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                border: '1.5px solid',
+                fontWeight: 600,
+                textTransform: 'none',
+                border: '1px solid',
                 cursor: 'pointer',
                 borderColor: collapseMain ? 'var(--fg-blue,#1565C0)' : 'var(--line,#ccc)',
                 backgroundColor: collapseMain ? 'var(--bg-blue,#1565C0)' : 'transparent',
-                color: collapseMain ? '#fff' : 'var(--fg-muted,#888)',
-                letterSpacing: '0.3px',
+                color: collapseMain ? 'var(--foreground)' : 'var(--fg-muted,#888)',
+                letterSpacing: 'normal',
               }}
             >
               {collapseMain ? 'ON' : 'OFF'}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* Legend */}
-        <div className="flex items-center gap-4 px-5 py-1.5" style={{ borderBottom: '1px solid var(--line,#eee)', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
-          <span style={{ fontSize: '10px', color: 'var(--fg-muted,#888)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px' }}>Status:</span>
+        <div className="flex items-center gap-4 px-5 py-1.5" style={{ borderBottom: '1px solid var(--line,var(--border))', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
+          <span style={{ fontSize: '10px', color: 'var(--fg-muted,#888)', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>Status:</span>
           <span style={{ ...legendBadge, borderColor: 'var(--fg-blue,#1565C0)', backgroundColor: 'var(--tint-blue,#e8f0fe)', color: 'var(--fg-blue,#1565C0)' }}>★ MAIN</span>
           <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)' }}>= source + translation match glossary (patokan)</span>
           <span style={{ ...legendBadge, borderColor: 'var(--fg-orange,#f59e0b)', backgroundColor: 'var(--tint-orange,#fffbeb)', color: 'var(--fg-orange,#b45309)' }}>MISMATCH</span>
           <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)' }}>= source ada di glossary, tapi terjemahan beda</span>
-          <span style={{ ...legendBadge, borderColor: 'var(--line,#ddd)', backgroundColor: 'transparent', color: 'var(--fg-subtle,#aaa)' }}>EXTRACTED</span>
+          <span style={{ ...legendBadge, borderColor: 'var(--line,var(--border))', backgroundColor: 'transparent', color: 'var(--fg-subtle,#aaa)' }}>EXTRACTED</span>
           <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)' }}>= belum masuk glossary</span>
         </div>
 
@@ -348,16 +351,16 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
               {filter === 'inconsistent' && inconsistentCount === 0 ? (
                 <>
                   <span style={{ fontSize: '28px' }}>✓</span>
-                  <p style={{ color: 'var(--fg-green,#28E272)', fontSize: '13px', fontWeight: 700 }}>No inconsistencies found!</p>
+                  <p style={{ color: 'var(--fg-green,#28E272)', fontSize: '13px', fontWeight: 600 }}>No inconsistencies found!</p>
                 </>
               ) : (
-                <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>No terms found.</p>
+                <p style={{ color: 'var(--muted-foreground)', fontSize: '13px' }}>No terms found.</p>
               )}
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
               <thead style={{ position: 'sticky', top: 0, backgroundColor: 'var(--bg-page,#F8F3EA)', zIndex: 1 }}>
-                <tr style={{ borderBottom: '2.5px solid #111' }}>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   <th style={thStyle}>Source Term</th>
                   <th style={thStyle}>Translation</th>
                   <th style={{ ...thStyle, width: '26%' }}>Notes</th>
@@ -370,12 +373,12 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
                   const bg = row.isInconsistent
                     ? (i % 2 === 0 ? 'var(--fg-red,#fff5f5)' : 'var(--fg-red,#ffeeee)')
                     : (i % 2 === 0 ? '#fff' : '#faf6ee')
-                  const borderLeft = row.isInconsistent ? '3px solid var(--fg-red,#FF3C3C)' : '3px solid transparent'
+                  const borderLeft = row.isInconsistent ? '1px solid var(--fg-red,#FF3C3C)' : '1px solid transparent'
                   const srcColor = row.isInconsistent ? 'var(--fg-red,#cc1111)' : '#111'
                   const badge = statusBadge(row)
 
                   return (
-                    <tr key={i} style={{ borderBottom: '1px solid #e8e3da', backgroundColor: bg, borderLeft }}>
+                    <tr key={i} style={{ borderBottom: '1px solid var(--border)', backgroundColor: bg, borderLeft }}>
                       <td style={tdStyle}>
                         <div className="flex items-center gap-1.5">
                           {row.isInconsistent && <span title="Inconsistent"><AlertTriangle size={11} style={{ color: 'var(--fg-red,#FF3C3C)', flexShrink: 0 }} /></span>}
@@ -400,7 +403,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
 
         {/* Footer */}
         {inconsistentCount > 0 && (
-          <div className="flex items-center gap-2 px-5 py-2" style={{ borderTop: '2px solid var(--line,#eee)', flexShrink: 0, backgroundColor: 'var(--tint-red,#fff8f8)' }}>
+          <div className="flex items-center gap-2 px-5 py-2" style={{ borderTop: '1px solid var(--line,var(--border))', flexShrink: 0, backgroundColor: 'var(--tint-red,#fff8f8)' }}>
             <AlertTriangle size={12} style={{ color: 'var(--fg-red,#FF3C3C)' }} />
             <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>
               Filter <strong>MAIN</strong> untuk lihat mana yang jadi patokan, lalu fix inkonsistensi dengan update glossary series.
@@ -408,7 +411,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
           </div>
         )}
       </div>
-    </div>
+    </ModalSurface>
   )
 }
 
@@ -416,55 +419,55 @@ function FilterBtn({ active, onClick, color, children, borderRight }: {
   active: boolean; onClick: () => void; color: string; children: React.ReactNode; borderRight?: boolean
 }) {
   return (
-    <button
+    <Button variant="ghost"
       onClick={onClick}
-      style={{
+      style={{ borderRadius: 'var(--radius)',
         padding: '5px 12px',
         fontSize: '11px',
-        fontWeight: 700,
-        textTransform: 'uppercase',
-        letterSpacing: '0.3px',
+        fontWeight: 600,
+        textTransform: 'none',
+        letterSpacing: 'normal',
         border: 'none',
-        borderRight: borderRight ? '2px solid #111' : undefined,
+        borderRight: borderRight ? '1px solid var(--border)' : undefined,
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
-        backgroundColor: active ? color : 'transparent',
-        color: active ? '#fff' : color === 'var(--on-accent,#111)' ? 'var(--fg-muted,#555)' : color,
+        backgroundColor: active ? 'var(--accent)' : 'transparent',
+        color: active ? 'var(--accent-foreground)' : color === 'var(--on-accent,#111)' ? 'var(--fg-muted,#555)' : color,
       }}
     >
       {children}
-    </button>
+    </Button>
   )
 }
 
 function statusBadge(row: TermRow): { label: string; style: React.CSSProperties } {
   if (row.isMain) return {
     label: '★ MAIN',
-    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid var(--fg-blue,#1565C0)', backgroundColor: 'var(--tint-blue,#e8f0fe)', color: 'var(--fg-blue,#1565C0)' },
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', border: '1.5px solid var(--fg-blue,#1565C0)', backgroundColor: 'var(--tint-blue,#e8f0fe)', color: 'var(--fg-blue,#1565C0)' },
   }
   if (row.tableOnly) return {
     label: 'HANYA TABEL',
-    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid var(--fg-subtle,#bbb)', backgroundColor: 'transparent', color: 'var(--fg-muted,#888)' },
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', border: '1.5px solid var(--fg-subtle,#bbb)', backgroundColor: 'transparent', color: 'var(--fg-muted,#888)' },
   }
   if (row.inGlossary) return {
     label: 'MISMATCH',
-    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid var(--fg-orange,#f59e0b)', backgroundColor: 'var(--tint-orange,#fffbeb)', color: 'var(--fg-orange,#b45309)' },
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', border: '1.5px solid var(--fg-orange,#f59e0b)', backgroundColor: 'var(--tint-orange,#fffbeb)', color: 'var(--fg-orange,#b45309)' },
   }
   return {
     label: 'EXTRACTED',
-    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid var(--line,#ddd)', backgroundColor: 'transparent', color: 'var(--fg-subtle,#aaa)' },
+    style: { display: 'inline-block', padding: '2px 6px', fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', border: '1.5px solid var(--line,#ddd)', backgroundColor: 'transparent', color: 'var(--fg-subtle,#aaa)' },
   }
 }
 
 const legendBadge: React.CSSProperties = {
-  display: 'inline-block', padding: '1px 5px', fontSize: '9px', fontWeight: 700,
-  textTransform: 'uppercase', letterSpacing: '0.3px', border: '1.5px solid',
+  display: 'inline-block', padding: '1px 5px', fontSize: '9px', fontWeight: 600,
+  textTransform: 'none', letterSpacing: 'normal', border: '1.5px solid',
 }
 
 const thStyle: React.CSSProperties = {
   padding: '8px 12px', textAlign: 'left', fontSize: '11px',
-  fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--fg-muted,#555)',
+  fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--fg-muted,#555)',
 }
 
 const tdStyle: React.CSSProperties = {

@@ -1,3 +1,7 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * PDF PrePreview Modal
  * Renders PDF pages as images with draggable top/bottom cut-zone overlays.
@@ -66,7 +70,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
         setBottomMargin(marginResult.bottomMargin)
         setImages(renderResult.images)
       } catch {
-        // silently ignore — user can still adjust manually
+        // silently ignore: user can still adjust manually
       } finally {
         if (!cancelled) {
           setDetecting(false)
@@ -107,7 +111,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
   const isLoading = loadingImages || detecting
 
   return (
-    <div
+    <ModalSurface label="PDF preview" onClose={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 1100,
         backgroundColor: 'rgba(0,0,0,0.6)',
@@ -115,58 +119,58 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{
+      <div style={{ borderRadius: 'var(--radius)',
         width: '640px', maxWidth: '95vw', maxHeight: '90vh',
-        backgroundColor: 'var(--bg-surface,#fff)', border: '2.5px solid #111',
-        boxShadow: '6px 6px 0px #111',
+        backgroundColor: 'var(--bg-surface,#fff)', border: '1px solid var(--border)',
+        boxShadow: 'var(--shadow-sm)',
         display: 'flex', flexDirection: 'column',
       }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2px solid #111', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
             <ScanSearch size={16} />
-            <span style={{ fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            <span style={{ fontWeight: 600, fontSize: '14px', textTransform: 'none', letterSpacing: '0.4px' }}>
               PDF PRE-PREVIEW
             </span>
             {file && (
               <span style={{ fontSize: '12px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
-                — {file.name}
+: {file.name}
               </span>
             )}
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)', padding: '2px', display: 'flex' }}>
+          <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)', padding: '2px', display: 'flex' }}>
             <X size={16} />
-          </button>
+          </Button>
         </div>
 
         {/* Controls */}
-        <div className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: '1.5px solid var(--line,#eee)', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
+        <div className="flex items-center gap-4 px-5 py-3" style={{ borderBottom: '1px solid var(--line,var(--border))', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
           {detecting ? (
             <div className="flex items-center gap-2" style={{ fontSize: '12px', color: 'var(--fg-muted,#888)' }}>
               <Loader2 size={13} className="animate-spin" />
               Auto-detecting margins...
             </div>
           ) : (
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--fg-muted,#888)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--fg-muted,#888)', textTransform: 'none', letterSpacing: '0.4px' }}>
               Margin cut (pt)
             </span>
           )}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#444', fontWeight: 600 }}>
+          <Label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--foreground)', fontWeight: 600 }}>
             Top
-            <input
+            <Input
               type="number" min={0} max={Math.round(pageHeight * 0.45)} step={1} value={topMargin}
               onChange={e => setTopMargin(Math.max(0, Number(e.target.value)))}
-              style={{ width: '64px', padding: '3px 6px', fontSize: '12px', border: '2px solid #111', fontWeight: 700, textAlign: 'right', outline: 'none' }}
+              style={{ borderRadius: 'var(--radius)',  width: '64px', padding: '3px 6px', fontSize: '12px', border: '1px solid var(--border)', fontWeight: 600, textAlign: 'right', outline: 'none' }}
             />
-          </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: '#444', fontWeight: 600 }}>
+          </Label>
+          <Label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', color: 'var(--foreground)', fontWeight: 600 }}>
             Bottom
-            <input
+            <Input
               type="number" min={0} max={Math.round(pageHeight * 0.45)} step={1} value={bottomMargin}
               onChange={e => setBottomMargin(Math.max(0, Number(e.target.value)))}
-              style={{ width: '64px', padding: '3px 6px', fontSize: '12px', border: '2px solid #111', fontWeight: 700, textAlign: 'right', outline: 'none' }}
+              style={{ borderRadius: 'var(--radius)',  width: '64px', padding: '3px 6px', fontSize: '12px', border: '1px solid var(--border)', fontWeight: 600, textAlign: 'right', outline: 'none' }}
             />
-          </label>
+          </Label>
           <span style={{ fontSize: '10px', color: 'var(--fg-subtle,#aaa)', marginLeft: 'auto' }}>
             Page height: {pageHeight} pt · drag lines to adjust
           </span>
@@ -193,7 +197,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
               <img
                 src={`data:image/png;base64,${images[currentPage]}`}
                 alt={`Page ${currentPage + 1}`}
-                style={{ width: '100%', display: 'block', border: '1px solid var(--line,#ccc)' }}
+                style={{ borderRadius: 'var(--radius)',  width: '100%', display: 'block', border: '1px solid var(--line,#ccc)' }}
                 draggable={false}
               />
 
@@ -205,7 +209,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                 pointerEvents: 'none',
               }} />
 
-              {/* Top cut line — draggable */}
+              {/* Top cut line: draggable */}
               <div
                 onPointerDown={onPointerDown('top')}
                 style={{
@@ -214,9 +218,9 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                   cursor: 'ns-resize', transform: 'translateY(-1px)',
                 }}
               >
-                <div style={{
+                <div style={{ borderRadius: 'var(--radius)',
                   position: 'absolute', right: '8px', top: '-9px',
-                  fontSize: '9px', fontWeight: 700, color: 'var(--fg-red,#FF3C3C)',
+                  fontSize: '9px', fontWeight: 600, color: 'var(--fg-red,#FF3C3C)',
                   backgroundColor: 'var(--bg-surface,#fff)', padding: '1px 4px', border: '1px solid var(--fg-red,#FF3C3C)',
                   userSelect: 'none',
                 }}>
@@ -224,7 +228,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                 </div>
               </div>
 
-              {/* Bottom cut line — draggable */}
+              {/* Bottom cut line: draggable */}
               <div
                 onPointerDown={onPointerDown('bottom')}
                 style={{
@@ -233,9 +237,9 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                   cursor: 'ns-resize', transform: 'translateY(1px)',
                 }}
               >
-                <div style={{
+                <div style={{ borderRadius: 'var(--radius)',
                   position: 'absolute', right: '8px', bottom: '-9px',
-                  fontSize: '9px', fontWeight: 700, color: 'var(--fg-red,#FF3C3C)',
+                  fontSize: '9px', fontWeight: 600, color: 'var(--fg-red,#FF3C3C)',
                   backgroundColor: 'var(--bg-surface,#fff)', padding: '1px 4px', border: '1px solid var(--fg-red,#FF3C3C)',
                   userSelect: 'none',
                 }}>
@@ -255,47 +259,47 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
         </div>
 
         {/* Page nav + footer */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '2px solid #111', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}>
           {/* Page navigation */}
           <div className="flex items-center gap-2">
             {images.length > 1 && (
               <>
-                <button
+                <Button aria-label="Previous" variant="ghost"
                   onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
                   disabled={currentPage === 0}
-                  style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', cursor: currentPage === 0 ? 'default' : 'pointer', padding: '4px', display: 'flex', opacity: currentPage === 0 ? 0.3 : 1 }}
+                  style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  border: '1px solid var(--border)', background: 'var(--bg-surface,#fff)', cursor: currentPage === 0 ? 'default' : 'pointer', padding: '4px', display: 'flex', opacity: currentPage === 0 ? 0.3 : 1 }}
                 >
                   <ChevronLeft size={14} />
-                </button>
+                </Button>
                 <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--fg-muted,#666)' }}>
                   Page {currentPage + 1} / {images.length}
                 </span>
-                <button
+                <Button aria-label="Next" variant="ghost"
                   onClick={() => setCurrentPage(p => Math.min(images.length - 1, p + 1))}
                   disabled={currentPage === images.length - 1}
-                  style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', cursor: currentPage === images.length - 1 ? 'default' : 'pointer', padding: '4px', display: 'flex', opacity: currentPage === images.length - 1 ? 0.3 : 1 }}
+                  style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  border: '1px solid var(--border)', background: 'var(--bg-surface,#fff)', cursor: currentPage === images.length - 1 ? 'default' : 'pointer', padding: '4px', display: 'flex', opacity: currentPage === images.length - 1 ? 0.3 : 1 }}
                 >
                   <ChevronRight size={14} />
-                </button>
+                </Button>
               </>
             )}
           </div>
 
           <div className="flex gap-3">
-            <button onClick={onClose} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)', fontSize: '12px' }}>
+            <Button variant="outline" onClick={onClose} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-surface-2,#F0F0F0)', fontSize: '12px' }}>
               CANCEL
-            </button>
-            <button
+            </Button>
+            <Button variant="default"
               onClick={() => onParseAll(topMargin, bottomMargin)}
               disabled={isLoading}
-              className="neo-button"
-              style={{ backgroundColor: 'var(--bg-orange,#FFCF77)', fontSize: '12px', opacity: isLoading ? 0.5 : 1 }}
+              className=""
+              style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-orange,#FFCF77)', fontSize: '12px', opacity: isLoading ? 0.5 : 1 }}
             >
               PARSE {queuedCount} FILE{queuedCount !== 1 ? 'S' : ''}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

@@ -1,3 +1,7 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * ImageFolderModal
  *
@@ -6,7 +10,7 @@
  *
  * DOCX/PDF imports bring their images along; TXT, MD and manually typed chapters
  * only carry the placeholder line. Because matching keys off the filename in that
- * line, one image source serves every input type — including older DOCX/PDF
+ * line, one image source serves every input type: including older DOCX/PDF
  * chapters imported before image support existed.
  *
  * Three ways to supply images, per the same panel:
@@ -155,29 +159,29 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
   const hasSource = (info?.count ?? 0) > 0 || poolCount > 0
 
   return (
-    <div className="neo-modal-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
+    <ModalSurface label="Image folder" onClose={onClose} className="ui-modal-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
       <div
-        className="neo-modal"
+        className="ui-modal"
         style={{ width: '640px', maxWidth: '94vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-blue,#9AD5FF)', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--bg-blue,#9AD5FF)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
-            <ImageIcon size={17} color="#111" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <ImageIcon size={17} color="var(--foreground)" />
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'none', letterSpacing: '0.05em' }}>
               Image Source
             </span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
+          <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex-1 p-5 space-y-4" style={{ minHeight: 0, overflowY: 'auto' }}>
           <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.6, margin: 0 }}>
             Baris <code style={{ background: 'var(--color-surface-2)', padding: '1px 4px' }}>Image Placeholder: nama.jpg</code>{' '}
-            akan dicocokkan ke gambar berdasarkan namanya. Berlaku untuk semua jenis input —
+            akan dicocokkan ke gambar berdasarkan namanya. Berlaku untuk semua jenis input:
             TXT, MD, ketik manual, maupun DOCX/PDF lama.
             <br />
             <span style={{ color: 'var(--color-text-subtle)' }}>
@@ -188,27 +192,27 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
 
           {/* Folder path */}
           <div>
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+            <Label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
               Folder gambar
-            </label>
+            </Label>
             <div className="flex items-center gap-2 mt-1.5">
-              <input
+              <Input aria-label="Folder gambar"
                 value={path}
                 onChange={e => setPath(e.target.value)}
                 onBlur={() => savePath(path)}
                 onKeyDown={e => { if (e.key === 'Enter') savePath(path) }}
                 placeholder="C:\path\ke\folder\gambar"
-                className="neo-input"
+                className="ui-input"
                 style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
               />
-              <button onClick={browse} className="neo-button flex items-center gap-1" style={{ fontSize: '11px', flexShrink: 0 }}>
+              <Button variant="default" onClick={browse} className="flex items-center gap-1" style={{ fontSize: '11px', flexShrink: 0 }}>
                 <FolderOpen size={13} /> BROWSE
-              </button>
+              </Button>
             </div>
             {path.trim() && info && (
               <p style={{ fontSize: '11px', marginTop: '5px', color: info.exists ? 'var(--fg-green,#1a8f4c)' : 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>
                 {info.exists
-                  ? `✓ ${info.count} gambar${info.samples.length ? ` — ${info.samples.slice(0, 3).join(', ')}${info.count > 3 ? '…' : ''}` : ''}`
+                  ? `✓ ${info.count} gambar${info.samples.length ? `: ${info.samples.slice(0, 3).join(', ')}${info.count > 3 ? '…' : ''}` : ''}`
                   : '✗ Folder tidak ditemukan'}
               </p>
             )}
@@ -216,13 +220,13 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
 
           {/* Drop zone */}
           <div>
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+            <Label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
               Atau jatuhkan gambar langsung
-            </label>
+            </Label>
             <div
               className="flex flex-col items-center justify-center gap-1.5 mt-1.5"
-              style={{
-                border: `2.5px dashed ${dragOver ? 'var(--fg-blue,#0077FF)' : 'var(--color-separator)'}`,
+              style={{ borderRadius: 'var(--radius)',
+                border: `1px dashed ${dragOver ? 'var(--fg-blue,#0077FF)' : 'var(--color-separator)'}`,
                 background: dragOver ? 'rgba(0,119,255,0.06)' : 'var(--color-surface-2)',
                 padding: '20px', cursor: 'pointer', transition: 'all 0.15s',
               }}
@@ -232,14 +236,14 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
               onClick={() => fileRef.current?.click()}
             >
               {uploading
-                ? <><Loader2 size={22} className="animate-spin" style={{ color: 'var(--color-text-muted)' }} /><span style={{ fontSize: '12px', fontWeight: 700 }}>Menyimpan...</span></>
+                ? <><Loader2 size={22} className="animate-spin" style={{ color: 'var(--color-text-muted)' }} /><span style={{ fontSize: '12px', fontWeight: 600 }}>Menyimpan...</span></>
                 : <>
                     <Upload size={22} style={{ color: dragOver ? 'var(--fg-blue,#0077FF)' : 'var(--color-text-subtle)' }} />
-                    <span style={{ fontSize: '12px', fontWeight: 700, color: dragOver ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 600, color: dragOver ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
                       {dragOver ? '↓ Lepaskan' : 'Drag & drop gambar ke sini'}
                     </span>
                   </>}
-              <input
+              <Input aria-label="Atau jatuhkan gambar langsung"
                 ref={fileRef} type="file" accept="image/*" multiple style={{ display: 'none' }}
                 onChange={e => { if (e.target.files) { uploadFiles(Array.from(e.target.files)); e.target.value = '' } }}
               />
@@ -249,15 +253,15 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
                   {poolCount} gambar tersimpan di series ini
                 </span>
-                <button onClick={clearPool} className="flex items-center gap-1" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase' }}>
+                <Button variant="ghost" onClick={clearPool} className="flex items-center gap-1" style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', fontSize: '10px', fontWeight: 600, textTransform: 'none' }}>
                   <Trash2 size={11} /> Kosongkan
-                </button>
+                </Button>
               </div>
             )}
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 px-3 py-2" style={{ border: '2px solid var(--fg-red,#FF3C3C)', background: 'rgba(255,60,60,0.07)' }}>
+            <div className="flex items-start gap-2 px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-red,#FF3C3C)', background: 'var(--tint-red)' }}>
               <AlertCircle size={14} color="var(--fg-red,#FF3C3C)" style={{ flexShrink: 0, marginTop: '1px' }} />
               <span style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)' }}>{error}</span>
             </div>
@@ -265,16 +269,16 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
 
           {/* Result */}
           {result && (
-            <div className="px-3 py-2.5" style={{ border: '2px solid var(--color-border)', background: 'var(--color-surface-2)' }}>
+            <div className="px-3 py-2.5" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', background: 'var(--color-surface-2)' }}>
               <div className="flex items-center gap-2" style={{ marginBottom: result.missing ? '6px' : 0 }}>
                 <Check size={14} color="var(--fg-green,#1a8f4c)" />
-                <span style={{ fontSize: '12px', fontWeight: 700 }}>
+                <span style={{ fontSize: '12px', fontWeight: 600 }}>
                   {result.matched} gambar terpasang di {result.chaptersUpdated} chapter
                 </span>
               </div>
               {result.missing > 0 && (
                 <div>
-                  <p style={{ fontSize: '11px', color: '#C97A00', fontWeight: 700, margin: '0 0 3px' }}>
+                  <p style={{ fontSize: '11px', color: '#C97A00', fontWeight: 600, margin: '0 0 3px' }}>
                     {result.missing} placeholder tidak ketemu gambarnya:
                   </p>
                   <p style={{ fontSize: '10px', fontFamily: 'monospace', color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5, wordBreak: 'break-all' }}>
@@ -292,22 +296,22 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '2.5px solid var(--color-border)', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '1px solid var(--color-border)', flexShrink: 0 }}>
           <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
             Sumber: {info?.count ?? 0} folder · {poolCount} tersimpan
           </span>
-          <button
+          <Button variant="default"
             onClick={runSync}
             disabled={syncing || !hasSource}
-            className="neo-button flex items-center gap-2"
-            style={{ backgroundColor: 'var(--bg-blue,#9AD5FF)', opacity: syncing || !hasSource ? 0.5 : 1 }}
+            className="flex items-center gap-2"
+            style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-blue,#9AD5FF)', opacity: syncing || !hasSource ? 0.5 : 1 }}
           >
             {syncing
               ? <><Loader2 size={14} className="animate-spin" /> MEMASANG...</>
               : <><RefreshCw size={14} /> PASANG KE CHAPTER</>}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 /**
  * LWNTL Home Page
  * Series collection grid with group drill-down navigation
@@ -5,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Plus, ChevronRight } from 'lucide-react'
+import { Plus, ChevronRight, Search, BookOpen, FolderPlus } from 'lucide-react'
 import { Topbar } from '../components/Topbar'
 import { SeriesCard } from '../components/SeriesCard'
 import { SkeletonCard } from '../components/SkeletonCard'
@@ -33,7 +35,8 @@ type GroupFormMode = 'create' | 'rename' | 'color' | null
 
 export function HomePage() {
   const toast = useToast()
-  const { t } = useI18n()
+  const { t, language } = useI18n()
+  const [search, setSearch] = useState('')
   const { apiReady, config } = useAppStore()
   const navigate = useNavigate()
   const location = useLocation()
@@ -115,7 +118,7 @@ export function HomePage() {
     }
   }, [location.state])
 
-  // Navigation — push to router history so browser back/forward works
+  // Navigation: push to router history so browser back/forward works
   const navigateToGroup = (group: SeriesGroup) => {
     const newBreadcrumb = [...breadcrumb, { id: group.id, name: group.name }]
     navigate('/', { state: { groupId: group.id, breadcrumb: newBreadcrumb } })
@@ -317,46 +320,31 @@ export function HomePage() {
     <div className="app-layout">
       <Topbar />
 
-      <main className="flex-1 overflow-y-auto p-6" style={{ backgroundColor: 'var(--color-bg, var(--bg-page,#F8F3EA))' }}>
+      <main className="collection-page flex-1 overflow-y-auto">
+        <div className="collection-content">
         {/* Page header */}
-        <div className="flex items-center justify-between mb-4">
-          <h1
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 900,
-              fontSize: '24px',
-              color: 'var(--color-text)',
-              letterSpacing: '1px',
-            }}
-          >
-            {t.home.title}
-          </h1>
+        <div className="page-heading">
+          <div><h1 className="ui-h1 mb-2">{language === 'id' ? 'Koleksi series' : 'Your library'}</h1><p className="text-sm text-muted-foreground">{language === 'id' ? 'Kelola series, atur bab, dan lanjutkan terjemahanmu.' : 'Organize your series, manage chapters, and continue translating.'}</p></div>
           <div className="flex items-center gap-3">
-            <button
+            <Button variant="outline"
               onClick={openGroupCreate}
-              className="flex items-center gap-2 px-4 py-2 font-bold text-sm transition-all"
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                border: '2.5px solid var(--color-border)',
-                background: 'transparent',
-                cursor: 'pointer',
-                color: 'var(--color-text)',
-                boxShadow: '3px 3px 0px var(--color-border)',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '5px 5px 0px var(--color-border)')}
-              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '3px 3px 0px var(--color-border)')}
             >
-              <Plus size={15} />
+              <FolderPlus size={15} />
               {currentGroupId ? t.group.addSubGroup : t.home.addGroup}
-            </button>
-            <button onClick={() => setCreateOpen(true)} className="neo-button flex items-center gap-2">
+            </Button>
+            <Button onClick={() => setCreateOpen(true)}>
               <Plus size={18} />
               {t.home.addSeries.replace('+ ', '')}
-            </button>
+            </Button>
           </div>
         </div>
 
-        {/* Breadcrumb — also a drop target to move series up levels */}
+        <div className="collection-toolbar">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><BookOpen size={16} /><span>{visibleSeries.length} {language === 'id' ? 'series' : 'series'}{visibleGroups.length > 0 ? ` / ${visibleGroups.length} ${language === 'id' ? 'grup' : 'groups'}` : ''}</span></div>
+          <div className="collection-search"><Search size={16} /><Input aria-label={language === 'id' ? 'Cari series atau grup' : 'Search series or groups'} placeholder={language === 'id' ? 'Cari series atau grup...' : 'Search series or groups...'} value={search} onChange={e => setSearch(e.target.value)} /></div>
+        </div>
+
+        {/* Breadcrumb: also a drop target to move series up levels */}
         {breadcrumb.length > 1 && (
           <div className="flex items-center gap-1 mb-5 flex-wrap">
             {breadcrumb.map((crumb, idx) => {
@@ -365,7 +353,7 @@ export function HomePage() {
               return (
                 <span key={idx} className="flex items-center gap-1">
                   {idx > 0 && <ChevronRight size={13} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />}
-                  <button
+                  <Button variant="ghost"
                     onClick={() => navigateToCrumb(idx)}
                     onDragOver={(e) => {
                       if (!e.dataTransfer.types.includes('series-id') || isLast) return
@@ -380,10 +368,10 @@ export function HomePage() {
                       if (seriesId && !isLast) handleDropOnBreadcrumb(seriesId, idx)
                     }}
                     style={{
-                      border: isDropTarget ? '2px solid var(--fg-cyan,#00F7FF)' : 'none',
+                      border: isDropTarget ? '1px solid var(--fg-cyan,#00F7FF)' : 'none',
                       background: isDropTarget ? 'rgba(0,247,255,0.12)' : 'transparent',
                       cursor: isLast ? 'default' : 'pointer',
-                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontFamily: 'var(--font-body)',
                       fontWeight: isLast ? 700 : 600,
                       fontSize: '13px',
                       color: isLast ? 'var(--color-text)' : 'var(--color-text-muted)',
@@ -394,7 +382,7 @@ export function HomePage() {
                     }}
                   >
                     {crumb.name}
-                  </button>
+                  </Button>
                 </span>
               )
             })}
@@ -405,8 +393,9 @@ export function HomePage() {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))',
             gap: '20px',
+            alignItems: 'start',
           }}
         >
           {loading ? (
@@ -417,42 +406,43 @@ export function HomePage() {
             </>
           ) : loadError ? (
             <div className="flex flex-col items-center justify-center py-20" style={{ gridColumn: '1 / -1' }}>
-              <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px', color: 'var(--fg-red,#FF3C3C)', marginBottom: '8px' }}>
+              <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '18px', color: 'var(--fg-red,#FF3C3C)', marginBottom: '8px' }}>
                 GAGAL MEMUAT SERIES
               </h2>
               <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
                 {loadError}
               </p>
-              <button onClick={loadData} className="neo-button">RETRY</button>
+              <Button variant="default" onClick={loadData} className="">RETRY</Button>
             </div>
           ) : isEmpty ? (
             <div className="flex flex-col items-center justify-center py-20" style={{ gridColumn: '1 / -1' }}>
               <div
                 className="flex items-center justify-center mb-4"
-                style={{
+                style={{ borderRadius: 'var(--radius)',
                   width: '80px', height: '80px',
-                  border: '3px solid var(--color-border)',
-                  boxShadow: 'var(--neo-shadow-lg)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-lg)',
                   backgroundColor: 'var(--color-surface)',
                 }}
               >
                 <Plus size={32} style={{ color: 'var(--color-text-subtle)' }} />
               </div>
-              <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px', color: 'var(--color-text)', marginBottom: '8px' }}>
-                {t.home.emptyTitle.toUpperCase()}
+              <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '18px', color: 'var(--color-text)', marginBottom: '8px' }}>
+                {t.home.emptyTitle}
               </h2>
               <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', marginBottom: '16px' }}>
                 {t.home.emptyDesc}
               </p>
-              <button onClick={() => setCreateOpen(true)} className="neo-button flex items-center gap-2">
+              <Button variant="default" onClick={() => setCreateOpen(true)} className="flex items-center gap-2">
                 <Plus size={16} />
                 {t.home.addSeries.replace('+ ', '')}
-              </button>
+              </Button>
             </div>
           ) : (
             <>
               {/* Group cards first */}
-              {visibleGroups.map((group) => (
+              {search && !visibleGroups.some(group => group.name.toLowerCase().includes(search.toLowerCase())) && !visibleSeries.some(series => series.title.toLowerCase().includes(search.toLowerCase())) && <div className="empty-state col-span-full"><Search className="mx-auto mb-3 size-7 text-muted-foreground" /><p className="font-medium">{language === 'id' ? 'Tidak ada hasil pencarian' : 'No matching series or groups'}</p><Button variant="link" onClick={() => setSearch('')}>{language === 'id' ? 'Hapus pencarian' : 'Clear search'}</Button></div>}
+              {visibleGroups.filter(group => group.name.toLowerCase().includes(search.toLowerCase())).map((group) => (
                 <GroupCard
                   key={group.id}
                   group={group}
@@ -471,7 +461,7 @@ export function HomePage() {
               ))}
 
               {/* Series cards */}
-              {visibleSeries.map((series) => (
+              {visibleSeries.filter(series => series.title.toLowerCase().includes(search.toLowerCase())).map((series) => (
                 <SeriesCard
                   key={series.id}
                   series={series}
@@ -494,17 +484,18 @@ export function HomePage() {
                 >
                   <p style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>Grup ini masih kosong.</p>
                   <div className="flex gap-3">
-                    <button onClick={openGroupCreate} className="neo-button" style={{ fontSize: '12px', padding: '6px 14px' }}>
+                    <Button variant="default" onClick={openGroupCreate} className="" style={{ fontSize: '12px', padding: '6px 14px' }}>
                       {t.group.addSubGroup}
-                    </button>
-                    <button onClick={() => setCreateOpen(true)} className="neo-button" style={{ fontSize: '12px', padding: '6px 14px' }}>
+                    </Button>
+                    <Button variant="default" onClick={() => setCreateOpen(true)} className="" style={{ fontSize: '12px', padding: '6px 14px' }}>
                       {t.home.addSeries.replace('+ ', '')}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               )}
             </>
           )}
+        </div>
         </div>
       </main>
 

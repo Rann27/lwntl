@@ -47,7 +47,7 @@ export function RequestParamsPreview({ provider, model, revision }: Props) {
   const parts = summarize(params.extra)
   return (
     <div style={{ marginTop: '6px', fontSize: '10px', lineHeight: 1.5, color: 'var(--color-text-muted)' }}>
-      <span style={{ fontWeight: 800, textTransform: 'uppercase' }}>Dikirim: </span>
+      <span style={{ fontWeight: 600, textTransform: 'none' }}>Dikirim: </span>
       {parts.length ? parts.join(' · ') : 'tanpa parameter tambahan'}
       {' · '}temperature: {params.temperature ? 'ya' : <strong>tidak</strong>}
       {params.notes.length > 0 && (

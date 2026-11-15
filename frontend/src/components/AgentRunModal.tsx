@@ -1,7 +1,12 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 /**
  * AgentRunModal
  *
- * Starts the agent review for a series — the QA stage after batch translation.
+ * Starts the agent review for a series: the QA stage after batch translation.
  * Each translated chapter gets the safe mechanical fixes, then a review and
  * repair session with a tool-using agent; a final volume pass fixes
  * cross-chapter name/term drift. Untranslated chapters are skipped.
@@ -77,31 +82,31 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
   const optionStyle = (active: boolean): React.CSSProperties => ({
     flex: 1,
     padding: '8px 10px',
-    border: '2px solid var(--color-border)',
+    border: '1px solid var(--color-border)',
     backgroundColor: active ? 'var(--bg-purple,#C9A7FF)' : 'var(--color-surface)',
     color: active ? 'var(--on-accent,#111)' : 'var(--color-text)',
     cursor: 'pointer',
     textAlign: 'left',
-    boxShadow: active ? '3px 3px 0 #111' : 'none',
+    boxShadow: active ? 'var(--shadow-sm)' : 'none',
   })
 
   return (
-    <div className="neo-modal-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
+    <ModalSurface label="Agent review" onClose={onClose} className="ui-modal-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
       <div
-        className="neo-modal"
+        className="ui-modal"
         style={{ width: '640px', maxWidth: '94vw', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-purple,#C9A7FF)', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--bg-purple,#C9A7FF)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
-            <Bot size={17} color="#111" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Bot size={17} color="var(--foreground)" />
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'none', letterSpacing: '0.05em' }}>
               {t.agent.title}
             </span>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
+          <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-col gap-4 px-5 py-4" style={{ overflowY: 'auto', minHeight: 0 }}>
@@ -116,8 +121,8 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
               { label: t.agent.statSkip, value: rereview ? 0 : reviewed },
               { label: t.agent.statUntranslated, value: untranslated },
             ].map(s => (
-              <div key={s.label} style={{ flex: 1, border: '2px solid var(--color-border)', padding: '6px 8px', backgroundColor: 'var(--color-surface-2)' }}>
-                <div style={{ fontSize: '18px', fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif" }}>{s.value}</div>
+              <div key={s.label} style={{ borderRadius: 'var(--radius)',  flex: 1, border: '1px solid var(--color-border)', padding: '6px 8px', backgroundColor: 'var(--color-surface-2)' }}>
+                <div style={{ fontSize: '18px', fontWeight: 600, fontFamily: 'var(--font-body)' }}>{s.value}</div>
                 <div style={{ color: 'var(--color-text-muted)' }}>{s.label}</div>
               </div>
             ))}
@@ -125,55 +130,55 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
 
           {/* Brief */}
           <div className="flex flex-col gap-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t.agent.briefLabel}</label>
-            <textarea
+            <Label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'none' }}>{t.agent.briefLabel}</Label>
+            <Textarea aria-label={t.agent.briefLabel}
               value={brief}
               onChange={e => setBrief(e.target.value)}
               rows={4}
               placeholder={t.agent.briefPlaceholder}
-              style={{ width: '100%', border: '2px solid var(--color-border)', padding: '8px', fontSize: '12px', background: 'var(--color-surface)', color: 'var(--color-text)', resize: 'vertical', outline: 'none' }}
+              style={{ borderRadius: 'var(--radius)',  width: '100%', border: '1px solid var(--color-border)', padding: '8px', fontSize: '12px', background: 'var(--color-surface)', color: 'var(--color-text)', resize: 'vertical', outline: 'none' }}
             />
           </div>
 
           {/* Review depth */}
           <div className="flex flex-col gap-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t.agent.reviewLabel}</label>
+            <Label style={{ fontSize: '11px', fontWeight: 600, textTransform: 'none' }}>{t.agent.reviewLabel}</Label>
             <div className="flex gap-2">
-              <button type="button" style={optionStyle(review === 'findings')} onClick={() => setReview('findings')}>
-                <div style={{ fontSize: '12px', fontWeight: 700 }}>{t.agent.reviewFindings}</div>
+              <Button variant="ghost" type="button" className="flex-col items-start whitespace-normal" style={optionStyle(review === 'findings')} onClick={() => setReview('findings')}>
+                <div style={{ fontSize: '12px', fontWeight: 600 }}>{t.agent.reviewFindings}</div>
                 <div style={{ fontSize: '10px', opacity: 0.8 }}>{t.agent.reviewFindingsDesc}</div>
-              </button>
-              <button type="button" style={optionStyle(review === 'full')} onClick={() => setReview('full')}>
-                <div style={{ fontSize: '12px', fontWeight: 700 }}>{t.agent.reviewFull}</div>
+              </Button>
+              <Button variant="ghost" type="button" className="flex-col items-start whitespace-normal" style={optionStyle(review === 'full')} onClick={() => setReview('full')}>
+                <div style={{ fontSize: '12px', fontWeight: 600 }}>{t.agent.reviewFull}</div>
                 <div style={{ fontSize: '10px', opacity: 0.8 }}>{t.agent.reviewFullDesc}</div>
-              </button>
+              </Button>
             </div>
           </div>
 
-          <label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={safeFixes} onChange={e => setSafeFixes(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
+          <Label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
+            <Input type="checkbox" checked={safeFixes} onChange={e => setSafeFixes(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
             <span><strong>{t.agent.safeFixes}</strong><br /><span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{t.agent.safeFixesDesc}</span></span>
-          </label>
+          </Label>
 
-          <label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={volumePass} onChange={e => setVolumePass(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
+          <Label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
+            <Input type="checkbox" checked={volumePass} onChange={e => setVolumePass(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
             <span><strong>{t.agent.volumePass}</strong><br /><span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{t.agent.volumePassDesc}</span></span>
-          </label>
+          </Label>
 
-          <label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
-            <input type="checkbox" checked={rereview} onChange={e => setRereview(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
+          <Label className="flex items-start gap-2" style={{ fontSize: '12px', cursor: 'pointer' }}>
+            <Input type="checkbox" checked={rereview} onChange={e => setRereview(e.target.checked)} style={{ marginTop: '2px', accentColor: 'var(--fg-purple,#C9A7FF)' }} />
             <span><strong>{t.agent.rereview}</strong><br /><span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{t.agent.rereviewDesc}</span></span>
-          </label>
+          </Label>
 
-          <p style={{ fontSize: '11px', lineHeight: 1.5, color: 'var(--color-text-muted)', borderLeft: '3px solid var(--fg-purple,#C9A7FF)', paddingLeft: '8px' }}>
+          <p style={{ fontSize: '11px', lineHeight: 1.5, color: 'var(--color-text-muted)', borderLeft: '1px solid var(--fg-purple,#C9A7FF)', paddingLeft: '8px' }}>
             {t.agent.note}
           </p>
 
-          {/* Backups — a whole-series snapshot is taken before every run */}
-          <div className="flex flex-col gap-1.5" style={{ border: '2px solid var(--color-border)', padding: '8px 10px' }}>
+          {/* Backups: a whole-series snapshot is taken before every run */}
+          <div className="flex flex-col gap-1.5" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', padding: '8px 10px' }}>
             <div className="flex items-center gap-2">
               <History size={13} />
-              <span style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase' }}>{t.agent.backupTitle}</span>
+              <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'none' }}>{t.agent.backupTitle}</span>
             </div>
             <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>{t.agent.backupDesc}</p>
             {backups.length === 0 ? (
@@ -184,37 +189,37 @@ export function AgentRunModal({ open, onClose, seriesId, chapters, onStart, onRe
                   <div key={b.id} className="flex items-center gap-2" style={{ fontSize: '12px' }}>
                     <span style={{ fontFamily: 'monospace' }}>{new Date(b.createdAt).toLocaleString('id-ID')}</span>
                     <span style={{ color: 'var(--color-text-muted)' }}>· {b.chapters} bab · {b.glossary} entri glosarium</span>
-                    <button onClick={() => restore(b)} disabled={!!restoring} className="flex items-center gap-1"
-                      style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: 800, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '2px 8px', cursor: 'pointer', textTransform: 'uppercase' }}>
+                    <Button variant="ghost" onClick={() => restore(b)} disabled={!!restoring} className="flex items-center gap-1"
+                      style={{ borderRadius: 'var(--radius)',  marginLeft: 'auto', fontSize: '10px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '2px 8px', cursor: 'pointer', textTransform: 'none' }}>
                       {restoring === b.id && <Loader2 size={10} className="animate-spin" />} {t.agent.backupRestore}
-                    </button>
+                    </Button>
                   </div>
                 ))}
-                <label className="flex items-center gap-2" style={{ fontSize: '11px', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={restoreGlossary} onChange={e => setRestoreGlossary(e.target.checked)} style={{ accentColor: 'var(--fg-purple,#C9A7FF)' }} />
+                <Label className="flex items-center gap-2" style={{ fontSize: '11px', cursor: 'pointer' }}>
+                  <Input type="checkbox" checked={restoreGlossary} onChange={e => setRestoreGlossary(e.target.checked)} style={{ accentColor: 'var(--fg-purple,#C9A7FF)' }} />
                   {t.agent.backupGlossary}
-                </label>
+                </Label>
               </>
             )}
-            {restoreMsg && <p style={{ fontSize: '11px', fontWeight: 700 }}>{restoreMsg}</p>}
+            {restoreMsg && <p style={{ fontSize: '11px', fontWeight: 600 }}>{restoreMsg}</p>}
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: '2.5px solid var(--color-border)', flexShrink: 0 }}>
-          <button onClick={onClose} className="neo-button" style={{ fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}>
+        <div className="flex items-center justify-end gap-2 px-5 py-3" style={{ borderTop: '1px solid var(--color-border)', flexShrink: 0 }}>
+          <Button variant="outline" onClick={onClose} className="" style={{ color: 'var(--foreground)',  fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}>
             {t.common.cancel}
-          </button>
-          <button
+          </Button>
+          <Button variant="default"
             onClick={start}
             disabled={translated.length === 0}
-            className="neo-button"
+            className=""
             style={{ fontSize: '12px', backgroundColor: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)', opacity: translated.length === 0 ? 0.5 : 1 }}
           >
             <Play size={13} style={{ display: 'inline', marginRight: '6px' }} />
             {t.agent.start}
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

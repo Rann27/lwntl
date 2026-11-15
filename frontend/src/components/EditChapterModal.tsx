@@ -1,3 +1,8 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 /**
  * LWNTL Edit Chapter Modal
  */
@@ -31,7 +36,7 @@ export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: 
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
@@ -45,60 +50,60 @@ export function EditChapterModal({ open, onClose, onSubmit, chapter, loading }: 
   }
 
   return (
-    <div className="neo-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div className="neo-modal" style={{ maxWidth: '560px', animation: 'slideUp 150ms ease' }}>
+    <ModalSurface label="Edit chapter" onClose={onClose} className="ui-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="ui-modal" style={{ maxWidth: '560px', animation: 'slideUp 150ms ease' }}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Edit size={20} />
-              <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px' }}>
+              <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px' }}>
                 {t.modal.editChapter}
               </h2>
             </div>
-            <button onClick={onClose} className="hover:opacity-70" style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+            <Button aria-label="Close" variant="ghost" onClick={onClose} className="hover:opacity-70" style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer' }}>
               <X size={20} />
-            </button>
+            </Button>
           </div>
 
           <form onSubmit={handleSubmit}>
             <div className="flex gap-4 mb-4">
               <div style={{ width: '120px' }}>
-                <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <Label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>
                   {t.modal.chapterNumber}
-                </label>
-                <input type="text" value={number} onChange={(e) => setNumber(e.target.value)} className="neo-input" placeholder="1" />
+                </Label>
+                <Input aria-label={t.modal.chapterNumber} type="text" value={number} onChange={(e) => setNumber(e.target.value)} className="ui-input" placeholder="1" />
               </div>
               <div className="flex-1">
-                <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <Label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>
                   {t.modal.chapterTitle}
-                </label>
-                <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="neo-input" />
+                </Label>
+                <Input aria-label={t.modal.chapterTitle} type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="ui-input" />
               </div>
             </div>
 
             <div className="mb-6">
-              <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <Label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>
                 {t.modal.chapterContent}
-              </label>
-              <textarea
+              </Label>
+              <Textarea aria-label={t.modal.chapterContent}
                 value={rawContent}
                 onChange={(e) => setRawContent(e.target.value)}
-                className="neo-textarea"
+                className="ui-textarea"
                 style={{ minHeight: '200px', fontFamily: 'monospace', fontSize: '13px' }}
               />
             </div>
 
             <div className="flex justify-end gap-3">
-              <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>
+              <Button variant="outline" type="button" onClick={onClose} disabled={loading} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>
                 {t.common.cancel}
-              </button>
-              <button type="submit" disabled={!number || loading} className="neo-button" style={{ opacity: number && !loading ? 1 : 0.5 }}>
+              </Button>
+              <Button variant="default" type="submit" disabled={!number || loading} className="" style={{ opacity: number && !loading ? 1 : 0.5 }}>
                 {loading ? t.common.saving : t.modal.save}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

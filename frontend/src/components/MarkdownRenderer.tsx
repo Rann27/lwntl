@@ -58,7 +58,7 @@ export function MarkdownRenderer({ content, images = {} }: MarkdownRendererProps
   const prepared = inlineImages(normalizeDelimiters(content), images)
 
   return (
-    <div className="markdown-body" style={{ padding: '16px', fontSize: '14px', lineHeight: '1.7' }}>
+    <div className="markdown-body editor-prose" style={{ padding: '20px', fontSize: '16px', lineHeight: '1.85' }}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         // Keep our sentinel and data: URIs intact (content is our own translation text).
@@ -91,13 +91,13 @@ export function MarkdownRenderer({ content, images = {} }: MarkdownRendererProps
               <img
                 src={uri}
                 alt={alt || ''}
-                style={{
+                style={{ borderRadius: 'var(--radius)',
                   display: 'block',
                   maxWidth: '100%',
                   height: 'auto',
                   margin: '14px auto',
-                  border: '2px solid var(--color-border)',
-                  boxShadow: '3px 3px 0 var(--color-border)',
+                  border: '1px solid var(--color-border)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               />
             )

@@ -1,68 +1,16 @@
-import { Check, X, Info } from 'lucide-react'
+import { CheckCircle2, X, Info, CircleAlert } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { useAppStore } from '../store/appStore'
 
-interface ToastProps {
-  id: string
-  type: 'success' | 'error' | 'info'
-  message: string
-}
+interface ToastProps { id: string; type: 'success' | 'error' | 'info'; message: string }
 
 export function Toast({ id, type, message }: ToastProps) {
-  const removeToast = useAppStore((state) => state.removeToast)
-
-  const getIcon = () => {
-    switch (type) {
-      case 'success':
-        return <Check size={20} />
-      case 'error':
-        return <X size={20} />
-      case 'info':
-        return <Info size={20} />
-    }
-  }
-
-  const getAccentColor = () => {
-    switch (type) {
-      case 'success':
-        return 'var(--color-green)'
-      case 'error':
-        return 'var(--color-red)'
-      case 'info':
-        return 'var(--color-primary)'
-    }
-  }
-
-  return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div
-        className="flex items-center gap-3 bg-[var(--bg-surface,#fff)] border-[2.5px] border-[#111111] shadow-[4px_4px_0px_#111111] p-4 min-w-[300px] max-w-md"
-        style={{
-          animation: 'slideIn 200ms ease-out',
-          borderLeft: `6px solid ${getAccentColor()}`
-        }}
-      >
-        {/* Accent Bar */}
-        <div
-          className="w-[6px] h-full"
-          style={{ backgroundColor: getAccentColor() }}
-        ></div>
-
-        {/* Icon */}
-        <div className="flex-shrink-0">
-          {getIcon()}
-        </div>
-
-        {/* Message */}
-        <p className="flex-1 text-sm text-[var(--on-accent,#111111)]">{message}</p>
-
-        {/* Close Button */}
-        <button
-          onClick={() => removeToast(id)}
-          className="flex-shrink-0 hover:translate-x-[2px] hover:translate-y-[2px] active:translate-x-[4px] active:translate-y-[4px] transition-all"
-        >
-          <X size={16} />
-        </button>
-      </div>
-    </div>
-  )
+  const removeToast = useAppStore(state => state.removeToast)
+  const Icon = type === 'success' ? CheckCircle2 : type === 'error' ? CircleAlert : Info
+  const color = type === 'success' ? 'var(--fg-green)' : type === 'error' ? 'var(--fg-red)' : 'var(--primary)'
+  return <div role={type === 'error' ? 'alert' : 'status'} className="flex w-[min(360px,calc(100vw-32px))] items-start gap-3 rounded-xl border border-border bg-popover p-4 text-popover-foreground shadow-lg">
+    <Icon className="mt-0.5 size-5 shrink-0" style={{ color }} />
+    <p className="min-w-0 flex-1 break-words text-sm">{message}</p>
+    <Button variant="ghost" size="icon-xs" onClick={() => removeToast(id)} aria-label="Close notification"><X className="size-3.5" /></Button>
+  </div>
 }

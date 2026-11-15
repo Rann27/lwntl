@@ -1,10 +1,14 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * LWNTL Onboarding Modal
  * First-run setup wizard for API keys
  */
 
 import { useState } from 'react'
-import { Rocket, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
+import { BookOpen, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react'
 import { PROVIDERS } from '../types'
 import { useI18n } from '../i18n'
 
@@ -46,12 +50,12 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
   }
 
   return (
-    <div
-      className="neo-modal-backdrop"
+    <ModalSurface label="Welcome to LWNTL" onClose={() => {}} dismissible={false}
+      className="ui-modal-backdrop"
       style={{ backgroundColor: 'rgba(17, 17, 17, 0.9)' }}
     >
       <div
-        className="neo-modal"
+        className="ui-modal"
         style={{ maxWidth: '520px', animation: 'slideUp 200ms ease' }}
       >
         <div className="p-8">
@@ -59,21 +63,21 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
           <div className="text-center mb-6">
             <div
               className="inline-flex items-center justify-center w-16 h-16 mb-4"
-              style={{
+              style={{ borderRadius: 'var(--radius)',
                 backgroundColor: 'var(--bg-cyan,#00F7FF)',
-                border: '3px solid #111',
-                boxShadow: '6px 6px 0px #111',
+                border: '1px solid var(--border)',
+                boxShadow: 'var(--shadow-sm)',
               }}
             >
-              <Rocket size={32} />
+              <BookOpen size={32} />
             </div>
             <h1
               style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 900,
+                fontFamily: 'var(--font-body)',
+                fontWeight: 650,
                 fontSize: '28px',
                 color: 'var(--on-accent,#111)',
-                letterSpacing: '1px',
+                letterSpacing: 'normal',
               }}
             >
               LWNTL
@@ -88,11 +92,11 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
             {[0, 1].map((s) => (
               <div
                 key={s}
-                style={{
+                style={{ borderRadius: 'var(--radius)',
                   width: step >= s ? '32px' : '12px',
                   height: '12px',
                   backgroundColor: step >= s ? 'var(--bg-cyan,#00F7FF)' : '#ddd',
-                  border: '2.5px solid #111',
+                  border: '1px solid var(--border)',
                   transition: 'all 200ms ease',
                 }}
               />
@@ -102,7 +106,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
           {/* Step 0: Choose Provider */}
           {step === 0 && (
             <div>
-              <h2 className="text-center mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px' }}>
+              <h2 className="text-center mb-4" style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '18px' }}>
                 {t.seriesSettings.provider}
               </h2>
               <p className="text-center mb-5" style={{ fontSize: '13px', color: 'var(--fg-muted,#666)' }}>
@@ -111,28 +115,28 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
 
               <div className="space-y-3">
                 {(['zhipuai', 'qwen'] as const).map((p) => (
-                  <button
+                  <Button variant="ghost"
                     key={p}
                     onClick={() => setProvider(p)}
-                    className="w-full text-left p-4 transition-all"
-                    style={{
-                      border: `2.5px solid ${provider === p ? 'var(--fg-cyan,#00F7FF)' : '#111'}`,
-                      boxShadow: provider === p ? '4px 4px 0px var(--fg-cyan,#00F7FF)' : '4px 4px 0px #111',
+                    className="h-auto w-full flex-col items-stretch whitespace-normal p-4 text-left"
+                    style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',
+                      border: `1px solid ${provider === p ? 'var(--fg-cyan,#00F7FF)' : 'var(--border)'}`,
+                      boxShadow: provider === p ? 'var(--shadow-sm)' : 'var(--shadow-sm)',
                       backgroundColor: provider === p ? 'rgba(0,247,255,0.05)' : 'var(--bg-surface,#fff)',
                       cursor: 'pointer',
-                      transform: provider === p ? 'translate(2px, 2px)' : undefined,
+                      transform: provider === p ? 'none' : undefined,
                     }}
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p style={{ fontWeight: 700, fontSize: '15px' }}>{providerInfo[p].name}</p>
+                        <p style={{ fontWeight: 600, fontSize: '15px' }}>{providerInfo[p].name}</p>
                         <p style={{ fontSize: '12px', color: 'var(--fg-muted,#666)', marginTop: '2px' }}>{providerInfo[p].description}</p>
                       </div>
                       <div
-                        style={{
+                        style={{ borderRadius: 'var(--radius)',
                           width: '20px',
                           height: '20px',
-                          border: `2.5px solid #111`,
+                          border: `1px solid var(--border)`,
                           backgroundColor: provider === p ? 'var(--bg-cyan,#00F7FF)' : 'transparent',
                           flexShrink: 0,
                         }}
@@ -142,11 +146,11 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                       {providerInfo[p].models.slice(0, 3).map((m) => (
                         <span
                           key={m}
-                          style={{
+                          style={{ borderRadius: 'var(--radius)',
                             fontSize: '10px',
                             fontWeight: 600,
                             padding: '2px 6px',
-                            border: '1.5px solid #111',
+                            border: '1px solid var(--border)',
                             backgroundColor: 'var(--bg-page,#F8F3EA)',
                           }}
                         >
@@ -154,7 +158,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                         </span>
                       ))}
                     </div>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -163,7 +167,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
           {/* Step 1: Enter API Key */}
           {step === 1 && (
             <div>
-              <h2 className="text-center mb-4" style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px' }}>
+              <h2 className="text-center mb-4" style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '18px' }}>
                 API KEY
               </h2>
               <p className="text-center mb-5" style={{ fontSize: '13px', color: 'var(--fg-muted,#666)' }}>
@@ -171,45 +175,45 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
               </p>
 
               <div className="mb-4">
-                <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <Label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>
                   API Key
-                </label>
+                </Label>
                 <div className="relative">
-                  <input
+                  <Input aria-label="API Key"
                     type={showKey ? 'text' : 'password'}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder="API key..."
-                    className="neo-input"
+                    className="ui-input"
                     style={{ paddingRight: '40px' }}
                     autoFocus
                   />
-                  <button
+                  <Button aria-label="Show or hide API key" variant="ghost"
                     onClick={() => setShowKey(!showKey)}
                     className="absolute right-2 top-1/2 -translate-y-1/2"
-                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)' }}
+                    style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)' }}
                   >
                     {showKey ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
-              <button
+              <Button variant="ghost"
                 onClick={() => { setStep(0); setApiKey('') }}
                 className="text-sm font-semibold"
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)', textDecoration: 'underline' }}
+                style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#666)', textDecoration: 'underline' }}
               >
                 ← {t.seriesSettings.provider}
-              </button>
+              </Button>
             </div>
           )}
 
           {/* Action button */}
           <div className="flex justify-center mt-6">
-            <button
+            <Button variant="default"
               onClick={handleNext}
               disabled={step === 1 && !apiKey.trim()}
-              className="neo-button flex items-center gap-2"
+              className="flex items-center gap-2"
               style={{
                 padding: '12px 32px',
                 fontSize: '15px',
@@ -224,10 +228,10 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                   <ArrowRight size={18} />
                 </>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

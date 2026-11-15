@@ -1,214 +1,61 @@
-/**
- * LWNTL Series Card Component
- * Card with accent bar, title, language, progress, context menu, and drag support.
- */
-
-import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { MoreVertical, Edit, Settings, Trash2, FolderInput } from 'lucide-react'
+import { BookOpen, MoreHorizontal, Pencil, Settings, Trash2, FolderInput, ArrowRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { Badge } from '@/components/ui/badge'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useI18n } from '../i18n'
 import type { Series, Chapter } from '../types'
 
 interface SeriesCardProps {
-  series: Series
-  chapters: Chapter[]
-  onEdit: (series: Series) => void
-  onDelete: (series: Series) => void
-  onMoveToGroup?: (series: Series) => void
-  hasGroups?: boolean
-  // Drag
-  onDragStart?: (seriesId: string) => void
-  onDragEnd?: () => void
-  isDragging?: boolean
+  series: Series; chapters: Chapter[]
+  onEdit: (series: Series) => void; onDelete: (series: Series) => void
+  onMoveToGroup?: (series: Series) => void; hasGroups?: boolean
+  onDragStart?: (seriesId: string) => void; onDragEnd?: () => void; isDragging?: boolean
 }
 
-export function SeriesCard({
-  series, chapters, onEdit, onDelete, onMoveToGroup, hasGroups,
-  onDragStart, onDragEnd, isDragging,
-}: SeriesCardProps) {
+export function SeriesCard({ series, chapters, onEdit, onDelete, onMoveToGroup, hasGroups, onDragStart, onDragEnd, isDragging }: SeriesCardProps) {
   const navigate = useNavigate()
-  const { t } = useI18n()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  const totalChapters = chapters.length
-  const doneChapters = chapters.filter(c => c.status === 'done').length
-  const progress = totalChapters > 0 ? Math.round((doneChapters / totalChapters) * 100) : 0
-
-  const openMenu = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!menuOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
-    }
-    setMenuOpen(v => !v)
-  }
-
-  // Close on click-outside
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
-      if (
-        menuRef.current && !menuRef.current.contains(e.target as Node) &&
-        buttonRef.current && !buttonRef.current.contains(e.target as Node)
-      ) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
-
-  // Close on scroll
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = () => setMenuOpen(false)
-    window.addEventListener('scroll', handler, true)
-    return () => window.removeEventListener('scroll', handler, true)
-  }, [menuOpen])
-
+  const { t, language } = useI18n()
+  const done = chapters.filter(c => c.status === 'done').length
+  const progress = chapters.length ? Math.round(done / chapters.length * 100) : 0
+  const open = () => navigate(`/series/${series.id}/settings`)
   return (
-    <div
-      draggable
-      className="neo-card cursor-grab transition-all duration-150"
-      style={{
-        boxShadow: menuOpen ? '2px 2px 0px var(--color-border)' : undefined,
-        opacity: isDragging ? 0.4 : 1,
-        transform: isDragging ? 'scale(0.97)' : undefined,
-        userSelect: 'none',
-      }}
-      onDragStart={(e) => {
-        e.dataTransfer.setData('series-id', series.id)
-        e.dataTransfer.effectAllowed = 'move'
-        onDragStart?.(series.id)
-      }}
-      onDragEnd={() => onDragEnd?.()}
-      onMouseEnter={(e) => {
-        if (!menuOpen && !isDragging) {
-          e.currentTarget.style.boxShadow = '6px 6px 0px var(--color-border)'
-        }
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = '4px 4px 0px var(--color-border)'
-      }}
-      onClick={() => navigate(`/series/${series.id}/settings`)}
-    >
-      {/* Accent Bar */}
-      <div style={{ height: '6px', backgroundColor: 'var(--bg-cyan,#00F7FF)', borderBottom: '2.5px solid var(--color-border)' }} />
-
-      <div className="p-4">
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-2">
-          <h3
-            className="flex-1 mr-2"
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 700,
-              fontSize: '18px',
-              lineHeight: '1.2',
-              color: 'var(--color-text)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {series.title}
-          </h3>
-
-          {/* Menu button */}
-          <div onClick={(e) => e.stopPropagation()}>
-            <button
-              ref={buttonRef}
-              onClick={openMenu}
-              className="flex items-center justify-center w-8 h-8 transition-colors"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
-              <MoreVertical size={18} style={{ color: 'var(--color-text-muted)' }} />
-            </button>
-          </div>
+    <Card className="group gap-0 overflow-hidden py-0 shadow-xs transition-colors hover:border-primary/40" draggable
+      style={{ opacity: isDragging ? 0.4 : 1 }}
+      onDragStart={e => { e.dataTransfer.setData('series-id', series.id); e.dataTransfer.effectAllowed = 'move'; onDragStart?.(series.id) }}
+      onDragEnd={onDragEnd}>
+      <CardContent className="p-5">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground"><BookOpen size={21} aria-hidden="true" /></div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`${language === 'id' ? 'Menu series' : 'Series menu'}: ${series.title}`}><MoreHorizontal size={18} /></Button></DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(series)}><Pencil />{t.common.edit}</DropdownMenuItem>
+              <DropdownMenuItem onClick={open}><Settings />{t.topbar.settings}</DropdownMenuItem>
+              {hasGroups && onMoveToGroup && <DropdownMenuItem onClick={() => onMoveToGroup(series)}><FolderInput />{language === 'id' ? 'Pindah ke grup' : 'Move to group'}</DropdownMenuItem>}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDelete(series)}><Trash2 />{t.common.delete}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        {/* Language & chapter count */}
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-          {series.sourceLanguage} → {series.targetLanguage || 'Indonesian'} &nbsp;•&nbsp; {totalChapters} {t.seriesCard.chapters}
-        </p>
-
-        {/* Progress bar */}
-        <div className="neo-progress" style={{ height: '20px', marginBottom: '6px' }}>
-          <div className="neo-progress-fill" style={{ width: `${progress}%` }} />
+        <button onClick={open} className="mb-2 block w-full rounded text-left text-base font-semibold leading-snug text-foreground hover:text-primary" title={series.title}>
+          <span className="line-clamp-2 break-words">{series.title}</span>
+        </button>
+        <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <span>{series.sourceLanguage}</span><ArrowRight className="size-3" aria-hidden="true" /><span>{series.targetLanguage || 'Indonesian'}</span>
         </div>
-
-        {/* Progress text */}
-        <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-          {doneChapters} / {totalChapters} {t.seriesCard.translated} ({progress}%)
-        </p>
-      </div>
-
-      {/* Dropdown menu — portaled to body to escape overflow:hidden */}
-      {menuOpen && menuPos && createPortal(
-        <div
-          ref={menuRef}
-          style={{
-            position: 'fixed',
-            top: menuPos.top,
-            right: menuPos.right,
-            zIndex: 9999,
-            backgroundColor: 'var(--color-surface)',
-            border: '2.5px solid var(--color-border)',
-            boxShadow: 'var(--neo-shadow)',
-            minWidth: '180px',
-          }}
-        >
-          <button
-            onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(series) }}
-            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <Edit size={14} /> {t.seriesCard.edit}
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setMenuOpen(false); navigate(`/series/${series.id}/settings`) }}
-            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <Settings size={14} /> {t.seriesCard.settings}
-          </button>
-          {hasGroups && onMoveToGroup && (
-            <>
-              <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
-              <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMoveToGroup(series) }}
-                className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
-                <FolderInput size={14} /> {t.group.moveToGroup}
-              </button>
-            </>
-          )}
-          <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
-          <button
-            onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(series) }}
-            className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold"
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--fg-red,#FF3C3C)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,60,60,0.08)')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-          >
-            <Trash2 size={14} /> {t.seriesCard.delete}
-          </button>
-        </div>,
-        document.body
-      )}
-    </div>
+        <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+          <span className="text-muted-foreground">{done} / {chapters.length} {t.seriesCard.chapters}</span>
+          <span className="font-medium text-foreground">{progress}%</span>
+        </div>
+        <Progress value={progress} aria-label={language === 'id' ? 'Progres terjemahan' : 'Translation progress'} className="h-1.5" />
+        <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
+          <Badge variant="secondary" className="text-[11px] font-normal">{progress === 100 && chapters.length > 0 ? (language === 'id' ? 'Selesai' : 'Complete') : (language === 'id' ? 'Dalam koleksi' : 'In library')}</Badge>
+          <Button variant="ghost" size="sm" className="-mr-2 text-primary" onClick={open}>{language === 'id' ? 'Buka series' : 'Open series'}<ArrowRight className="size-3.5" /></Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

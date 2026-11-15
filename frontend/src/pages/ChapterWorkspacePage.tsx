@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 /**
  * LWNTL Chapter Workspace Page
  * Split view with raw content (left) and translated markdown (right)
@@ -60,7 +62,7 @@ export function ChapterWorkspacePage() {
   // Imported illustrations for this chapter: { filename: data-URI }
   const [assets, setAssets] = useState<Record<string, string>>({})
 
-  const containerRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLElement>(null)
   const dragging = useRef(false)
   const wasTranslatingRef = useRef(false)
 
@@ -150,7 +152,7 @@ export function ChapterWorkspacePage() {
     wasTranslatingRef.current = isTranslating
   }, [isTranslating, loadChapter])
 
-  // Start translation — if chapter is "done", show confirmation first
+  // Start translation: if chapter is "done", show confirmation first
   const handleStartTranslation = () => {
     if (!seriesId || !chapterId) return
     if (chapter?.status === 'done' && chapter.translatedContent) {
@@ -231,7 +233,7 @@ export function ChapterWorkspacePage() {
     }
   }
 
-  // Save raw content — reads from DOM ref, zero re-renders while typing
+  // Save raw content: reads from DOM ref, zero re-renders while typing
   const handleSaveRaw = async () => {
     if (!seriesId || !chapterId || !chapter) return
     const value = rawRef.current?.value ?? chapter.rawContent
@@ -248,7 +250,7 @@ export function ChapterWorkspacePage() {
     }
   }
 
-  // Track dirty state — fires on every input but only calls setState when status changes (max 2 re-renders per session)
+  // Track dirty state: fires on every input but only calls setState when status changes (max 2 re-renders per session)
   const handleRawInput = () => {
     const dirty = rawRef.current?.value !== chapter?.rawContent
     if (dirty !== isRawDirty) setIsRawDirty(dirty)
@@ -284,7 +286,7 @@ export function ChapterWorkspacePage() {
   // Determine display text.
   // During active translation: show live streamingText.
   // After done, before loadChapter completes: streamingText still holds the full result
-  //   (safe — it's per-chapter keyed, not global). clearChapterStreamingText in loadChapter
+  //   (safe: it's per-chapter keyed, not global). clearChapterStreamingText in loadChapter
   //   frees it once fresh data is on disk.
   // After loadChapter completes: chapter.translatedContent takes over, streamingText is ''.
   const translatedText = isTranslating
@@ -326,58 +328,58 @@ export function ChapterWorkspacePage() {
       {/* Toolbar */}
       <div
         className="flex items-center justify-between px-4 py-2"
-        style={{ backgroundColor: 'var(--color-surface)', borderBottom: '2.5px solid var(--color-border)' }}
+        style={{ backgroundColor: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}
       >
         <div className="flex items-center gap-2">
-          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--color-text)' }}>
+          <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-text)' }}>
             {t.chapter.chapter} {chapter.chapterNumber}
           </span>
           {chapter.title && (
-            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>— {chapter.title}</span>
+            <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>: {chapter.title}</span>
           )}
         </div>
 
         <div className="flex items-center gap-2">
           {/* Translate / Cancel button */}
           {isTranslating ? (
-            <button
+            <Button variant="destructive"
               onClick={handleCancelTranslation}
-              className="neo-button neo-button-error flex items-center gap-1"
+              className="flex items-center gap-1"
               style={{ padding: '6px 14px', fontSize: '12px' }}
             >
               <Square size={14} />
               {t.common.cancel}
-            </button>
+            </Button>
           ) : chapter?.status === 'done' ? (
-            <button
+            <Button variant="default"
               onClick={handleStartTranslation}
-              className="neo-button flex items-center gap-1"
-              style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: 'var(--bg-yellow,#FFEF33)' }}
+              className="flex items-center gap-1"
+              style={{ padding: '6px 14px', fontSize: '12px' }}
             >
               <RefreshCw size={14} />
               {t.chapter.translate}
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button variant="default"
               onClick={handleStartTranslation}
-              className="neo-button flex items-center gap-1"
+              className="flex items-center gap-1"
               style={{ padding: '6px 14px', fontSize: '12px' }}
             >
               <Play size={14} />
               {t.chapter.translate}
-            </button>
+            </Button>
           )}
 
           {/* Export */}
           {chapter.status === 'done' && (
-            <button
+            <Button variant="outline"
               onClick={handleExport}
-              className="neo-button flex items-center gap-1"
-              style={{ padding: '6px 14px', fontSize: '12px', backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}
+              className="flex items-center gap-1"
+              style={{ color: 'var(--foreground)',  padding: '6px 14px', fontSize: '12px', backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}
             >
               <Download size={14} />
               {t.chapter.export}
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -386,63 +388,63 @@ export function ChapterWorkspacePage() {
       {confirmRetranslate && (
         <div
           className="flex items-center justify-between px-4 py-2.5"
-          style={{ backgroundColor: 'rgba(255,239,51,0.12)', borderBottom: '2px solid var(--fg-yellow,#FFEF33)', flexShrink: 0 }}
+          style={{ backgroundColor: 'var(--tint-yellow)', borderBottom: '1px solid var(--fg-yellow,#FFEF33)', flexShrink: 0 }}
         >
           <span style={{ fontSize: '12px', color: 'var(--color-text)', fontWeight: 500 }}>
             {t.chapter.retranslateConfirm}
           </span>
           <div className="flex items-center gap-2">
-            <button
+            <Button variant="default"
               onClick={() => _doStartTranslation(true)}
-              className="neo-button flex items-center gap-1"
+              className="flex items-center gap-1"
               style={{ padding: '5px 12px', fontSize: '11px', backgroundColor: 'var(--bg-yellow,#FFEF33)', color: 'var(--on-accent,#111)' }}
             >
               <RefreshCw size={12} /> {t.chapter.proceedRetranslate}
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost"
               onClick={() => setConfirmRetranslate(false)}
-              style={{ padding: '5px 10px', fontSize: '11px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+              style={{ borderRadius: 'var(--radius)',  padding: '5px 10px', fontSize: '11px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
             >
               {t.common.cancel}
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {/* Split View */}
-      <div
+      <main
         ref={containerRef}
-        className="flex-1 flex overflow-hidden"
+        className="editor-split flex-1 flex overflow-hidden gap-3 p-3"
         style={{ backgroundColor: 'var(--color-bg)' }}
       >
-        {/* Left: Raw content — always-editable textarea, save reads from DOM ref (no re-render on type) */}
+        {/* Left: Raw content: always-editable textarea, save reads from DOM ref (no re-render on type) */}
         <div
           className="flex flex-col"
-          style={{
+          style={{ borderRadius: 'var(--radius)',
             width: `${splitPos}%`,
             backgroundColor: 'var(--color-surface)',
-            border: '2.5px solid var(--color-border)',
+            border: '1px solid var(--color-border)',
             borderRight: 'none',
             overflow: 'hidden',
           }}
         >
-          {/* Header — fixed height */}
+          {/* Header: fixed height */}
           <div
             className="flex items-center justify-between px-3 py-2"
-            style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', flexShrink: 0 }}
+            style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', flexShrink: 0 }}
           >
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '12px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text)' }}>
               {t.chapter.rawContent}
             </span>
             <div className="flex items-center gap-2">
               {/* Plain / Doc toggle */}
-              <div className="flex" style={{ border: '1.5px solid var(--color-border)', overflow: 'hidden' }}>
+              <div className="flex" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', overflow: 'hidden' }}>
                 {(['plain', 'doc'] as const).map(mode => (
-                  <button
+                  <Button variant="ghost"
                     key={mode}
                     onClick={() => setRawViewMode(mode)}
-                    style={{
-                      fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
+                    style={{ borderRadius: 'var(--radius)',
+                      fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px',
                       padding: '2px 8px', border: 'none',
                       borderRight: mode === 'plain' ? '1px solid var(--color-border)' : 'none',
                       backgroundColor: rawViewMode === mode ? 'var(--bg-cyan,#00F7FF)' : 'transparent',
@@ -451,16 +453,16 @@ export function ChapterWorkspacePage() {
                     }}
                   >
                     {mode === 'plain' ? 'Plain' : 'Doc'}
-                  </button>
+                  </Button>
                 ))}
               </div>
-              <button
+              <Button variant="ghost"
                 onClick={handleSaveRaw}
                 disabled={!isRawDirty || isSavingRaw || isTranslating || rawViewMode === 'doc'}
                 className="flex items-center gap-1"
-                style={{
-                  fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
-                  padding: '3px 8px', border: '1.5px solid var(--color-border)',
+                style={{ borderRadius: 'var(--radius)',
+                  fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px',
+                  padding: '3px 8px', border: '1px solid var(--color-border)',
                   backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)',
                   cursor: (!isRawDirty || isSavingRaw || isTranslating) ? 'not-allowed' : 'pointer',
                   opacity: (!isRawDirty || isSavingRaw || isTranslating) ? 0.35 : 1,
@@ -468,36 +470,37 @@ export function ChapterWorkspacePage() {
                 }}
               >
                 <Save size={10} /> {isSavingRaw ? t.common.saving : t.common.save}
-              </button>
+              </Button>
             </div>
           </div>
 
-          {/* Warning note — fixed height, only when translation exists */}
+          {/* Warning note: fixed height, only when translation exists */}
           {chapter.translatedContent && (
             <div
               className="flex items-start gap-2 px-3 py-1.5"
-              style={{ backgroundColor: 'rgba(255,239,51,0.1)', borderBottom: '1.5px solid var(--fg-yellow,#FFEF33)', fontSize: '10px', color: 'var(--color-text-muted)', lineHeight: 1.4, flexShrink: 0 }}
+              style={{ backgroundColor: 'var(--tint-yellow)', borderBottom: '1px solid var(--fg-yellow,#FFEF33)', fontSize: '10px', color: 'var(--color-text-muted)', lineHeight: 1.4, flexShrink: 0 }}
             >
               <AlertTriangle size={11} style={{ color: 'var(--fg-yellow,#FFEF33)', flexShrink: 0, marginTop: '1px' }} />
               <span>{t.chapter.rawEditedAfterTranslation}</span>
             </div>
           )}
 
-          {/* Textarea — always in DOM so rawRef stays valid; hidden in Doc mode */}
-          <textarea
+          {/* Textarea: always in DOM so rawRef stays valid; hidden in Doc mode */}
+          <Textarea
+            aria-label={t.chapter.rawContent}
             key={chapter.id}
             ref={rawRef}
             defaultValue={chapter.rawContent || ''}
             onInput={handleRawInput}
             disabled={isTranslating || rawViewMode === 'doc'}
-            style={{
+            style={{ borderRadius: 'var(--radius)',
               flex: rawViewMode === 'plain' ? '1 1 0' : '0 0 0',
               display: rawViewMode === 'plain' ? undefined : 'none',
               minHeight: 0,
               padding: '16px',
-              fontFamily: "'Courier New', Courier, monospace",
-              fontSize: '13px',
-              lineHeight: '1.6',
+              fontFamily: 'var(--font-body)',
+              fontSize: '15px',
+              lineHeight: '1.85',
               color: 'var(--color-text)',
               backgroundColor: isTranslating ? 'var(--color-surface-2)' : 'var(--color-surface)',
               border: 'none',
@@ -507,7 +510,7 @@ export function ChapterWorkspacePage() {
               overflowY: 'auto',
             }}
           />
-          {/* Doc view — markdown renderer for formatted source content */}
+          {/* Doc view: markdown renderer for formatted source content */}
           {rawViewMode === 'doc' && (
             <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
               <MarkdownRenderer content={rawRef.current?.value ?? chapter.rawContent ?? ''} images={assets} />
@@ -517,6 +520,20 @@ export function ChapterWorkspacePage() {
 
         {/* Resizable Divider */}
         <div
+          className="editor-divider rounded-full"
+          role="separator"
+          tabIndex={0}
+          aria-label="Resize source and translation panes"
+          aria-orientation="vertical"
+          aria-valuemin={25}
+          aria-valuemax={75}
+          aria-valuenow={Math.round(splitPos)}
+          onKeyDown={event => {
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              event.preventDefault()
+              setSplitPos(value => Math.max(25, Math.min(75, value + (event.key === 'ArrowLeft' ? -2 : 2))))
+            }
+          }}
           onMouseDown={handleMouseDown}
           style={{
             width: '8px',
@@ -542,51 +559,51 @@ export function ChapterWorkspacePage() {
         {/* Right: Translated content */}
         <div
           className="flex-1 flex flex-col overflow-hidden"
-          style={{
+          style={{ borderRadius: 'var(--radius)',
             backgroundColor: 'var(--color-surface)',
-            border: '2.5px solid var(--color-border)',
+            border: '1px solid var(--color-border)',
             borderLeft: 'none',
           }}
         >
-          <div className="px-3 py-2" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+          <div className="px-3 py-2" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
             <div className="flex items-center justify-between">
-              <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
+              <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '12px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text)' }}>
                 {t.chapter.translation}
               </span>
               <div className="flex items-center gap-2">
                 {isTranslating && (
-                  <span className="neo-badge" style={{ fontSize: '10px', backgroundColor: 'var(--bg-cyan,#00F7FF)', padding: '2px 6px', border: '2px solid var(--color-border)', fontWeight: 700 }}>
+                  <span className="ui-badge" style={{ borderRadius: 'var(--radius)',  fontSize: '10px', backgroundColor: 'var(--bg-cyan,#00F7FF)', padding: '2px 6px', border: '1px solid var(--color-border)', fontWeight: 600 }}>
                     {t.chapter.iteration} {iteration}
                   </span>
                 )}
                 {translatedText && (
-                  <button
+                  <Button variant="ghost"
                     onClick={handleCopyTranslation}
                     className="flex items-center gap-1"
-                    style={{
-                      fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
-                      padding: '3px 8px', border: '1.5px solid var(--color-border)',
+                    style={{ borderRadius: 'var(--radius)',
+                      fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px',
+                      padding: '3px 8px', border: '1px solid var(--color-border)',
                       backgroundColor: 'var(--color-surface)', color: 'var(--color-text-muted)',
                       cursor: 'pointer',
                     }}
                   >
                     <Copy size={10} /> {t.common.copy}
-                  </button>
+                  </Button>
                 )}
                 {(chapter?.translationHistory?.length ?? 0) > 0 && (
-                  <button
+                  <Button variant="ghost"
                     onClick={() => { setShowHistory(s => !s); setViewingVersion(null) }}
                     className="flex items-center gap-1"
-                    style={{
-                      fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px',
-                      padding: '3px 8px', border: '1.5px solid var(--color-border)',
+                    style={{ borderRadius: 'var(--radius)',
+                      fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px',
+                      padding: '3px 8px', border: '1px solid var(--color-border)',
                       backgroundColor: showHistory ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface)',
                       color: showHistory ? 'var(--on-accent,#111)' : 'var(--color-text-muted)',
                       cursor: 'pointer',
                     }}
                   >
                     <History size={10} /> {t.chapter.translationHistory} ({chapter.translationHistory.length})
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
@@ -596,23 +613,23 @@ export function ChapterWorkspacePage() {
           {viewingVersion && (
             <div
               className="flex items-center justify-between px-3 py-1.5"
-              style={{ backgroundColor: 'rgba(0,247,255,0.1)', borderBottom: '1.5px solid var(--fg-cyan,#00F7FF)', flexShrink: 0 }}
+              style={{ backgroundColor: 'var(--tint-cyan)', borderBottom: '1px solid var(--fg-cyan,#00F7FF)', flexShrink: 0 }}
             >
               <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text)' }}>
                 {t.chapter.viewingVersion.replace('{n}', String(viewingVersion.version))}
               </span>
-              <button
+              <Button variant="ghost"
                 onClick={() => { setViewingVersion(null); setShowHistory(false) }}
-                style={{ fontSize: '10px', fontWeight: 700, color: 'var(--fg-cyan,#00F7FF)', background: 'none', border: 'none', cursor: 'pointer' }}
+                style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--fg-cyan,#00F7FF)', background: 'none', border: 'none', cursor: 'pointer' }}
               >
                 {t.chapter.backToCurrent}
-              </button>
+              </Button>
             </div>
           )}
 
           {/* History dropdown */}
           {showHistory && !viewingVersion && (
-            <div style={{ borderBottom: '2px solid var(--color-border)', flexShrink: 0, maxHeight: '200px', overflowY: 'auto', backgroundColor: 'var(--color-surface-2)' }}>
+            <div style={{ borderBottom: '1px solid var(--color-border)', flexShrink: 0, maxHeight: '200px', overflowY: 'auto', backgroundColor: 'var(--color-surface-2)' }}>
               {chapter.translationHistory.map((v, i) => (
                 <div
                   key={i}
@@ -620,7 +637,7 @@ export function ChapterWorkspacePage() {
                   style={{ borderBottom: i < chapter.translationHistory.length - 1 ? '1px solid var(--color-border)' : undefined }}
                 >
                   <div className="flex items-center gap-3">
-                    <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text)' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text)' }}>
                       {t.chapter.version}{v.version}
                     </span>
                     <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
@@ -633,18 +650,18 @@ export function ChapterWorkspacePage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button variant="ghost"
                       onClick={() => { setViewingVersion(v); setShowHistory(false) }}
-                      style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-muted)', cursor: 'pointer' }}
+                      style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, padding: '2px 8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', color: 'var(--color-text-muted)', cursor: 'pointer' }}
                     >
                       View
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="ghost"
                       onClick={() => handleRestoreVersion(i)}
-                      style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', border: '1.5px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', cursor: 'pointer' }}
+                      style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, padding: '2px 8px', border: '1px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', cursor: 'pointer' }}
                     >
                       {t.chapter.restoreVersion}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -655,7 +672,7 @@ export function ChapterWorkspacePage() {
             <MarkdownRenderer content={translatedText} images={assets} />
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Glossary Update Panel */}
       <GlossaryUpdatePanel

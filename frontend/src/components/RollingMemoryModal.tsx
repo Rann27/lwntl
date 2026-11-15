@@ -1,3 +1,6 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 import { useState, useEffect, useRef } from 'react'
 import { X, Save, BookText } from 'lucide-react'
 import type { Chapter } from '../types'
@@ -36,7 +39,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         if (editingId) { setEditingId(null); setDraftText('') }
         else onClose()
       }
@@ -88,46 +91,46 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
   if (!open) return null
 
   const chapterLabel = (ch: Chapter) =>
-    ch.title ? `Ch ${ch.chapterNumber} — ${ch.title}` : `Chapter ${ch.chapterNumber}`
+    ch.title ? `Ch ${ch.chapterNumber}: ${ch.title}` : `Chapter ${ch.chapterNumber}`
 
   return (
-    <div
+    <ModalSurface label="Rolling memory" onClose={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: 'rgba(0,0,0,0.55)' }}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         className="flex flex-col"
-        style={{
+        style={{ borderRadius: 'var(--radius)',
           width: '780px',
           maxWidth: '95vw',
           maxHeight: '88vh',
           backgroundColor: 'var(--bg-page,#F8F3EA)',
-          border: '3px solid #111',
-          boxShadow: '6px 6px 0px #111',
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-sm)',
         }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-3"
-          style={{ borderBottom: '2.5px solid #111', flexShrink: 0, backgroundColor: '#111' }}
+          style={{ borderBottom: '1px solid var(--border)', flexShrink: 0, backgroundColor: 'var(--muted)' }}
         >
           <div className="flex items-center gap-3">
             <BookText size={16} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 900, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#fff' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 650, fontSize: '14px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--foreground)' }}>
               ROLLING MEMORY
             </span>
             <span style={{ fontSize: '11px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
               {chaptersWithSummary.length} / {chapters.length} chapters summarized
             </span>
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#888)' }}>
+          <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-muted,#888)' }}>
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Description */}
-        <div className="px-5 py-3" style={{ borderBottom: '2px solid #e8e3da', flexShrink: 0 }}>
+        <div className="px-5 py-3" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <p style={{ fontSize: '12px', color: 'var(--fg-muted,#666)', lineHeight: 1.5 }}>
             Rolling memory adalah ringkasan per-chapter yang otomatis dibuat setelah translasi selesai.
             Dipakai sebagai konteks cerita untuk translasi chapter berikutnya. Kamu bisa edit atau hapus manual di sini.
@@ -138,7 +141,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
         <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
           {chapters.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>No chapters yet.</p>
+              <p style={{ color: 'var(--muted-foreground)', fontSize: '13px' }}>No chapters yet.</p>
             </div>
           ) : (
             <div className="flex flex-col">
@@ -153,7 +156,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                     <div
                       key={ch.id}
                       style={{
-                        borderBottom: '1.5px solid #e8e3da',
+                        borderBottom: '1px solid var(--border)',
                         backgroundColor: isEditing ? 'var(--tint-yellow,#fffef5)' : (i % 2 === 0 ? 'var(--bg-surface,#fff)' : 'var(--bg-surface,#faf6ee)'),
                       }}
                     >
@@ -170,61 +173,61 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                               flexShrink: 0,
                             }}
                           />
-                          <span style={{ fontSize: '12px', fontWeight: 700, color: '#333' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--foreground)' }}>
                             {chapterLabel(ch)}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           {!isEditing && (
-                            <button
+                            <Button variant="ghost"
                               onClick={() => startEdit(ch)}
-                              style={{
+                              style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',
                                 padding: '3px 10px',
                                 fontSize: '10px',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                border: '2px solid #111',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                border: '1px solid var(--border)',
                                 backgroundColor: 'var(--bg-cyan,#00F7FF)',
                                 cursor: 'pointer',
-                                letterSpacing: '0.3px',
+                                letterSpacing: 'normal',
                               }}
                             >
                               {hasSummary ? 'EDIT' : '+ ADD'}
-                            </button>
+                            </Button>
                           )}
                           {!isEditing && hasSummary && (
-                            <button
+                            <Button variant="ghost"
                               onClick={() => clearSummary(ch)}
                               disabled={saving}
-                              style={{
+                              style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',
                                 padding: '3px 10px',
                                 fontSize: '10px',
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                border: '2px solid #111',
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                border: '1px solid var(--border)',
                                 backgroundColor: 'var(--bg-red,#FFE0E0)',
                                 cursor: 'pointer',
-                                letterSpacing: '0.3px',
+                                letterSpacing: 'normal',
                                 opacity: saving ? 0.5 : 1,
                               }}
                             >
                               CLEAR
-                            </button>
+                            </Button>
                           )}
                           {isEditing && (
                             <>
-                              <button
+                              <Button variant="ghost"
                                 onClick={() => saveEdit(ch.id)}
                                 disabled={saving}
-                                style={{
+                                style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',
                                   padding: '3px 10px',
                                   fontSize: '10px',
-                                  fontWeight: 700,
-                                  textTransform: 'uppercase',
-                                  border: '2px solid #111',
+                                  fontWeight: 600,
+                                  textTransform: 'none',
+                                  border: '1px solid var(--border)',
                                   backgroundColor: 'var(--bg-green,#28E272)',
                                   cursor: saving ? 'not-allowed' : 'pointer',
-                                  letterSpacing: '0.3px',
+                                  letterSpacing: 'normal',
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: '4px',
@@ -233,22 +236,22 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                               >
                                 <Save size={10} />
                                 {saving ? 'SAVING...' : 'SAVE'}
-                              </button>
-                              <button
+                              </Button>
+                              <Button variant="ghost"
                                 onClick={cancelEdit}
-                                style={{
+                                style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',
                                   padding: '3px 10px',
                                   fontSize: '10px',
-                                  fontWeight: 700,
-                                  textTransform: 'uppercase',
-                                  border: '2px solid #111',
+                                  fontWeight: 600,
+                                  textTransform: 'none',
+                                  border: '1px solid var(--border)',
                                   backgroundColor: 'var(--bg-surface-2,#eee)',
                                   cursor: 'pointer',
-                                  letterSpacing: '0.3px',
+                                  letterSpacing: 'normal',
                                 }}
                               >
                                 CANCEL
-                              </button>
+                              </Button>
                             </>
                           )}
                         </div>
@@ -257,17 +260,17 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                       {/* Summary content / editor */}
                       {isEditing ? (
                         <div className="px-5 pb-4">
-                          <textarea
+                          <Textarea aria-label="Write chapter summary for rolling context..."
                             ref={textareaRef}
                             value={draftText}
                             onChange={e => setDraftText(e.target.value)}
                             rows={6}
-                            style={{
+                            style={{ borderRadius: 'var(--radius)',
                               width: '100%',
-                              border: '2px solid #111',
+                              border: '1px solid var(--border)',
                               padding: '10px 12px',
                               fontSize: '12px',
-                              fontFamily: "'Inter', sans-serif",
+                              fontFamily: 'var(--font-body)',
                               lineHeight: 1.6,
                               resize: 'vertical',
                               outline: 'none',
@@ -290,8 +293,8 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                           {ch.summary}
                         </div>
                       ) : (
-                        <div className="px-5 pb-3" style={{ fontSize: '11px', color: 'var(--line,#ccc)', fontStyle: 'italic' }}>
-                          No summary yet — will be auto-generated after translation.
+                        <div className="px-5 pb-3" style={{ fontSize: '11px', color: 'var(--muted-foreground)', fontStyle: 'italic' }}>
+                          No summary yet: will be auto-generated after translation.
                         </div>
                       )}
                     </div>
@@ -304,31 +307,31 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
         {/* Footer */}
         <div
           className="flex items-center justify-between px-5 py-2.5"
-          style={{ borderTop: '2px solid #e8e3da', flexShrink: 0 }}
+          style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}
         >
           <div className="flex items-center gap-2">
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--bg-green,#28E272)', display: 'inline-block' }} />
             <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>Has summary</span>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ddd', display: 'inline-block', marginLeft: '8px' }} />
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--muted)', display: 'inline-block', marginLeft: '8px' }} />
             <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>No summary</span>
           </div>
-          <button
+          <Button variant="ghost"
             onClick={onClose}
-            style={{
+            style={{ borderRadius: 'var(--radius)',
               padding: '5px 16px',
               fontSize: '11px',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              border: '2px solid #111',
-              backgroundColor: '#111',
-              color: '#fff',
+              fontWeight: 600,
+              textTransform: 'none',
+              border: '1px solid var(--border)',
+              backgroundColor: 'var(--muted)',
+              color: 'var(--foreground)',
               cursor: 'pointer',
             }}
           >
             CLOSE
-          </button>
+          </Button>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

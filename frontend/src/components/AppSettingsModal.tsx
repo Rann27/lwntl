@@ -1,3 +1,7 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * LWNTL App Settings Modal
  * API key configuration for all providers + dark mode toggle
@@ -53,7 +57,7 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
@@ -91,15 +95,15 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
   const currentProviderField = PROVIDERS[config.provider]?.apiKeyName as string | undefined
 
   return (
-    <div className="neo-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    <ModalSurface label="Application settings" onClose={onClose} className="ui-modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div
-        className="neo-modal"
-        style={{
+        className="ui-modal"
+        style={{ borderRadius: 'var(--radius)',
           maxWidth: '560px',
           animation: 'slideUp 150ms ease',
           backgroundColor: 'var(--color-surface)',
-          border: '2.5px solid var(--color-border)',
-          boxShadow: '6px 6px 0px var(--color-border)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-sm)',
           maxHeight: '90vh',
           overflowY: 'auto',
         }}
@@ -109,64 +113,64 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Settings size={20} style={{ color: 'var(--color-text)' }} />
-              <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px', color: 'var(--color-text)' }}>
+              <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px', color: 'var(--color-text)' }}>
                 PENGATURAN APLIKASI
               </h2>
             </div>
-            <button onClick={onClose} className="hover:opacity-70" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)' }}>
+            <Button aria-label="Close" variant="ghost" onClick={onClose} className="hover:opacity-70" style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text)' }}>
               <X size={20} />
-            </button>
+            </Button>
           </div>
 
           {/* Dark Mode Toggle */}
-          <div className="mb-5 p-3" style={{ border: '2px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+          <div className="mb-5 p-3" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {theme === 'dark' ? <Moon size={16} style={{ color: 'var(--color-text)' }} /> : <Sun size={16} style={{ color: 'var(--color-text)' }} />}
-                <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--color-text)', textTransform: 'none', letterSpacing: 'normal' }}>
                   Tema Tampilan
                 </span>
               </div>
               <div className="flex gap-2">
-                <button
+                <Button variant="ghost"
                   onClick={() => setTheme('light')}
-                  style={{
+                  style={{ borderRadius: 'var(--radius)',
                     padding: '5px 12px',
                     fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    border: '2px solid var(--color-border)',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    border: '1px solid var(--color-border)',
                     backgroundColor: theme === 'light' ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface)',
                     color: 'var(--color-text)',
                     cursor: 'pointer',
-                    letterSpacing: '0.3px',
+                    letterSpacing: 'normal',
                   }}
                 >
                   ☀ Light
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost"
                   onClick={() => setTheme('dark')}
-                  style={{
+                  style={{ borderRadius: 'var(--radius)',
                     padding: '5px 12px',
                     fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    border: '2px solid var(--color-border)',
+                    fontWeight: 600,
+                    textTransform: 'none',
+                    border: '1px solid var(--color-border)',
                     backgroundColor: theme === 'dark' ? 'var(--bg-cyan,var(--color-primary))' : 'var(--color-surface)',
                     color: 'var(--color-text)',
                     cursor: 'pointer',
-                    letterSpacing: '0.3px',
+                    letterSpacing: 'normal',
                   }}
                 >
                   ☽ Dark
-                </button>
+                </Button>
               </div>
             </div>
           </div>
 
           {/* API Keys */}
-          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '12px' }}>
-            API Keys — Isi provider yang ingin digunakan
+          <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'none', letterSpacing: 'normal', marginBottom: '12px' }}>
+            API Keys: Isi provider yang ingin digunakan
           </p>
 
           {API_KEY_FIELDS.map(({ provider, field, label }) => {
@@ -175,11 +179,11 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
             return (
               <div key={field} className="mb-3">
                 <div className="flex items-center gap-2 mb-1.5">
-                  <label style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
+                  <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: isActive ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
                     {label}
-                  </label>
+                  </Label>
                   {isActive && (
-                    <span style={{ fontSize: '9px', fontWeight: 700, backgroundColor: 'var(--bg-cyan,var(--color-primary))', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1.5px solid var(--color-border)', textTransform: 'uppercase' }}>
+                    <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, backgroundColor: 'var(--bg-cyan,var(--color-primary))', color: 'var(--on-accent,#111)', padding: '1px 6px', border: '1px solid var(--color-border)', textTransform: 'none' }}>
                       AKTIF
                     </span>
                   )}
@@ -195,25 +199,25 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
                   )}
                 </div>
                 <div className="relative">
-                  <input
+                  <Input aria-label={`Masukkan ${label}...`}
                     type={showKey[field] ? 'text' : 'password'}
                     value={keys[field] || ''}
                     onChange={(e) => { setKeys(prev => ({ ...prev, [field]: e.target.value })); setTestResult(null) }}
                     placeholder={`Masukkan ${label}...`}
-                    className="neo-input"
+                    className="ui-input"
                     style={{ paddingRight: '40px', fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: isActive ? 'var(--color-border)' : 'var(--color-separator)' }}
                   />
-                  <button
+                  <Button aria-label="Show or hide API key" variant="ghost"
                     onClick={() => setShowKey(prev => ({ ...prev, [field]: !prev[field] }))}
                     className="absolute right-2 top-1/2 -translate-y-1/2"
-                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+                    style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
                   >
                     {showKey[field] ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
+                  </Button>
                 </div>
                 {field === currentProviderField && PROVIDERS[provider]?.docsUrl && (
                   <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '3px' }}>
-                    Provider aktif — key ini yang dipakai untuk terjemahan sekarang.
+                    Provider aktif: key ini yang dipakai untuk terjemahan sekarang.
                   </p>
                 )}
               </div>
@@ -222,22 +226,22 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
 
           {/* Test */}
           <div className="flex items-center gap-3 mt-4 mb-3">
-            <button
+            <Button variant="default"
               onClick={handleTest}
               disabled={testing}
-              className="neo-button flex items-center gap-2"
+              className="flex items-center gap-2"
               style={{ padding: '8px 16px', fontSize: '12px', opacity: testing ? 0.5 : 1 }}
             >
               {testing ? <Loader2 size={13} className="animate-spin" /> : <TestTube size={13} />}
               TEST PROVIDER AKTIF
-            </button>
+            </Button>
           </div>
 
           {testResult && (
             <div
               className="flex items-center gap-2 mb-4 px-3 py-2"
-              style={{
-                border: `2px solid ${testResult === 'success' ? 'var(--fg-green,#28E272)' : 'var(--fg-red,#FF3C3C)'}`,
+              style={{ borderRadius: 'var(--radius)',
+                border: `1px solid ${testResult === 'success' ? 'var(--fg-green,#28E272)' : 'var(--fg-red,#FF3C3C)'}`,
                 backgroundColor: testResult === 'success' ? 'rgba(40,226,114,0.08)' : 'rgba(255,60,60,0.08)',
                 fontSize: '13px',
                 fontWeight: 600,
@@ -253,19 +257,19 @@ export function AppSettingsModal({ open, onClose, config, onSave }: AppSettingsM
 
           {/* Actions */}
           <div className="flex justify-end gap-3 mt-2">
-            <button
+            <Button variant="outline"
               onClick={onClose}
-              className="neo-button"
+              className=""
               style={{ backgroundColor: 'var(--color-surface-2)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
             >
               BATAL
-            </button>
-            <button onClick={handleSave} className="neo-button">
+            </Button>
+            <Button variant="default" onClick={handleSave} className="">
               SIMPAN
-            </button>
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

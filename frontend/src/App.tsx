@@ -1,21 +1,23 @@
+import { Button } from '@/components/ui/button'
 /**
  * LWNTL App Root
  * Routes + API initialization + Onboarding
  */
 
-import { useState, useEffect, Component, type ReactNode } from 'react'
+import { useState, useEffect, Component, lazy, Suspense, type ReactNode } from 'react'
 import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom'
 import { ToastContainer } from './components/ToastContainer'
 import { OnboardingModal } from './components/OnboardingModal'
-import { HomePage } from './pages/HomePage'
-import { SeriesSettingsPage } from './pages/SeriesSettingsPage'
-import { ChapterWorkspacePage } from './pages/ChapterWorkspacePage'
-import { SettingsPage } from './pages/SettingsPage'
 import { useAppStore } from './store/appStore'
 import { waitForApi, getConfig, saveConfig, getProfiles } from './api'
 import { useToast } from './hooks/useToast'
 import { useI18n } from './i18n'
 import type { TranslationChunkEvent, TranslationDoneEvent, TranslationErrorEvent } from './types'
+
+const HomePage = lazy(() => import('./pages/HomePage').then(module => ({ default: module.HomePage })))
+const SeriesSettingsPage = lazy(() => import('./pages/SeriesSettingsPage').then(module => ({ default: module.SeriesSettingsPage })))
+const ChapterWorkspacePage = lazy(() => import('./pages/ChapterWorkspacePage').then(module => ({ default: module.ChapterWorkspacePage })))
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(module => ({ default: module.SettingsPage })))
 
 function translationKey(data: { seriesId?: string; chapterId?: string }) {
   return data.seriesId && data.chapterId ? `${data.seriesId}:${data.chapterId}` : ''
@@ -31,18 +33,18 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     if (this.state.error) {
       return (
         <div style={{ padding: 32, backgroundColor: 'var(--bg-page,#F8F3EA)', minHeight: '100vh', fontFamily: 'monospace' }}>
-          <h1 style={{ fontSize: 24, fontWeight: 900, color: 'var(--fg-red,#FF3C3C)', marginBottom: 8 }}>RENDER ERROR</h1>
-          <pre style={{ fontSize: 13, color: 'var(--on-accent,#111)', whiteSpace: 'pre-wrap', background: 'var(--bg-surface,#fff)', padding: 16, border: '2px solid #111' }}>
+          <h1 style={{ fontSize: 24, fontWeight: 650, color: 'var(--fg-red,#FF3C3C)', marginBottom: 8 }}>RENDER ERROR</h1>
+          <pre style={{ borderRadius: 'var(--radius)',  fontSize: 13, color: 'var(--on-accent,#111)', whiteSpace: 'pre-wrap', background: 'var(--bg-surface,#fff)', padding: 16, border: '1px solid var(--border)' }}>
             {this.state.error.message}
             {'\n\n'}
             {this.state.error.stack}
           </pre>
-          <button
+          <Button variant="ghost"
             onClick={() => this.setState({ error: null })}
-            style={{ marginTop: 16, padding: '8px 16px', border: '2px solid #111', background: 'var(--bg-cyan,#00F7FF)', fontWeight: 700, cursor: 'pointer' }}
+            style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  marginTop: 16, padding: '8px 16px', border: '1px solid var(--border)', background: 'var(--bg-cyan,#00F7FF)', fontWeight: 600, cursor: 'pointer' }}
           >
             RETRY
-          </button>
+          </Button>
         </div>
       )
     }
@@ -137,6 +139,7 @@ function AppInner() {
   useEffect(() => {
     const theme = config?.theme || 'light'
     document.documentElement.setAttribute('data-theme', theme)
+    document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [config?.theme])
 
   // Sync language from config to i18n
@@ -160,7 +163,7 @@ function AppInner() {
           const profilesData = await getProfiles()
           setProfiles(profilesData)
         } catch {
-          // profiles API optional — non-fatal
+          // profiles API optional: non-fatal
         }
 
         // Check if onboarding needed (no API keys configured)
@@ -214,11 +217,11 @@ function AppInner() {
         <div className="text-center">
           <h1
             style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 900,
+              fontFamily: 'var(--font-body)',
+              fontWeight: 650,
               fontSize: '36px',
               color: 'var(--on-accent,#111)',
-              letterSpacing: '2px',
+              letterSpacing: 'normal',
             }}
           >
             LWNTL
@@ -233,12 +236,14 @@ function AppInner() {
 
   return (
     <>
+      <Suspense fallback={<div role="status" className="flex min-h-dvh items-center justify-center text-sm text-muted-foreground">{t.common.loading}</div>}>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/series/:id/settings" element={<SeriesSettingsPage />} />
         <Route path="/series/:id/chapter/:chapterId" element={<ChapterWorkspacePage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Routes>
+      </Suspense>
 
       <OnboardingModal
         open={showOnboarding}

@@ -1,3 +1,8 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 /**
  * LWNTL Create Chapter Modal - Single, Bulk TXT, Bulk Docx/PDF
  */
@@ -74,7 +79,7 @@ export function CreateChapterModal({
   const { t: tx } = useI18n()
   const [tab, setTab] = useState<'single' | 'bulk' | 'md' | 'pdf1' | 'pdf2' | 'docx'>('single')
 
-  // Per-tab PDF margin state — set via PrePreview (pt, 0 = auto 8%)
+  // Per-tab PDF margin state: set via PrePreview (pt, 0 = auto 8%)
   const [pdf1MarginTop, setPdf1MarginTop] = useState(0)
   const [pdf1MarginBottom, setPdf1MarginBottom] = useState(0)
   const [pdf2MarginTop, setPdf2MarginTop] = useState(0)
@@ -207,7 +212,7 @@ export function CreateChapterModal({
   useEffect(() => {
     if (!open) return
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !e.defaultPrevented) {
         if (previewEntry) { setPreviewEntry(null); return }
         onClose()
       }
@@ -433,37 +438,37 @@ export function CreateChapterModal({
   // ── Shared table styles ───────────────────────────────────────────────────
 
   const thStyle: React.CSSProperties = {
-    padding: '6px 8px', textAlign: 'left', fontWeight: 700,
-    textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px', color: 'var(--fg-muted,#666)',
+    padding: '6px 8px', textAlign: 'left', fontWeight: 600,
+    textTransform: 'none', fontSize: '11px', letterSpacing: 'normal', color: 'var(--fg-muted,#666)',
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="neo-modal-backdrop">
+    <ModalSurface label="Import chapters" onClose={onClose} className="ui-modal-backdrop">
       {/* Preview overlay */}
       {previewEntry && (
-        <div
-          className="neo-modal-backdrop"
+        <ModalSurface label="Document preview" onClose={() => setPreviewEntry(null)}
+          className="ui-modal-backdrop"
           style={{ zIndex: 60 }}
           onClick={() => setPreviewEntry(null)}
         >
           <div
-            className="neo-modal"
+            className="ui-modal"
             style={{ width: '60%', maxWidth: 'none', height: '85vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Preview header */}
-            <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '2.5px solid #111', flexShrink: 0 }}>
-              <span style={{ fontWeight: 700, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: '0 1 auto', minWidth: 0 }}>
-                Preview — {previewEntry.filename}
+            <div className="flex items-center gap-3 px-4 py-3" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+              <span style={{ fontWeight: 600, fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: '0 1 auto', minWidth: 0 }}>
+                Preview: {previewEntry.filename}
               </span>
 
               {/* Search bar */}
               <div className="flex items-center gap-1" style={{ flex: '1 1 0', minWidth: 0, maxWidth: '340px', marginLeft: 'auto' }}>
-                <div className="flex items-center" style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', flex: 1, minWidth: 0 }}>
+                <div className="flex items-center" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--border)', background: 'var(--bg-surface,#fff)', flex: 1, minWidth: 0 }}>
                   <Search size={13} style={{ marginLeft: '7px', color: 'var(--fg-muted,#888)', flexShrink: 0 }} />
-                  <input
+                  <Input aria-label="Cari... (Ctrl+F)"
                     ref={previewSearchRef}
                     type="text"
                     placeholder="Cari... (Ctrl+F)"
@@ -471,9 +476,9 @@ export function CreateChapterModal({
                     onChange={e => setSearchQuery(e.target.value)}
                     onKeyDown={e => {
                       if (e.key === 'Enter') { e.shiftKey ? goPrev() : goNext() }
-                      if (e.key === 'Escape') { setSearchQuery(''); e.stopPropagation() }
+                      if (e.key === 'Escape' && !e.defaultPrevented) { setSearchQuery(''); e.stopPropagation() }
                     }}
-                    style={{
+                    style={{ borderRadius: 'var(--radius)',
                       border: 'none', outline: 'none', padding: '4px 6px',
                       fontSize: '12px', width: '100%', background: 'transparent',
                     }}
@@ -484,24 +489,24 @@ export function CreateChapterModal({
                     </span>
                   )}
                   {searchQuery && matchCount === 0 && (
-                    <span style={{ fontSize: '11px', color: 'var(--bg-red,#FF3C3C)', whiteSpace: 'nowrap', paddingRight: '6px' }}>0</span>
+                    <span style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)', whiteSpace: 'nowrap', paddingRight: '6px' }}>0</span>
                   )}
                 </div>
-                <button
+                <Button aria-label="Collapse" variant="ghost"
                   onClick={goPrev} disabled={matchCount === 0}
-                  style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', cursor: matchCount > 0 ? 'pointer' : 'default', padding: '3px 4px', display: 'flex', opacity: matchCount > 0 ? 1 : 0.35, flexShrink: 0 }}>
+                  style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  border: '1px solid var(--border)', background: 'var(--bg-surface,#fff)', cursor: matchCount > 0 ? 'pointer' : 'default', padding: '3px 4px', display: 'flex', opacity: matchCount > 0 ? 1 : 0.35, flexShrink: 0 }}>
                   <ChevronUp size={13} />
-                </button>
-                <button
+                </Button>
+                <Button aria-label="Show options" variant="ghost"
                   onClick={goNext} disabled={matchCount === 0}
-                  style={{ border: '2px solid #111', background: 'var(--bg-surface,#fff)', cursor: matchCount > 0 ? 'pointer' : 'default', padding: '3px 4px', display: 'flex', opacity: matchCount > 0 ? 1 : 0.35, flexShrink: 0 }}>
+                  style={{ color: 'var(--foreground)',  borderRadius: 'var(--radius)',  border: '1px solid var(--border)', background: 'var(--bg-surface,#fff)', cursor: matchCount > 0 ? 'pointer' : 'default', padding: '3px 4px', display: 'flex', opacity: matchCount > 0 ? 1 : 0.35, flexShrink: 0 }}>
                   <ChevronDown size={13} />
-                </button>
+                </Button>
               </div>
 
-              <button onClick={() => setPreviewEntry(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginLeft: '4px' }}>
+              <Button aria-label="Close" variant="ghost" onClick={() => setPreviewEntry(null)} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', flexShrink: 0, marginLeft: '4px' }}>
                 <X size={18} />
-              </button>
+              </Button>
             </div>
 
             {/* Content */}
@@ -509,28 +514,28 @@ export function CreateChapterModal({
               <MarkdownRenderer content={previewEntry.content} images={imagesToMap(previewEntry.images)} />
             </div>
           </div>
-        </div>
+        </ModalSurface>
       )}
 
       <div
-        className="neo-modal"
+        className="ui-modal"
         style={{ width: '50%', maxWidth: 'none', height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '2.5px solid #111', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
             <Plus size={20} />
-            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '20px' }}>
+            <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '20px' }}>
               {tx.chapter.addChapter.replace('+ ', '')}
             </h2>
           </div>
-          <button onClick={onClose} className="hover:opacity-70" style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}>
+          <Button aria-label="Close" variant="ghost" onClick={onClose} className="hover:opacity-70" style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer' }}>
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
         {/* Tabs */}
-        <div className="flex" style={{ borderBottom: '2.5px solid #111', flexShrink: 0 }}>
+        <div className="flex" style={{ borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           {([
             ['single', 'Single'],
             ['bulk',   'Bulk TXT'],
@@ -539,7 +544,7 @@ export function CreateChapterModal({
             ['pdf2',   'PDF ↵'],
             ['docx',   'Docx'],
           ] as const).map(([tabKey, label]) => (
-            <button
+            <Button variant="ghost"
               key={tabKey}
               onClick={() => {
                 if (tabKey === 'pdf1' || tabKey === 'pdf2' || tabKey === 'docx') {
@@ -550,12 +555,12 @@ export function CreateChapterModal({
                   setTab(tabKey)
                 }
               }}
-              style={{
+              style={{ borderRadius: 'var(--radius)',
                 padding: '10px 16px',
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700, fontSize: '12px',
-                textTransform: 'uppercase', letterSpacing: '0.5px',
-                border: 'none', borderRight: '2px solid var(--bg-surface-2,#eee)',
+                fontFamily: 'var(--font-body)',
+                fontWeight: 600, fontSize: '12px',
+                textTransform: 'none', letterSpacing: 'normal',
+                border: 'none', borderRight: '1px solid var(--bg-surface-2,var(--border))',
                 cursor: 'pointer',
                 background: tab === tabKey ? 'var(--bg-cyan,#00F7FF)' : 'transparent',
                 color: 'var(--on-accent,#111)', transition: 'background 0.1s',
@@ -563,7 +568,7 @@ export function CreateChapterModal({
               }}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -576,37 +581,37 @@ export function CreateChapterModal({
               <div className="flex-1 overflow-y-auto p-6 space-y-4">
                 <div className="flex gap-4">
                   <div style={{ width: '130px' }}>
-                    <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <Label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>
                       {tx.modal.chapterNumber}
-                    </label>
-                    <input type="text" value={number} onChange={e => setNumber(e.target.value)} className="neo-input" placeholder="1" />
+                    </Label>
+                    <Input aria-label={tx.modal.chapterNumber} type="text" value={number} onChange={e => setNumber(e.target.value)} className="ui-input" placeholder="1" />
                   </div>
                   <div className="flex-1">
-                    <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    <Label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>
                       {tx.modal.chapterTitle}
-                    </label>
-                    <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={tx.modal.chapterTitlePlaceholder} className="neo-input" />
+                    </Label>
+                    <Input aria-label={tx.modal.chapterTitle} type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder={tx.modal.chapterTitlePlaceholder} className="ui-input" />
                   </div>
                 </div>
                 <div>
-                  <label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  <Label className="block mb-1.5" style={{ fontSize: '13px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>
                     {tx.modal.chapterContent}
-                  </label>
-                  <textarea
+                  </Label>
+                  <Textarea aria-label={tx.modal.chapterContent}
                     value={rawContent} onChange={e => setRawContent(e.target.value)}
                     placeholder={tx.modal.chapterContentPlaceholder}
-                    className="neo-textarea"
+                    className="ui-textarea"
                     style={{ minHeight: '360px', fontFamily: 'monospace', fontSize: '13px' }}
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
-                <button type="button" onClick={onClose} disabled={loading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>
+              <div className="flex justify-end gap-3 px-6 py-4" style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+                <Button variant="outline" type="button" onClick={onClose} disabled={loading} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>
                   {tx.common.cancel}
-                </button>
-                <button type="submit" disabled={!number || loading} className="neo-button" style={{ opacity: number && !loading ? 1 : 0.5 }}>
+                </Button>
+                <Button variant="default" type="submit" disabled={!number || loading} className="" style={{ opacity: number && !loading ? 1 : 0.5 }}>
                   {loading ? tx.common.loading : tx.modal.create}
-                </button>
+                </Button>
               </div>
             </form>
           )}
@@ -617,11 +622,11 @@ export function CreateChapterModal({
               <div className="px-6 pt-5 pb-4" style={{ flexShrink: 0 }}>
                 <div
                   className="flex flex-col items-center justify-center gap-2"
-                  style={{
-                    border: `2.5px dashed ${isDragOver ? 'var(--bg-cyan,#00F7FF)' : 'var(--fg-subtle,#aaa)'}`,
+                  style={{ borderRadius: 'var(--radius)',
+                    border: `1px dashed ${isDragOver ? 'var(--bg-cyan,#00F7FF)' : 'var(--fg-subtle,#aaa)'}`,
                     background: isDragOver ? 'var(--tint-cyan,#e6fffe)' : 'var(--bg-surface,#fafaf8)',
                     padding: '28px 20px', cursor: 'pointer', transition: 'all 0.15s',
-                    boxShadow: isDragOver ? '4px 4px 0px var(--bg-cyan,#00F7FF)' : 'none',
+                    boxShadow: isDragOver ? 'var(--shadow-sm)' : 'none',
                   }}
                   onDragOver={e => { e.preventDefault(); setIsDragOver(true) }}
                   onDragLeave={() => setIsDragOver(false)}
@@ -629,11 +634,11 @@ export function CreateChapterModal({
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload size={28} style={{ color: isDragOver ? '#00a8ad' : 'var(--fg-subtle,#aaa)' }} />
-                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: isDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
+                  <p style={{ fontWeight: 600, fontSize: '14px', margin: 0, color: isDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
                     {isDragOver ? '↓' : 'Drag & drop .txt'}
                   </p>
                   <p style={{ fontSize: '12px', color: 'var(--fg-subtle,#aaa)', margin: 0 }}>.txt</p>
-                  <input ref={fileInputRef} type="file" accept=".txt" multiple style={{ display: 'none' }}
+                  <Input ref={fileInputRef} type="file" accept=".txt" multiple style={{ display: 'none' }}
                     onChange={e => { if (e.target.files) { processTxtFiles(Array.from(e.target.files)); e.target.value = '' } }} />
                 </div>
               </div>
@@ -641,12 +646,12 @@ export function CreateChapterModal({
               <div className="flex-1 overflow-y-auto px-6" style={{ minHeight: 0 }}>
                 {entries.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>{tx.common.noData}</p>
+                    <p style={{ color: 'var(--muted-foreground)', fontSize: '13px' }}>{tx.common.noData}</p>
                   </div>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-surface,#fff)', zIndex: 1 }}>
-                      <tr style={{ borderBottom: '2.5px solid #111' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <th style={{ width: '28px', padding: '6px 4px' }} />
                         <th style={{ width: '82px', ...thStyle }}>No.</th>
                         <th style={{ ...thStyle }}>Judul</th>
@@ -657,28 +662,28 @@ export function CreateChapterModal({
                     <tbody>
                       {entries.map((entry, idx) => (
                         <tr key={entry.id} {...makeRowHandlers(idx, dragIndexRef, setEntries)}
-                          style={{ borderBottom: '1.5px solid var(--bg-surface-2,#eee)', background: 'var(--bg-surface,#fff)' }}>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: 'var(--line,#ccc)' }}>
+                          style={{ borderBottom: '1px solid var(--bg-surface-2,var(--border))', background: 'var(--bg-surface,#fff)' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: 'var(--muted-foreground)' }}>
                             <GripVertical size={14} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
-                            <input type="text" value={entry.number}
+                            <Input type="text" value={entry.number}
                               onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, number: e.target.value } : en))}
-                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
+                              style={{ borderRadius: 'var(--radius)',  width: '64px', border: '1px solid var(--border)', padding: '3px 6px', fontSize: '13px', fontWeight: 600, background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
-                            <input type="text" value={entry.title}
+                            <Input type="text" value={entry.title}
                               onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, title: e.target.value } : en))}
-                              style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
+                              style={{ borderRadius: 'var(--radius)',  width: '100%', border: '1px solid var(--border)', padding: '3px 8px', fontSize: '13px', background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--fg-subtle,#999)', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
                             {entry.content.length.toLocaleString()}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
-                            <button onClick={() => setEntries(prev => prev.filter(e => e.id !== entry.id))}
-                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                            <Button aria-label="Delete" variant="ghost" onClick={() => setEntries(prev => prev.filter(e => e.id !== entry.id))}
+                              style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={14} />
-                            </button>
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -687,15 +692,15 @@ export function CreateChapterModal({
                 )}
               </div>
 
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}>
                 <span style={{ fontSize: '13px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
                   {entries.length > 0 ? `${entries.length}` : tx.common.noData}
                 </span>
                 <div className="flex gap-3">
-                  <button onClick={onClose} disabled={bulkLoading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</button>
-                  <button onClick={handleBulkSubmit} disabled={!entries.length || bulkLoading} className="neo-button" style={{ opacity: entries.length && !bulkLoading ? 1 : 0.5 }}>
+                  <Button variant="outline" onClick={onClose} disabled={bulkLoading} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</Button>
+                  <Button variant="default" onClick={handleBulkSubmit} disabled={!entries.length || bulkLoading} className="" style={{ opacity: entries.length && !bulkLoading ? 1 : 0.5 }}>
                     {bulkLoading ? tx.common.loading : `${tx.common.add} ${entries.length}`}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -707,11 +712,11 @@ export function CreateChapterModal({
               <div className="px-6 pt-5 pb-4" style={{ flexShrink: 0 }}>
                 <div
                   className="flex flex-col items-center justify-center gap-2"
-                  style={{
-                    border: `2.5px dashed ${isDragOver ? 'var(--bg-purple,#C084FC)' : 'var(--fg-subtle,#aaa)'}`,
+                  style={{ borderRadius: 'var(--radius)',
+                    border: `1px dashed ${isDragOver ? 'var(--bg-purple,#C084FC)' : 'var(--fg-subtle,#aaa)'}`,
                     background: isDragOver ? 'var(--tint-purple,#f5edff)' : 'var(--bg-surface,#fafaf8)',
                     padding: '28px 20px', cursor: 'pointer', transition: 'all 0.15s',
-                    boxShadow: isDragOver ? '4px 4px 0px var(--bg-purple,#C084FC)' : 'none',
+                    boxShadow: isDragOver ? 'var(--shadow-sm)' : 'none',
                   }}
                   onDragOver={e => { e.preventDefault(); setIsDragOver(true) }}
                   onDragLeave={() => setIsDragOver(false)}
@@ -719,11 +724,11 @@ export function CreateChapterModal({
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <Upload size={28} style={{ color: isDragOver ? '#9333ea' : 'var(--fg-subtle,#aaa)' }} />
-                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: isDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
+                  <p style={{ fontWeight: 600, fontSize: '14px', margin: 0, color: isDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
                     {isDragOver ? '↓' : 'Drag & drop .md'}
                   </p>
-                  <p style={{ fontSize: '12px', color: 'var(--fg-subtle,#aaa)', margin: 0 }}>.md — markdown with formatting</p>
-                  <input ref={fileInputRef} type="file" accept=".md" multiple style={{ display: 'none' }}
+                  <p style={{ fontSize: '12px', color: 'var(--fg-subtle,#aaa)', margin: 0 }}>.md: markdown with formatting</p>
+                  <Input ref={fileInputRef} type="file" accept=".md" multiple style={{ display: 'none' }}
                     onChange={e => { if (e.target.files) { processMdFiles(Array.from(e.target.files)); e.target.value = '' } }} />
                 </div>
               </div>
@@ -731,12 +736,12 @@ export function CreateChapterModal({
               <div className="flex-1 overflow-y-auto px-6" style={{ minHeight: 0 }}>
                 {entries.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>{tx.common.noData}</p>
+                    <p style={{ color: 'var(--muted-foreground)', fontSize: '13px' }}>{tx.common.noData}</p>
                   </div>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-surface,#fff)', zIndex: 1 }}>
-                      <tr style={{ borderBottom: '2.5px solid #111' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <th style={{ width: '28px', padding: '6px 4px' }} />
                         <th style={{ width: '82px', ...thStyle }}>No.</th>
                         <th style={{ ...thStyle }}>Judul</th>
@@ -747,28 +752,28 @@ export function CreateChapterModal({
                     <tbody>
                       {entries.map((entry, idx) => (
                         <tr key={entry.id} {...makeRowHandlers(idx, dragIndexRef, setEntries)}
-                          style={{ borderBottom: '1.5px solid var(--bg-surface-2,#eee)', background: 'var(--bg-surface,#fff)' }}>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: 'var(--line,#ccc)' }}>
+                          style={{ borderBottom: '1px solid var(--bg-surface-2,var(--border))', background: 'var(--bg-surface,#fff)' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: 'grab', color: 'var(--muted-foreground)' }}>
                             <GripVertical size={14} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
-                            <input type="text" value={entry.number}
+                            <Input type="text" value={entry.number}
                               onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, number: e.target.value } : en))}
-                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
+                              style={{ borderRadius: 'var(--radius)',  width: '64px', border: '1px solid var(--border)', padding: '3px 6px', fontSize: '13px', fontWeight: 600, background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
-                            <input type="text" value={entry.title}
+                            <Input type="text" value={entry.title}
                               onChange={e => setEntries(prev => prev.map(en => en.id === entry.id ? { ...en, title: e.target.value } : en))}
-                              style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
+                              style={{ borderRadius: 'var(--radius)',  width: '100%', border: '1px solid var(--border)', padding: '3px 8px', fontSize: '13px', background: 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--fg-subtle,#999)', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
                             {entry.content.length.toLocaleString()}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
-                            <button onClick={() => setEntries(prev => prev.filter(e => e.id !== entry.id))}
-                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                            <Button aria-label="Delete" variant="ghost" onClick={() => setEntries(prev => prev.filter(e => e.id !== entry.id))}
+                              style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={14} />
-                            </button>
+                            </Button>
                           </td>
                         </tr>
                       ))}
@@ -777,15 +782,15 @@ export function CreateChapterModal({
                 )}
               </div>
 
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}>
                 <span style={{ fontSize: '13px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
                   {entries.length > 0 ? `${entries.length}` : tx.common.noData}
                 </span>
                 <div className="flex gap-3">
-                  <button onClick={onClose} disabled={bulkLoading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</button>
-                  <button onClick={handleBulkSubmit} disabled={!entries.length || bulkLoading} className="neo-button" style={{ opacity: entries.length && !bulkLoading ? 1 : 0.5 }}>
+                  <Button variant="outline" onClick={onClose} disabled={bulkLoading} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</Button>
+                  <Button variant="default" onClick={handleBulkSubmit} disabled={!entries.length || bulkLoading} className="" style={{ opacity: entries.length && !bulkLoading ? 1 : 0.5 }}>
                     {bulkLoading ? tx.common.loading : `${tx.common.add} ${entries.length}`}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -798,25 +803,25 @@ export function CreateChapterModal({
               <div className="px-6 pt-5 pb-4" style={{ flexShrink: 0 }}>
                 <div
                   className="flex flex-col items-center justify-center gap-2"
-                  style={{
-                    border: `2.5px dashed ${docIsDragOver ? 'var(--bg-orange,#FF8C00)' : 'var(--fg-subtle,#aaa)'}`,
+                  style={{ borderRadius: 'var(--radius)',
+                    border: `1px dashed ${docIsDragOver ? 'var(--bg-orange,#FF8C00)' : 'var(--fg-subtle,#aaa)'}`,
                     background: docIsDragOver ? 'var(--tint-orange,#fff8ed)' : 'var(--bg-surface,#fafaf8)',
                     padding: '28px 20px', cursor: 'pointer', transition: 'all 0.15s',
-                    boxShadow: docIsDragOver ? '4px 4px 0px var(--bg-orange,#FF8C00)' : 'none',
+                    boxShadow: docIsDragOver ? 'var(--shadow-sm)' : 'none',
                   }}
                   onDragOver={e => { e.preventDefault(); setDocIsDragOver(true) }}
                   onDragLeave={() => setDocIsDragOver(false)}
                   onDrop={e => { e.preventDefault(); setDocIsDragOver(false); if (e.dataTransfer.files) processDocFiles(Array.from(e.dataTransfer.files)) }}
                   onClick={() => docFileInputRef.current?.click()}
                 >
-                  <Upload size={28} style={{ color: docIsDragOver ? 'var(--bg-orange,#FF8C00)' : 'var(--fg-subtle,#aaa)' }} />
-                  <p style={{ fontWeight: 700, fontSize: '14px', margin: 0, color: docIsDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
+                  <Upload size={28} style={{ color: docIsDragOver ? 'var(--fg-orange,#FF8C00)' : 'var(--fg-subtle,#aaa)' }} />
+                  <p style={{ fontWeight: 600, fontSize: '14px', margin: 0, color: docIsDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
                     {docIsDragOver ? '↓' : `Drag & drop ${docAccept}`}
                   </p>
                   <p style={{ fontSize: '12px', color: 'var(--fg-subtle,#aaa)', margin: 0 }}>
-                    {tab === 'pdf2' ? `${docAccept} — paragraph reconstruction` : docAccept}
+                    {tab === 'pdf2' ? `${docAccept}: paragraph reconstruction` : docAccept}
                   </p>
-                  <input ref={docFileInputRef} type="file" accept={docAccept} multiple style={{ display: 'none' }}
+                  <Input ref={docFileInputRef} type="file" accept={docAccept} multiple style={{ display: 'none' }}
                     onChange={e => { if (e.target.files) { processDocFiles(Array.from(e.target.files)); e.target.value = '' } }} />
                 </div>
 
@@ -832,12 +837,12 @@ export function CreateChapterModal({
               <div className="flex-1 overflow-y-auto px-6" style={{ minHeight: 0 }}>
                 {docEntries.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
-                    <p style={{ color: 'var(--line,#ccc)', fontSize: '13px' }}>{tx.common.noData}</p>
+                    <p style={{ color: 'var(--muted-foreground)', fontSize: '13px' }}>{tx.common.noData}</p>
                   </div>
                 ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                     <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-surface,#fff)', zIndex: 1 }}>
-                      <tr style={{ borderBottom: '2.5px solid #111' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <th style={{ width: '28px', padding: '6px 4px' }} />
                         <th style={{ width: '82px', ...thStyle }}>No.</th>
                         <th style={{ ...thStyle }}>Judul</th>
@@ -855,46 +860,46 @@ export function CreateChapterModal({
                         return (
                         <tr key={entry.id}
                           {...(!busy && !isQueued ? makeRowHandlers(idx, docDragIndexRef, setDocEntries) : {})}
-                          style={{ borderBottom: '1.5px solid var(--bg-surface-2,#eee)', background: isError ? 'var(--tint-red,#fff5f5)' : isQueued ? 'var(--bg-surface,#f8f8ff)' : 'var(--bg-surface,#fff)' }}>
-                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: busy || isQueued ? 'default' : 'grab', color: 'var(--line,#ccc)' }}>
+                          style={{ borderBottom: '1px solid var(--bg-surface-2,var(--border))', background: isError ? 'var(--tint-red,#fff5f5)' : isQueued ? 'var(--bg-surface,#f8f8ff)' : 'var(--bg-surface,#fff)' }}>
+                          <td style={{ padding: '5px 4px', textAlign: 'center', cursor: busy || isQueued ? 'default' : 'grab', color: 'var(--muted-foreground)' }}>
                             {busy ? <Loader2 size={13} className="animate-spin" style={{ color: 'var(--fg-subtle,#aaa)' }} /> : <GripVertical size={14} />}
                           </td>
                           <td style={{ padding: '5px 8px' }}>
-                            <input type="text" value={entry.number} disabled={busy}
+                            <Input type="text" value={entry.number} disabled={busy}
                               onChange={e => updateDocEntry(entry.id, 'number', e.target.value)}
-                              style={{ width: '64px', border: '2px solid #111', padding: '3px 6px', fontSize: '13px', fontWeight: 700, background: busy ? 'var(--bg-surface-2,#eee)' : 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
+                              style={{ borderRadius: 'var(--radius)',  width: '64px', border: '1px solid var(--border)', padding: '3px 6px', fontSize: '13px', fontWeight: 600, background: busy ? 'var(--bg-surface-2,#eee)' : 'var(--bg-page,#F8F3EA)', outline: 'none' }} />
                           </td>
                           <td style={{ padding: '5px 8px' }}>
                             {isError ? (
-                              <div className="flex items-center gap-1" style={{ color: 'var(--bg-red,#FF3C3C)', fontSize: '12px' }}>
+                              <div className="flex items-center gap-1" style={{ color: 'var(--fg-red,#FF3C3C)', fontSize: '12px' }}>
                                 <AlertCircle size={13} />
-                                <span title={entry.error ?? ''}>{entry.filename} — {(entry.error ?? '').slice(0, 60)}</span>
+                                <span title={entry.error ?? ''}>{entry.filename}: {(entry.error ?? '').slice(0, 60)}</span>
                               </div>
                             ) : (
-                              <input type="text" value={isQueued ? entry.filename : entry.title} disabled={busy || isQueued}
+                              <Input type="text" value={isQueued ? entry.filename : entry.title} disabled={busy || isQueued}
                                 onChange={e => updateDocEntry(entry.id, 'title', e.target.value)}
-                                style={{ width: '100%', border: '2px solid #111', padding: '3px 8px', fontSize: '13px', background: busy || isQueued ? 'var(--bg-surface-2,#eee)' : 'var(--bg-page,#F8F3EA)', outline: 'none', color: isQueued ? 'var(--fg-subtle,#999)' : undefined }} />
+                                style={{ borderRadius: 'var(--radius)',  width: '100%', border: '1px solid var(--border)', padding: '3px 8px', fontSize: '13px', background: busy || isQueued ? 'var(--bg-surface-2,#eee)' : 'var(--bg-page,#F8F3EA)', outline: 'none', color: isQueued ? 'var(--fg-subtle,#999)' : undefined }} />
                             )}
                           </td>
                           <td style={{ padding: '5px 8px', textAlign: 'right', color: 'var(--fg-subtle,#999)', fontVariantNumeric: 'tabular-nums', fontSize: '12px' }}>
-                            {busy ? '…' : isQueued ? '—' : entry.content.length.toLocaleString()}
+                            {busy ? '…' : isQueued ? ': ' : entry.content.length.toLocaleString()}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
                             {isDone && entry.content ? (
-                              <button
+                              <Button aria-label="Preview hasil parsing" variant="ghost"
                                 onClick={() => setPreviewEntry(entry)}
                                 title="Preview hasil parsing"
-                                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bg-blue,#0077FF)', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-blue,#0077FF)', padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                               >
                                 <Eye size={14} />
-                              </button>
+                              </Button>
                             ) : null}
                           </td>
                           <td style={{ padding: '5px 4px', textAlign: 'center' }}>
-                            <button onClick={() => removeDocEntry(entry.id)}
-                              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--bg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
+                            <Button aria-label="Delete" variant="ghost" onClick={() => removeDocEntry(entry.id)}
+                              style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', padding: '2px', display: 'flex', alignItems: 'center' }}>
                               <Trash2 size={14} />
-                            </button>
+                            </Button>
                           </td>
                         </tr>
                         )
@@ -905,7 +910,7 @@ export function CreateChapterModal({
               </div>
 
               {/* Footer */}
-              <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '2.5px solid #111', flexShrink: 0 }}>
+              <div className="flex items-center justify-between px-6 py-4" style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}>
                 <span style={{ fontSize: '13px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>
                   {docEntries.length > 0
                     ? [
@@ -916,40 +921,40 @@ export function CreateChapterModal({
                     : tx.common.noData}
                 </span>
                 <div className="flex gap-3">
-                  <button onClick={onClose} disabled={docBulkLoading} className="neo-button" style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</button>
+                  <Button variant="outline" onClick={onClose} disabled={docBulkLoading} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-surface-2,#F0F0F0)' }}>{tx.common.cancel}</Button>
                   {docQueuedCount > 0 && (tab === 'pdf1' || tab === 'pdf2') && (() => {
                     const sampleFile = docEntries.find(e => e.status === 'queued' && e.file)?.file ?? null
                     const topM = tab === 'pdf1' ? pdf1MarginTop : pdf2MarginTop
                     const botM = tab === 'pdf1' ? pdf1MarginBottom : pdf2MarginBottom
                     return (
                       <>
-                        <button
+                        <Button variant="default"
                           onClick={() => { setPrePreviewFile(sampleFile); setPrePreviewOpen(true) }}
                           disabled={docParsingCount > 0}
-                          className="neo-button flex items-center gap-1"
+                          className="flex items-center gap-1"
                           style={{ fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
                         >
                           <ScanSearch size={13} /> PRE-PREVIEW
-                        </button>
-                        <button
+                        </Button>
+                        <Button variant="default"
                           onClick={() => parseAllPdfEntries(topM, botM)}
                           disabled={docParsingCount > 0}
-                          className="neo-button"
-                          style={{ backgroundColor: 'var(--bg-cyan,#00F7FF)', fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
+                          className=""
+                          style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-cyan,#00F7FF)', fontSize: '12px', opacity: docParsingCount > 0 ? 0.5 : 1 }}
                         >
                           PARSE ALL {docQueuedCount}
-                        </button>
+                        </Button>
                       </>
                     )
                   })()}
-                  <button
+                  <Button variant="default"
                     onClick={handleDocBulkSubmit}
                     disabled={!docReadyCount || docBulkLoading || docParsingCount > 0}
-                    className="neo-button"
-                    style={{ opacity: docReadyCount && !docBulkLoading && !docParsingCount ? 1 : 0.5, backgroundColor: 'var(--bg-orange,#FFCF77)' }}
+                    className=""
+                    style={{ color: 'var(--foreground)',  opacity: docReadyCount && !docBulkLoading && !docParsingCount ? 1 : 0.5, backgroundColor: 'var(--bg-orange,#FFCF77)' }}
                   >
                     {docBulkLoading ? tx.common.loading : `${tx.common.add} ${docReadyCount}`}
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -969,6 +974,6 @@ export function CreateChapterModal({
           parseAllPdfEntries(top, bottom)
         }}
       />
-    </div>
+    </ModalSurface>
   )
 }

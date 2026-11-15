@@ -1,207 +1,74 @@
-/**
- * LWNTL Topbar Component
- * Dark navbar with LWNTL logo + settings gear
- */
-
-import { useNavigate } from 'react-router-dom'
-import { Settings, ArrowLeft, ArrowRight, ScrollText, Activity, Layers, FileCode2 } from 'lucide-react'
-import { useI18n } from '../i18n'
 import { useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Activity, ArrowLeft, ArrowRight, BookOpen, FileCode2, Layers, ScrollText, Settings } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { useI18n } from '../i18n'
+import { useAppStore } from '../store/appStore'
 import { WorkerLogPanel } from './WorkerLogPanel'
 import { BatchersListPanel } from './BatchersListPanel'
 import { ProfileSwitcherPanel } from './ProfileSwitcherPanel'
 import { ProfileTemplatesModal } from './ProfileTemplatesModal'
-import { useAppStore } from '../store/appStore'
 
-interface TopbarProps {
-  showBack?: boolean
-  title?: string
-  subtitle?: string
-}
+interface TopbarProps { showBack?: boolean; title?: string; subtitle?: string }
 
 export function Topbar({ showBack, title, subtitle }: TopbarProps) {
   const navigate = useNavigate()
-  const { t } = useI18n()
+  const location = useLocation()
+  const { t, language } = useI18n()
   const [logsOpen, setLogsOpen] = useState(false)
   const [batchersOpen, setBatchersOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
   const [templatesOpen, setTemplatesOpen] = useState(false)
-
-  const batches = useAppStore((s) => s.batches)
-  const profiles = useAppStore((s) => s.profiles)
-  const activeBatchCount = Object.values(batches).filter((b) => b.status === 'translating').length
-
+  const batches = useAppStore(s => s.batches)
+  const profiles = useAppStore(s => s.profiles)
+  const activeBatchCount = Object.values(batches).filter(b => b.status === 'translating').length
+  const id = language === 'id'
+  const actions = [
+    { label: id ? 'Batch aktif' : 'Active batches', icon: Activity, action: () => setBatchersOpen(true), active: batchersOpen, count: activeBatchCount },
+    { label: id ? 'Template prompt' : 'Prompt templates', icon: FileCode2, action: () => setTemplatesOpen(true), active: templatesOpen },
+    { label: id ? 'Log worker' : 'Worker logs', icon: ScrollText, action: () => setLogsOpen(true), active: logsOpen },
+    { label: t.topbar.settings, icon: Settings, action: () => navigate('/settings'), active: location.pathname === '/settings' },
+  ]
   return (
     <>
-    <div className="w-full flex items-center justify-between px-5 py-3" style={{ backgroundColor: '#111111', borderBottom: '2.5px solid #111111' }}>
-      {/* Left section */}
-      <div className="flex items-center gap-4">
-        {showBack && (
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center hover:opacity-80 transition-opacity"
-              style={{ color: 'var(--fg-cyan,#00F7FF)' }}
-              title="Back"
-            >
-              <ArrowLeft size={18} />
+      <TooltipProvider delayDuration={300}>
+        <header className="app-topbar">
+          <div className="flex min-w-0 items-center gap-3">
+            {showBack && <div className="hidden items-center gap-1 sm:flex">
+              <Button variant="ghost" size="icon" aria-label={id ? 'Kembali' : 'Back'} onClick={() => navigate(-1)}><ArrowLeft size={17} /></Button>
+              <Button variant="ghost" size="icon" aria-label={id ? 'Maju' : 'Forward'} onClick={() => navigate(1)}><ArrowRight size={17} /></Button>
+            </div>}
+            <button className="app-brand rounded-lg text-left" onClick={() => navigate('/')} aria-label={id ? 'LWNTL, koleksi series' : 'LWNTL, series library'}>
+              <span className="app-brand-mark"><BookOpen size={20} aria-hidden="true" /></span>
+              <span><span className="app-brand-name block">LWNTL</span><span className="app-brand-description block">Translation workspace</span></span>
             </button>
-            <button
-              onClick={() => navigate(1)}
-              className="flex items-center hover:opacity-80 transition-opacity"
-              style={{ color: '#444' }}
-              title="Forward"
-            >
-              <ArrowRight size={18} />
-            </button>
+            {title && <div className="topbar-context flex min-w-0 items-center gap-4">
+              <Separator orientation="vertical" className="h-7" />
+              <div className="min-w-0"><p className="truncate text-sm font-semibold">{title}</p>{subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}</div>
+            </div>}
           </div>
-        )}
-
-        {/* Logo */}
-        <button
-          onClick={() => navigate('/')}
-          className="flex items-center gap-2"
-        >
-          <span
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 900,
-              fontSize: '22px',
-              color: 'var(--fg-cyan,#00F7FF)',
-              letterSpacing: '2px',
-            }}
-          >
-            LWNTL
-          </span>
-          <span
-            className="hidden sm:inline"
-            style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: '11px',
-              fontWeight: 600,
-              color: 'var(--fg-muted,#666666)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}
-          >
-            LN/WN Translator
-          </span>
-        </button>
-
-        {/* Title & Subtitle */}
-        {title && (
-          <div className="flex items-center gap-2 ml-2">
-            <span style={{ color: '#444', fontSize: '14px' }}>|</span>
-            <div>
-              <span
-                style={{
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  fontWeight: 700,
-                  fontSize: '16px',
-                  color: '#FFFFFF',
-                }}
-              >
-                {title}
-              </span>
-              {subtitle && (
-                <span
-                  className="ml-2"
-                  style={{
-                    fontFamily: "'Inter', sans-serif",
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    color: 'var(--fg-cyan,#00F7FF)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                  }}
-                >
-                  {subtitle}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Right section */}
-      <div className="flex items-center gap-3">
-        {/* Profile switcher */}
-        {profiles.active && (
-          <button
-            onClick={() => setProfileOpen((v) => !v)}
-            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-            style={{ color: profileOpen ? 'var(--fg-cyan,#00F7FF)' : 'var(--fg-muted,#888)', maxWidth: '140px' }}
-            title="Ganti profil"
-          >
-            <Layers size={14} />
-            <span style={{ fontSize: '11px', fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.3px' }}>
-              {profiles.active}
-            </span>
-          </button>
-        )}
-
-        {/* Batchers List — active batch monitor */}
-        <button
-          onClick={() => setBatchersOpen(true)}
-          className="relative flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
-          style={{ color: activeBatchCount > 0 ? 'var(--fg-cyan,#00F7FF)' : '#444' }}
-          title="Batch aktif"
-        >
-          <Activity size={20} />
-          {activeBatchCount > 0 && (
-            <span
-              className="absolute -top-0.5 -right-0.5 flex items-center justify-center"
-              style={{
-                width: '14px',
-                height: '14px',
-                backgroundColor: 'var(--bg-cyan,#00F7FF)',
-                color: 'var(--on-accent,#111)',
-                fontSize: '8px',
-                fontWeight: 900,
-                fontFamily: 'monospace',
-              }}
-            >
-              {activeBatchCount}
-            </span>
-          )}
-        </button>
-
-        {/* Template prompt editor */}
-        <button
-          onClick={() => setTemplatesOpen(true)}
-          className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
-          style={{ color: 'var(--fg-cyan,#00F7FF)' }}
-          title="Edit template prompt"
-        >
-          <FileCode2 size={20} />
-        </button>
-
-        {/* Worker logs */}
-        <button
-          onClick={() => setLogsOpen(true)}
-          className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
-          style={{ color: 'var(--fg-cyan,#00F7FF)' }}
-          title="Worker log"
-        >
-          <ScrollText size={20} />
-        </button>
-
-        {/* Settings */}
-        <button
-          onClick={() => navigate('/settings')}
-          className="flex items-center justify-center w-9 h-9 hover:opacity-80 transition-opacity"
-          style={{ color: 'var(--fg-cyan,#00F7FF)' }}
-          title={t.topbar.settings}
-        >
-          <Settings size={20} />
-        </button>
-      </div>
-    </div>
-
-    <WorkerLogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
-    <BatchersListPanel open={batchersOpen} onClose={() => setBatchersOpen(false)} />
-    <ProfileSwitcherPanel open={profileOpen} onClose={() => setProfileOpen(false)} />
-    <ProfileTemplatesModal open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
+          <nav aria-label={id ? 'Alat aplikasi' : 'Application tools'} className="flex shrink-0 items-center gap-1 sm:gap-2">
+            {profiles.active && <Button variant="outline" size="sm" onClick={() => setProfileOpen(v => !v)} aria-expanded={profileOpen} aria-label={id ? 'Ganti profil' : 'Switch profile'}>
+              <Layers size={15} /><span className="topbar-profile-label max-w-28 truncate">{profiles.active}</span>
+            </Button>}
+            <Separator orientation="vertical" className="mx-1 hidden h-6 sm:block" />
+            {actions.map(({ label, icon: Icon, action, active, count }) => <Tooltip key={label}>
+              <TooltipTrigger asChild><Button variant={active ? 'secondary' : 'ghost'} size="icon" onClick={action} aria-label={label} title={label} className="relative text-muted-foreground">
+                <Icon size={18} aria-hidden="true" />
+                {!!count && <Badge className="absolute -right-1 -top-1 h-4 min-w-4 justify-center px-1 text-[10px]">{count}</Badge>}
+              </Button></TooltipTrigger>
+              <TooltipContent>{label}</TooltipContent>
+            </Tooltip>)}
+          </nav>
+        </header>
+      </TooltipProvider>
+      <WorkerLogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
+      <BatchersListPanel open={batchersOpen} onClose={() => setBatchersOpen(false)} />
+      <ProfileSwitcherPanel open={profileOpen} onClose={() => setProfileOpen(false)} />
+      <ProfileTemplatesModal open={templatesOpen} onClose={() => setTemplatesOpen(false)} />
     </>
   )
 }

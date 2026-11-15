@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 /**
  * LWNTL Series Settings Page
  * 3-panel layout: Chapter list | Prompt/Model | Glossary
@@ -127,7 +128,7 @@ export function SeriesSettingsPage() {
     if (apiReady) loadData()
   }, [apiReady, loadData])
 
-  // Event-driven chapter list sync — no polling needed.
+  // Event-driven chapter list sync: no polling needed.
   // lwntl:translation-done / error fire per-chapter (single and batch).
   // lwntl:batch-status fires when the whole batch finishes or is cancelled.
   useEffect(() => {
@@ -188,7 +189,7 @@ export function SeriesSettingsPage() {
     const all: CJKIncident[] = []
     for (const ch of chapters) {
       if (ch.status === 'done' && ch.translatedContent) {
-        const label = `Bab ${ch.chapterNumber}${ch.title ? ` — ${ch.title}` : ''}`
+        const label = `Bab ${ch.chapterNumber}${ch.title ? `: ${ch.title}` : ''}`
         all.push(...detectCJK(stripGlossaryTable(ch.translatedContent), label))
       }
     }
@@ -501,104 +502,104 @@ export function SeriesSettingsPage() {
       <Topbar showBack title={series.title} subtitle={t.topbar.settings} />
 
       <main
-        className="flex-1 overflow-hidden p-4 gap-4"
+        className="workspace-layout flex-1 overflow-hidden p-4 gap-4"
         style={{ backgroundColor: 'var(--color-bg)', display: 'flex' }}
       >
         {/* Left: Chapter List */}
-        <div className="flex flex-col gap-2 overflow-y-auto overflow-x-visible" style={{ minWidth: '240px', maxWidth: '280px', minHeight: 0, paddingRight: '4px' }}>
+        <div className="chapter-sidebar flex flex-col gap-2 overflow-y-auto overflow-x-visible" style={{ minWidth: '240px', maxWidth: '280px', minHeight: 0, paddingRight: '4px' }}>
 
           {!selectMode ? (
             /* Normal mode: Translate All + Retry Failed (if any) + Select */
             <div className="flex flex-col gap-1.5">
-              <button
+              <Button variant="default"
                 onClick={() => startBatch(chapters)}
                 disabled={isBatchActive || chapters.filter(c => c.status === 'pending').length === 0}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 font-bold text-sm border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-green,#28E272)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Play size={16} />
                 {t.batch.title}
                 <span className="text-xs font-normal">
                   ({chapters.filter(c => c.status === 'pending').length} {t.home.chapters})
                 </span>
-              </button>
-              <button
+              </Button>
+              <Button aria-label={t.agent.buttonTitle} variant="ghost"
                 onClick={() => setShowAgentRun(true)}
                 disabled={isBatchActive || !chapters.some(c => c.status === 'done')}
                 title={t.agent.buttonTitle}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-purple,#C9A7FF)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_#111] transition-all"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 style={{ color: 'var(--on-accent,#111)' }}
               >
                 <Bot size={14} />
                 {t.agent.button}
-              </button>
+              </Button>
               {chapters.filter(c => c.status === 'error').length > 0 && (
-                <button
+                <Button variant="ghost"
                   onClick={() => {
                     const ids = chapters.filter(c => c.status === 'error').sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(c => c.id)
                     startSelectedBatch(ids)
                   }}
                   disabled={isBatchActive}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-red,#FF3C3C)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  style={{ color: '#fff' }}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  style={{ color: 'var(--foreground)' }}
                 >
                   <RefreshCw size={13} />
                   {t.batch.retryFailed}
                   <span className="font-normal">({chapters.filter(c => c.status === 'error').length})</span>
-                </button>
+                </Button>
               )}
-              <button
+              <Button variant="ghost"
                 onClick={handleEnterSelectMode}
                 disabled={isBatchActive || chapters.length === 0}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-(--color-surface) hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-semibold text-xs border border-border shadow-sm bg-(--color-surface) active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 style={{ color: 'var(--color-text)' }}
               >
                 <CheckSquare size={13} />
                 {t.batch.selectChapter}
-              </button>
-              <button
+              </Button>
+              <Button aria-label={t.batch.batchExportTitle} variant="ghost"
                 onClick={handleBatchExport}
                 disabled={batchExporting || chapters.filter(c => c.status === 'done').length === 0}
                 title={t.batch.batchExportTitle}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-yellow,#FFEF33)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                 style={{ color: 'var(--on-accent,#111)' }}
               >
                 <FileDown size={13} />
                 {batchExporting ? '...' : t.batch.batchExport}
                 <span className="font-normal">({chapters.filter(c => c.status === 'done').length})</span>
-              </button>
+              </Button>
             </div>
           ) : (
             /* Select mode: Translate Selected + Delete Selected + Cancel */
             <div className="flex flex-col gap-1.5">
               <div className="flex gap-1.5">
-                <button
+                <Button variant="ghost"
                   onClick={handleTranslateSelected}
                   disabled={isBatchActive || selectedIds.size === 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-green,#28E272)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                   style={{ color: 'var(--on-accent,#111)' }}
                 >
                   <Play size={12} />
                   {t.batch.translateSelected}
                   {selectedIds.size > 0 && <span className="font-normal">({selectedIds.size})</span>}
-                </button>
-                <button
+                </Button>
+                <Button variant="ghost"
                   onClick={() => { if (selectedIds.size > 0) setDeleteSelectedOpen(true) }}
                   disabled={selectedIds.size === 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-bold text-xs border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-red,#FF3C3C)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  style={{ color: '#fff' }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                  style={{ color: 'var(--foreground)' }}
                 >
                   <Trash2 size={12} />
                   {t.batch.deleteSelected}
                   {selectedIds.size > 0 && <span className="font-normal">({selectedIds.size})</span>}
-                </button>
+                </Button>
               </div>
-              <button
+              <Button variant="ghost"
                 onClick={handleExitSelectMode}
-                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 font-bold text-xs border-2 border-(--color-border) bg-transparent hover:bg-(--color-surface-2) transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 font-semibold text-xs border-2 border-(--color-border) bg-transparent hover:bg-(--color-surface-2) transition-colors"
                 style={{ color: 'var(--color-text-muted)' }}
               >
                 <X size={12} /> {t.batch.cancelSelect}
-              </button>
+              </Button>
               {/* Selection count indicator */}
               <p style={{ fontSize: '11px', textAlign: 'center', color: 'var(--color-text-muted)', margin: 0 }}>
                 {selectedIds.size > 0
@@ -620,63 +621,63 @@ export function SeriesSettingsPage() {
             onToggleSelect={handleToggleSelect}
           />
 
-          {/* Deterministic QA — no AI, no tokens */}
-          <button
+          {/* Deterministic QA: no AI, no tokens */}
+          <Button aria-label="Periksa seluruh terjemahan tanpa AI: sisa huruf Jepang, omisi, varian nama, ejaan, dan lainnya" variant="ghost"
             onClick={() => setShowQa(true)}
             disabled={chapters.filter(c => c.status === 'done').length === 0}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             style={{ backgroundColor: 'var(--bg-cyan,#8AF0FF)', color: 'var(--on-accent,#111)' }}
             title="Periksa seluruh terjemahan tanpa AI: sisa huruf Jepang, omisi, varian nama, ejaan, dan lainnya"
           >
             <ShieldCheck size={14} />
             QA SCAN
-          </button>
+          </Button>
 
-          {/* Terminology pre-pass — build the glossary before translating */}
-          <button
+          {/* Terminology pre-pass: build the glossary before translating */}
+          <Button aria-label="Pindai raw semua chapter untuk mengunci istilah sebelum menerjemahkan" variant="ghost"
             onClick={() => setShowPrepass(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
-            style={{ backgroundColor: 'var(--bg-lime,#C8FF8A)' }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm active:shadow-none transition-all"
+            style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-lime,#C8FF8A)' }}
             title="Pindai raw semua chapter untuk mengunci istilah sebelum menerjemahkan"
           >
             <ScanSearch size={14} />
             PRE-PASS TERMS
-          </button>
+          </Button>
 
-          {/* Image source — link placeholder lines to real images */}
-          <button
+          {/* Image source: link placeholder lines to real images */}
+          <Button aria-label="Tetapkan folder gambar untuk mengisi Image Placeholder" variant="ghost"
             onClick={() => setShowImageFolder(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
-            style={{ backgroundColor: 'var(--bg-blue,#9AD5FF)' }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm active:shadow-none transition-all"
+            style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-blue,#9AD5FF)' }}
             title="Tetapkan folder gambar untuk mengisi Image Placeholder"
           >
             <ImageIcon size={14} />
             IMAGE SOURCE
-          </button>
+          </Button>
 
           {/* All Extracted Terms */}
           <div className="relative">
-            <button
+            <Button variant="ghost"
               onClick={() => setShowAllTerms(true)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
-              style={{ backgroundColor: inconsistencyCount > 0 ? 'var(--bg-red,#FFE0E0)' : 'var(--bg-purple,#E8D5FF)' }}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm active:shadow-none transition-all"
+              style={{ color: 'var(--foreground)',  backgroundColor: inconsistencyCount > 0 ? 'var(--bg-red,#FFE0E0)' : 'var(--bg-purple,#E8D5FF)' }}
             >
               <BookOpen size={14} />
               ALL TERMS ({chapters.reduce((n, c) => n + (c.glossaryUpdates?.entries?.length ?? 0), 0)})
-            </button>
+            </Button>
             {inconsistencyCount > 0 && (
               <span
                 className="absolute -top-1.5 -right-1.5 flex items-center justify-center"
-                style={{
+                style={{ borderRadius: 'var(--radius)',
                   minWidth: '18px',
                   height: '18px',
                   padding: '0 3px',
                   backgroundColor: 'var(--bg-red,#FF3C3C)',
-                  color: '#fff',
+                  color: 'var(--fg-red)',
                   fontSize: '9px',
-                  fontWeight: 900,
+                  fontWeight: 650,
                   fontFamily: 'monospace',
-                  border: '2px solid #111',
+                  border: '1px solid var(--border)',
                   lineHeight: 1,
                 }}
                 title={`${inconsistencyCount} inconsistenc${inconsistencyCount === 1 ? 'y' : 'ies'} detected`}
@@ -687,43 +688,43 @@ export function SeriesSettingsPage() {
           </div>
 
           {/* Rolling Memory */}
-          <button
+          <Button variant="ghost"
             onClick={() => setShowRollingMemory(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[#111] hover:opacity-80 transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm bg-card hover:opacity-80 transition-all"
             style={{ color: 'var(--fg-cyan,#00F7FF)' }}
           >
             <BookText size={14} />
             ROLLING MEMORY ({chapters.filter(c => c.summary).length}/{chapters.length})
-          </button>
+          </Button>
 
           {/* Memory toggle */}
-          <button
+          <Button variant="ghost"
             onClick={() => setShowMemory(!showMemory)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-yellow,#FFEF33)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm bg-card active:shadow-none transition-all"
           >
             <Brain size={14} />
             {t.memory.title} ({series.memory?.length || 0})
-          </button>
+          </Button>
 
           {showMemory && (
-            <div className="border-2.5 border-[#111] bg-[var(--bg-surface,#fff)] max-h-48 overflow-y-auto">
+            <div className="border border-border bg-[var(--bg-surface,#fff)] max-h-48 overflow-y-auto">
               <MemoryPanel memories={series.memory || []} />
             </div>
           )}
 
           {/* Series Logs toggle */}
-          <button
+          <Button variant="ghost"
             onClick={() => setShowLogs(!showLogs)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold border-2.5 border-[#111] shadow-[4px_4px_0px_#111] bg-[var(--bg-blue,#B8E0FF)] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_#111] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm bg-card active:shadow-none transition-all"
           >
             <ScrollText size={14} />
             LOGS {seriesLogLines.length > 0 && <span className="font-normal">({seriesLogLines.length})</span>}
-          </button>
+          </Button>
 
           {showLogs && (
             <div
-              className="border-2.5 border-[#111] max-h-48 overflow-y-auto"
-              style={{ backgroundColor: '#111', padding: '8px' }}
+              className="border border-border max-h-48 overflow-y-auto"
+              style={{ backgroundColor: 'var(--muted)', padding: '8px' }}
             >
               {seriesLogLines.length === 0 ? (
                 <p style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontFamily: 'monospace', margin: 0 }}>
@@ -795,7 +796,7 @@ export function SeriesSettingsPage() {
         onConfirm={handleDeleteChapterConfirm}
         title={t.common.delete}
         entityType="chapter"
-        entityName={deleteChapterTarget ? `Bab ${deleteChapterTarget.chapterNumber}${deleteChapterTarget.title ? ` — ${deleteChapterTarget.title}` : ''}` : ''}
+        entityName={deleteChapterTarget ? `Bab ${deleteChapterTarget.chapterNumber}${deleteChapterTarget.title ? `: ${deleteChapterTarget.title}` : ''}` : ''}
         details={deleteChapterDetails}
         loading={deleteChapterLoading}
       />

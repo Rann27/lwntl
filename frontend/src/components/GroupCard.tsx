@@ -1,308 +1,60 @@
-/**
- * LWNTL Group Card Component
- * Folder-style card for series groups in the home grid
- */
-
-import { useState, useRef, useEffect } from 'react'
-import { createPortal } from 'react-dom'
-import { MoreVertical, Folder, Edit, Trash2, FolderPlus, Palette } from 'lucide-react'
+import { useState } from 'react'
+import { Folder, FolderInput, FolderPlus, MoreHorizontal, Palette, Pencil, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Progress } from '@/components/ui/progress'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useI18n } from '../i18n'
 import type { SeriesGroup, Series, Chapter } from '../types'
 
 export const GROUP_COLORS = [
-  { value: 'var(--fg-cyan,#00F7FF)', label: 'Cyan' },
-  { value: 'var(--fg-yellow,#FFEF33)', label: 'Yellow' },
-  { value: 'var(--fg-green,#28E272)', label: 'Green' },
-  { value: 'var(--fg-red,#FF3C3C)', label: 'Red' },
-  { value: 'var(--fg-orange,#FF8C00)', label: 'Orange' },
-  { value: 'var(--fg-purple,#C084FC)', label: 'Purple' },
-  { value: 'var(--fg-pink,#F472B6)', label: 'Pink' },
+  { value: 'var(--fg-cyan,#245cce)', label: 'Blue' }, { value: 'var(--fg-yellow,#805300)', label: 'Amber' },
+  { value: 'var(--fg-green,#17613a)', label: 'Green' }, { value: 'var(--fg-red,#b42336)', label: 'Red' },
+  { value: 'var(--fg-orange,#90440e)', label: 'Orange' }, { value: 'var(--fg-purple,#64509d)', label: 'Violet' },
+  { value: 'var(--fg-pink,#9e3964)', label: 'Pink' },
 ]
-
 interface GroupCardProps {
-  group: SeriesGroup
-  allGroups: SeriesGroup[]
-  allSeries: Series[]
-  chaptersMap: Record<string, Chapter[]>
-  depth: number
-  onOpen: (group: SeriesGroup) => void
-  onRename: (group: SeriesGroup) => void
-  onChangeColor: (group: SeriesGroup) => void
-  onAddSubGroup: (group: SeriesGroup) => void
-  onDelete: (group: SeriesGroup) => void
-  // Drag-and-drop
-  onDropSeries?: (seriesId: string, groupId: string) => void
-  anyDragging?: boolean
+  group: SeriesGroup; allGroups: SeriesGroup[]; allSeries: Series[]; chaptersMap: Record<string, Chapter[]>; depth: number
+  onOpen: (group: SeriesGroup) => void; onRename: (group: SeriesGroup) => void; onChangeColor: (group: SeriesGroup) => void
+  onAddSubGroup: (group: SeriesGroup) => void; onDelete: (group: SeriesGroup) => void
+  onDropSeries?: (seriesId: string, groupId: string) => void; anyDragging?: boolean
 }
 
-function countDescendants(
-  groupId: string,
-  allGroups: SeriesGroup[],
-  allSeries: Series[],
-  chaptersMap: Record<string, Chapter[]>,
-): { seriesCount: number; done: number; total: number } {
-  const subtreeIds = new Set<string>([groupId])
+export function GroupCard({ group, allGroups, allSeries, chaptersMap, depth, onOpen, onRename, onChangeColor, onAddSubGroup, onDelete, onDropSeries, anyDragging }: GroupCardProps) {
+  const { t, language } = useI18n()
+  const [isDragOver, setIsDragOver] = useState(false)
+  const subtree = new Set([group.id])
   let changed = true
   while (changed) {
     changed = false
-    for (const g of allGroups) {
-      if (g.parentId && subtreeIds.has(g.parentId) && !subtreeIds.has(g.id)) {
-        subtreeIds.add(g.id)
-        changed = true
-      }
-    }
+    for (const child of allGroups) if (child.parentId && subtree.has(child.parentId) && !subtree.has(child.id)) { subtree.add(child.id); changed = true }
   }
-  let seriesCount = 0
-  let done = 0
-  let total = 0
-  for (const s of allSeries) {
-    if (s.groupId && subtreeIds.has(s.groupId)) {
-      seriesCount++
-      const chs = chaptersMap[s.id] || []
-      total += chs.length
-      done += chs.filter((c) => c.status === 'done').length
-    }
-  }
-  return { seriesCount, done, total }
-}
-
-export function GroupCard({
-  group,
-  allGroups,
-  allSeries,
-  chaptersMap,
-  depth,
-  onOpen,
-  onRename,
-  onChangeColor,
-  onAddSubGroup,
-  onDelete,
-  onDropSeries,
-  anyDragging,
-}: GroupCardProps) {
-  const { t } = useI18n()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null)
-  const [isDragOver, setIsDragOver] = useState(false)
-  const buttonRef = useRef<HTMLButtonElement>(null)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  const directSubGroups = allGroups.filter((g) => g.parentId === group.id).length
-  const { seriesCount, done, total } = countDescendants(group.id, allGroups, allSeries, chaptersMap)
-  const progress = total > 0 ? Math.round((done / total) * 100) : 0
-  const canAddSubGroup = depth < 2
-
-  const openMenu = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!menuOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect()
-      setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
-    }
-    setMenuOpen(v => !v)
-  }
-
-  // Close on click-outside
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
-      if (
-        menuRef.current && !menuRef.current.contains(e.target as Node) &&
-        buttonRef.current && !buttonRef.current.contains(e.target as Node)
-      ) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
-
-  // Close on scroll
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = () => setMenuOpen(false)
-    window.addEventListener('scroll', handler, true)
-    return () => window.removeEventListener('scroll', handler, true)
-  }, [menuOpen])
-
-  return (
-    <div
-      className="neo-card cursor-pointer transition-all duration-150"
-      style={{
-        boxShadow: isDragOver
-          ? `0 0 0 3px ${group.color}, 4px 4px 0px var(--color-border)`
-          : menuOpen ? '2px 2px 0px var(--color-border)' : undefined,
-        outline: isDragOver ? `3px solid ${group.color}` : 'none',
-        outlineOffset: '2px',
-      }}
-      onMouseEnter={(e) => {
-        if (!menuOpen && !anyDragging) e.currentTarget.style.boxShadow = '6px 6px 0px var(--color-border)'
-      }}
-      onMouseLeave={(e) => {
-        if (!isDragOver) e.currentTarget.style.boxShadow = '4px 4px 0px var(--color-border)'
-      }}
-      onClick={() => !anyDragging && onOpen(group)}
-      onDragOver={(e) => {
-        if (!e.dataTransfer.types.includes('series-id')) return
-        e.preventDefault()
-        e.dataTransfer.dropEffect = 'move'
-        setIsDragOver(true)
-      }}
-      onDragLeave={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-          setIsDragOver(false)
-        }
-      }}
-      onDrop={(e) => {
-        e.preventDefault()
-        setIsDragOver(false)
-        const seriesId = e.dataTransfer.getData('series-id')
-        if (seriesId && onDropSeries) onDropSeries(seriesId, group.id)
-      }}
-    >
-      {/* Color accent bar */}
-      <div style={{
-        height: isDragOver ? '10px' : '6px',
-        backgroundColor: group.color,
-        borderBottom: '2.5px solid var(--color-border)',
-        transition: 'height 0.15s ease',
-      }} />
-
-      <div className="p-4">
-        {/* Header row */}
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center gap-2 flex-1 min-w-0 mr-2">
-            <Folder
-              size={20}
-              style={{ color: group.color, flexShrink: 0, fill: group.color, fillOpacity: 0.2 }}
-            />
-            <h3
-              style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700,
-                fontSize: '18px',
-                lineHeight: '1.2',
-                color: 'var(--color-text)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {group.name}
-            </h3>
-          </div>
-
-          {/* Menu button */}
-          <div onClick={(e) => e.stopPropagation()}>
-            <button
-              ref={buttonRef}
-              onClick={openMenu}
-              className="flex items-center justify-center w-8 h-8 transition-colors"
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer' }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-            >
-              <MoreVertical size={18} style={{ color: 'var(--color-text-muted)' }} />
-            </button>
-          </div>
-        </div>
-
-        {/* Subtitle */}
-        <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '12px' }}>
-          {seriesCount} {t.group.series}
-          {directSubGroups > 0 && <> &nbsp;•&nbsp; {directSubGroups} {t.group.subgroups}</>}
-        </p>
-
-        {/* Progress bar */}
-        <div className="neo-progress" style={{ height: '20px', marginBottom: '6px' }}>
-          <div className="neo-progress-fill" style={{ width: `${progress}%`, backgroundColor: group.color }} />
-        </div>
-
-        {/* Progress text */}
-        <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-          {done} / {total} {t.group.translated} ({progress}%)
-        </p>
-
-        {/* Drop indicator */}
-        {isDragOver && (
-          <div
-            style={{
-              marginTop: '10px',
-              padding: '6px 10px',
-              backgroundColor: group.color,
-              color: 'var(--on-accent,#111)',
-              fontSize: '11px',
-              fontWeight: 800,
-              textAlign: 'center',
-              fontFamily: "'Space Grotesk', sans-serif",
-              letterSpacing: '0.5px',
-            }}
-          >
-            PINDAHKAN KE SINI
-          </div>
-        )}
+  const series = allSeries.filter(s => s.groupId && subtree.has(s.groupId))
+  const chapters = series.flatMap(s => chaptersMap[s.id] || [])
+  const done = chapters.filter(c => c.status === 'done').length
+  const progress = chapters.length ? Math.round(done / chapters.length * 100) : 0
+  const subgroups = allGroups.filter(g => g.parentId === group.id).length
+  return <Card className="gap-0 py-0 shadow-xs" style={{ borderColor: isDragOver ? 'var(--primary)' : undefined, background: isDragOver ? 'var(--accent)' : undefined }}
+    onDragOver={e => { if (e.dataTransfer.types.includes('series-id')) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setIsDragOver(true) } }}
+    onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false) }}
+    onDrop={e => { e.preventDefault(); setIsDragOver(false); const id = e.dataTransfer.getData('series-id'); if (id) onDropSeries?.(id, group.id) }}>
+    <CardContent className="p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex size-11 items-center justify-center rounded-xl bg-muted"><Folder size={21} style={{ color: group.color }} aria-hidden="true" /></div>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`${language === 'id' ? 'Menu grup' : 'Group menu'}: ${group.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onRename(group)}><Pencil />{t.group.rename}</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onChangeColor(group)}><Palette />{t.group.changeColor}</DropdownMenuItem>
+            {depth < 2 && <DropdownMenuItem onClick={() => onAddSubGroup(group)}><FolderPlus />{t.group.addSubGroup}</DropdownMenuItem>}
+            <DropdownMenuSeparator /><DropdownMenuItem variant="destructive" onClick={() => onDelete(group)}><Trash2 />{t.group.delete}</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
-
-      {/* Dropdown menu — portaled to body to escape overflow:hidden */}
-      {menuOpen && menuPos && createPortal(
-        <div
-          ref={menuRef}
-          style={{
-            position: 'fixed',
-            top: menuPos.top,
-            right: menuPos.right,
-            zIndex: 9999,
-            backgroundColor: 'var(--color-surface)',
-            border: '2.5px solid var(--color-border)',
-            boxShadow: 'var(--neo-shadow)',
-            minWidth: '180px',
-          }}
-        >
-          <MenuItem icon={<Edit size={13} />} label={t.group.rename} onClick={() => { setMenuOpen(false); onRename(group) }} />
-          <MenuItem icon={<Palette size={13} />} label={t.group.changeColor} onClick={() => { setMenuOpen(false); onChangeColor(group) }} />
-          {canAddSubGroup && (
-            <MenuItem icon={<FolderPlus size={13} />} label={t.group.addSubGroup} onClick={() => { setMenuOpen(false); onAddSubGroup(group) }} />
-          )}
-          <div style={{ height: '2.5px', backgroundColor: 'var(--color-border)' }} />
-          <MenuItem icon={<Trash2 size={13} />} label={t.group.delete} onClick={() => { setMenuOpen(false); onDelete(group) }} danger />
-        </div>,
-        document.body
-      )}
-    </div>
-  )
-}
-
-function MenuItem({
-  icon,
-  label,
-  onClick,
-  danger = false,
-  disabled = false,
-}: {
-  icon: React.ReactNode
-  label: string
-  onClick: () => void
-  danger?: boolean
-  disabled?: boolean
-}) {
-  return (
-    <button
-      onClick={disabled ? undefined : onClick}
-      className="flex items-center gap-2 w-full px-4 py-2.5 text-sm font-semibold transition-colors"
-      style={{
-        border: 'none',
-        background: 'transparent',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        textAlign: 'left',
-        color: disabled ? 'var(--color-text-subtle)' : danger ? 'var(--fg-red,#FF3C3C)' : 'var(--color-text)',
-        opacity: disabled ? 0.5 : 1,
-      }}
-      onMouseEnter={(e) => {
-        if (!disabled) e.currentTarget.style.backgroundColor = danger ? 'rgba(255,60,60,0.08)' : 'var(--color-surface-2)'
-      }}
-      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-    >
-      {icon}
-      {label}
-    </button>
-  )
+      <button className="mb-2 block w-full rounded text-left text-base font-semibold hover:text-primary" onClick={() => !anyDragging && onOpen(group)}><span className="line-clamp-2 break-words">{group.name}</span></button>
+      <p className="mb-5 text-xs text-muted-foreground">{series.length} {t.group.series}{subgroups ? ` / ${subgroups} ${t.group.subgroups}` : ''}</p>
+      <Progress value={progress} aria-label={language === 'id' ? 'Progres grup' : 'Group progress'} className="mb-2 h-1.5" />
+      <p className="text-xs text-muted-foreground">{done} / {chapters.length} {t.group.translated} ({progress}%)</p>
+      {isDragOver && <p className="mt-3 flex items-center gap-2 text-xs font-medium text-primary"><FolderInput size={14} />{language === 'id' ? 'Lepaskan untuk memindahkan series' : 'Drop to move series'}</p>}
+    </CardContent>
+  </Card>
 }

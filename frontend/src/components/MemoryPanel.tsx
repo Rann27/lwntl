@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 /**
  * MemoryPanel - Display and manage compacted long-term memories
  */
@@ -28,27 +29,27 @@ export default function MemoryPanel({ memories, onDeleteMemory }: Props) {
     <div className="divide-y divide-[#eee]">
       {memories.map((mem, i) => (
         <div key={i} className="border-b border-[var(--line,#eee)]">
-          <button
+          <Button variant="ghost"
             onClick={() => setExpanded(expanded === i ? null : i)}
             className="w-full flex items-center justify-between px-3 py-2 hover:bg-[var(--bg-surface-2,#f0ebe1)] transition-colors"
           >
             <div className="flex items-center gap-2">
               <Brain size={14} className="text-[var(--fg-yellow,#FFEF33)]" />
-              <span className="text-xs font-bold font-space">{mem.range}</span>
+              <span className="text-xs font-semibold font-space">{mem.range}</span>
               <span className="text-[10px] text-[var(--fg-subtle,#999)]">({mem.chapterCount} bab)</span>
             </div>
             <div className="flex items-center gap-2">
               {onDeleteMemory && (
-                <button
+                <Button aria-label="Delete" variant="ghost"
                   onClick={(e) => { e.stopPropagation(); onDeleteMemory(i) }}
                   className="p-1 text-[var(--line,#ccc)] hover:text-[var(--fg-red,#FF3C3C)] transition-colors"
                 >
                   <Trash2 size={12} />
-                </button>
+                </Button>
               )}
               {expanded === i ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </div>
-          </button>
+          </Button>
           {expanded === i && (
             <div className="px-3 pb-3 text-xs text-[#444] leading-relaxed whitespace-pre-wrap">
               {mem.content}

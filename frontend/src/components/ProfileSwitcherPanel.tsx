@@ -1,3 +1,6 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 /**
  * ProfileSwitcherPanel
  * Dropdown panel for managing and switching profiles.
@@ -91,17 +94,17 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
   }
 
   return (
-    <div
+    <ModalSurface label="Profiles" onClose={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: 80, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', padding: '4px 16px 0' }}
       onClick={onClose}
     >
       <div
-        style={{
+        style={{ borderRadius: 'var(--radius)',
           width: 'min(340px, 95vw)',
           maxHeight: '80vh',
           backgroundColor: 'var(--color-surface)',
-          border: '2.5px solid var(--color-border)',
-          boxShadow: 'var(--neo-shadow-lg)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-lg)',
           display: 'flex',
           flexDirection: 'column',
           marginTop: '52px',
@@ -109,16 +112,16 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <div className="flex items-center gap-2">
             <Layers size={15} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', color: 'var(--color-text)' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '14px', color: 'var(--color-text)' }}>
               PROFIL
             </span>
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
+          <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}>
             <X size={16} />
-          </button>
+          </Button>
         </div>
 
         {/* Profile list */}
@@ -148,18 +151,18 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
 
                 {/* Name / rename input */}
                 {isRenaming ? (
-                  <input
+                  <Input
                     autoFocus
                     value={renameValue}
                     onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSubmit(name); if (e.key === 'Escape') setRenamingProfile(null) }}
-                    style={{ flex: 1, fontSize: '13px', fontWeight: 600, padding: '3px 6px', border: '2px solid #111', outline: 'none', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleRenameSubmit(name); if (e.key === 'Escape' && !e.defaultPrevented) setRenamingProfile(null) }}
+                    style={{ borderRadius: 'var(--radius)',  flex: 1, fontSize: '13px', fontWeight: 600, padding: '3px 6px', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
                   />
                 ) : (
-                  <button
+                  <Button variant="ghost"
                     onClick={() => handleSwitch(name)}
                     disabled={isActive || !!loading}
-                    style={{
+                    style={{ borderRadius: 'var(--radius)',
                       flex: 1,
                       textAlign: 'left',
                       background: 'none',
@@ -168,40 +171,40 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
                       fontSize: '13px',
                       fontWeight: isActive ? 700 : 600,
                       color: isActive ? 'var(--fg-cyan,#00F7FF)' : 'var(--color-text)',
-                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontFamily: 'var(--font-body)',
                       padding: 0,
                     }}
                   >
                     {name}
-                  </button>
+                  </Button>
                 )}
 
                 {/* Actions */}
                 <div className="flex items-center gap-1" style={{ flexShrink: 0 }}>
                   {isRenaming ? (
                     <>
-                      <button onClick={() => handleRenameSubmit(name)} style={{ fontSize: '10px', fontWeight: 700, color: 'var(--fg-green,#28E272)', border: '1.5px solid var(--fg-green,#28E272)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>OK</button>
-                      <button onClick={() => setRenamingProfile(null)} style={{ fontSize: '10px', fontWeight: 700, color: 'var(--fg-muted,#888)', border: '1.5px solid var(--fg-muted,#888)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>BATAL</button>
+                      <Button variant="ghost" onClick={() => handleRenameSubmit(name)} style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--fg-green,#28E272)', border: '1px solid var(--fg-green,#28E272)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>OK</Button>
+                      <Button variant="ghost" onClick={() => setRenamingProfile(null)} style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--fg-muted,#888)', border: '1px solid var(--fg-muted,#888)', padding: '2px 7px', background: 'transparent', cursor: 'pointer' }}>BATAL</Button>
                     </>
                   ) : (
                     <>
-                      <button
+                      <Button aria-label="Ubah nama" variant="ghost"
                         onClick={() => { setRenamingProfile(name); setRenameValue(name); setError('') }}
                         disabled={!!loading}
-                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '2px', display: 'flex' }}
+                        style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '2px', display: 'flex' }}
                         title="Ubah nama"
                       >
                         <Pencil size={13} />
-                      </button>
+                      </Button>
                       {!isActive && (
-                        <button
+                        <Button aria-label="Hapus profil" variant="ghost"
                           onClick={() => handleDelete(name)}
                           disabled={!!loading}
-                          style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', padding: '2px', display: 'flex' }}
+                          style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--fg-red,#FF3C3C)', padding: '2px', display: 'flex' }}
                           title="Hapus profil"
                         >
                           <Trash2 size={13} />
-                        </button>
+                        </Button>
                       )}
                     </>
                   )}
@@ -213,39 +216,39 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
 
         {/* Error */}
         {error && (
-          <div style={{ padding: '8px 14px', backgroundColor: 'rgba(255,60,60,0.08)', borderTop: '1px solid var(--fg-red,#FF3C3C)' }}>
+          <div style={{ padding: '8px 14px', backgroundColor: 'var(--tint-red)', borderTop: '1px solid var(--fg-red,#FF3C3C)' }}>
             <p style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{error}</p>
           </div>
         )}
 
         {/* Create new profile */}
-        <div style={{ borderTop: '2px solid var(--color-border)', padding: '10px 14px', backgroundColor: 'var(--color-surface-2)' }}>
+        <div style={{ borderTop: '1px solid var(--color-border)', padding: '10px 14px', backgroundColor: 'var(--color-surface-2)' }}>
           {isCreating ? (
             <div className="flex items-center gap-2">
-              <input
+              <Input aria-label="Nama profil baru..."
                 autoFocus
                 value={creatingName}
                 onChange={(e) => setCreatingName(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape') { setIsCreating(false); setCreatingName('') } }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); if (e.key === 'Escape' && !e.defaultPrevented) { setIsCreating(false); setCreatingName('') } }}
                 placeholder="Nama profil baru..."
-                style={{ flex: 1, fontSize: '12px', fontWeight: 600, padding: '5px 8px', border: '2px solid #111', outline: 'none', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
+                style={{ borderRadius: 'var(--radius)',  flex: 1, fontSize: '12px', fontWeight: 600, padding: '5px 8px', border: '1px solid var(--border)', outline: 'none', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)' }}
               />
-              <button onClick={handleCreate} disabled={!creatingName.trim() || !!loading} className="neo-button" style={{ fontSize: '11px', backgroundColor: 'var(--bg-orange,#FFCF77)', opacity: (!creatingName.trim() || !!loading) ? 0.5 : 1 }}>
+              <Button variant="default" onClick={handleCreate} disabled={!creatingName.trim() || !!loading} className="" style={{ color: 'var(--foreground)',  fontSize: '11px', backgroundColor: 'var(--bg-orange,#FFCF77)', opacity: (!creatingName.trim() || !!loading) ? 0.5 : 1 }}>
                 BUAT
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
+            <Button variant="ghost"
               onClick={() => setIsCreating(true)}
               className="flex items-center gap-2 w-full"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '12px', fontWeight: 700, padding: 0 }}
+              style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', fontSize: '12px', fontWeight: 600, padding: 0 }}
             >
               <Plus size={14} />
               Buat profil baru
-            </button>
+            </Button>
           )}
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

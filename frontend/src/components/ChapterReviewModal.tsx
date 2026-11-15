@@ -1,3 +1,8 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 /**
  * ChapterReviewModal
  *
@@ -112,19 +117,19 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
   const preview = selFindings.find(f => f.fixPreview)?.fixPreview
   const span = sel !== null && detail ? detail.sourceMap[sel] : null
 
-  const small: React.CSSProperties = { fontSize: '11px', fontWeight: 800, border: '2px solid var(--color-border)', padding: '4px 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }
+  const small: React.CSSProperties = { fontSize: '11px', fontWeight: 600, border: '1px solid var(--color-border)', padding: '4px 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }
 
   return (
-    <div className="neo-modal-backdrop" style={{ zIndex: 230 }} onClick={() => onClose(changed)}>
-      <div className="neo-modal" style={{ width: '1180px', maxWidth: '97vw', height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+    <ModalSurface label="Chapter review" onClose={() => onClose(changed)} className="ui-modal-backdrop" style={{ zIndex: 230 }} onClick={() => onClose(changed)}>
+      <div className="ui-modal" style={{ width: '1180px', maxWidth: '97vw', height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#8AF0FF)', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#8AF0FF)', flexShrink: 0 }}>
           <div className="flex items-center gap-2" style={{ color: 'var(--on-accent,#111)', minWidth: 0 }}>
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', textTransform: 'uppercase' }}>Tinjau Bab {detail?.chapterNumber ?? ''}</span>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '15px', textTransform: 'none' }}>Tinjau Bab {detail?.chapterNumber ?? ''}</span>
             <span className="truncate" style={{ fontSize: '12px', opacity: 0.75 }}>{detail?.title}</span>
-            {archived && <span style={{ fontSize: '10px', fontWeight: 800, border: '1.5px solid #111', padding: '0 6px' }}>VERSI SEBELUMNYA DIARSIPKAN</span>}
+            {archived && <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, border: '1px solid var(--border)', padding: '0 6px' }}>VERSI SEBELUMNYA DIARSIPKAN</span>}
           </div>
-          <button onClick={() => onClose(changed)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></button>
+          <Button aria-label="Close" variant="ghost" onClick={() => onClose(changed)} style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></Button>
         </div>
 
         {loading && <div className="flex items-center justify-center flex-1 gap-2" style={{ fontSize: '13px' }}><Loader2 size={18} className="animate-spin" /> Memuat bab...</div>}
@@ -132,43 +137,43 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
         {detail && (
           <div className="flex flex-1" style={{ minHeight: 0 }}>
             {/* Findings list */}
-            <div style={{ width: '300px', flexShrink: 0, borderRight: '2px solid var(--color-border)', overflowY: 'auto', padding: '10px 12px' }}>
+            <div style={{ width: '300px', flexShrink: 0, borderRight: '1px solid var(--color-border)', overflowY: 'auto', padding: '10px 12px' }}>
               <div className="flex items-center gap-2" style={{ fontSize: '11px', marginBottom: '8px' }}>
                 {(['high', 'medium', 'low'] as QaSeverity[]).map(s => (
-                  <label key={s} className="flex items-center gap-1" style={{ cursor: 'pointer' }}>
-                    <input type="checkbox" checked={sev[s]} onChange={e => setSev(p => ({ ...p, [s]: e.target.checked }))} style={{ accentColor: SEV_COLOR[s] }} />
-                    <span style={{ color: SEV_COLOR[s], fontWeight: 800, textTransform: 'uppercase' }}>{s}</span>
-                  </label>
+                  <Label key={s} className="flex items-center gap-1" style={{ cursor: 'pointer' }}>
+                    <Input type="checkbox" checked={sev[s]} onChange={e => setSev(p => ({ ...p, [s]: e.target.checked }))} style={{ accentColor: SEV_COLOR[s] }} />
+                    <span style={{ color: SEV_COLOR[s], fontWeight: 600, textTransform: 'none' }}>{s}</span>
+                  </Label>
                 ))}
               </div>
 
               {chapterLevel.length > 0 && (
                 <>
-                  <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-muted)', margin: '4px 0' }}>Tingkat bab</div>
+                  <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', color: 'var(--color-text-muted)', margin: '4px 0' }}>Tingkat bab</div>
                   {chapterLevel.map((f, i) => (
-                    <div key={`c${i}`} style={{ fontSize: '11px', padding: '5px 6px', borderLeft: `3px solid ${SEV_COLOR[f.severity]}`, marginBottom: '4px', background: 'var(--color-surface-2)' }}>
-                      <code style={{ fontWeight: 700 }}>{f.type}</code>
+                    <div key={`c${i}`} style={{ fontSize: '11px', padding: '5px 6px', borderLeft: `1px solid ${SEV_COLOR[f.severity]}`, marginBottom: '4px', background: 'var(--color-surface-2)' }}>
+                      <code style={{ fontWeight: 600 }}>{f.type}</code>
                       <div style={{ color: 'var(--color-text-muted)' }}>{say(f)}</div>
                     </div>
                   ))}
                 </>
               )}
 
-              <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-muted)', margin: '8px 0 4px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', color: 'var(--color-text-muted)', margin: '8px 0 4px' }}>
                 Per paragraf ({paraFindings.length})
               </div>
               {paraFindings.length === 0 && <p style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Tidak ada.</p>}
               {paraFindings.map((f, i) => (
-                <button key={`p${i}`} onClick={() => select(f.para!)} style={{
+                <Button variant="ghost" key={`p${i}`} onClick={() => select(f.para!)} style={{ borderRadius: 'var(--radius)',
                   display: 'block', width: '100%', textAlign: 'left', fontSize: '11px', padding: '5px 6px', marginBottom: '4px', cursor: 'pointer',
-                  border: 'none', borderLeft: `3px solid ${SEV_COLOR[f.severity]}`,
+                  border: 'none', borderLeft: `1px solid ${SEV_COLOR[f.severity]}`,
                   background: sel === f.para ? 'var(--color-surface-2)' : 'transparent', color: 'var(--color-text)',
                 }}>
                   <span style={{ fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>¶{f.para} </span>
-                  <code style={{ fontWeight: 700 }}>{f.type}</code>
-                  {f.fix && <span style={{ marginLeft: 4, fontSize: '9px', fontWeight: 800, color: 'var(--fg-green,#28E272)' }}>AUTO</span>}
+                  <code style={{ fontWeight: 600 }}>{f.type}</code>
+                  {f.fix && <span style={{ marginLeft: 4, fontSize: '9px', fontWeight: 600, color: 'var(--fg-green,#28E272)' }}>AUTO</span>}
                   <div style={{ color: 'var(--color-text-muted)' }}>{say(f)}</div>
-                </button>
+                </Button>
               ))}
             </div>
 
@@ -185,25 +190,25 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
                   <div key={i} ref={el => { paraRefs.current[i] = el }}>
                     <div onClick={() => !isSel && select(i)} style={{
                       display: 'flex', gap: '10px', padding: '5px 8px', cursor: isSel ? 'default' : 'pointer',
-                      borderLeft: `3px solid ${color}`, background: isSel ? 'var(--color-surface-2)' : fs ? 'rgba(255,176,32,0.06)' : 'transparent',
+                      borderLeft: `1px solid ${color}`, background: isSel ? 'var(--color-surface-2)' : fs ? 'rgba(255,176,32,0.06)' : 'transparent',
                     }}>
                       <span style={{ fontSize: '10px', fontFamily: 'monospace', color: 'var(--color-text-subtle)', width: '30px', flexShrink: 0, paddingTop: '3px' }}>{i}</span>
                       <span style={{ fontSize: '14px', lineHeight: 1.65, whiteSpace: 'pre-wrap' }}>{p}</span>
                     </div>
 
                     {isSel && (
-                      <div style={{ margin: '6px 0 14px 40px', border: '2px solid var(--color-border)', padding: '10px 12px', background: 'var(--color-surface)' }}>
+                      <div style={{ borderRadius: 'var(--radius)',  margin: '6px 0 14px 40px', border: '1px solid var(--color-border)', padding: '10px 12px', background: 'var(--color-surface)' }}>
                         {selFindings.map((f, k) => (
                           <p key={k} style={{ fontSize: '12px', marginBottom: '4px' }}>
-                            <span style={{ color: SEV_COLOR[f.severity], fontWeight: 800 }}>● </span>
-                            <code style={{ fontWeight: 700 }}>{f.type}</code> — {say(f)}
+                            <span style={{ color: SEV_COLOR[f.severity], fontWeight: 600 }}>● </span>
+                            <code style={{ fontWeight: 600 }}>{f.type}</code>: {say(f)}
                           </p>
                         ))}
 
                         {span && (
                           <div style={{ marginTop: '6px' }}>
-                            <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Sumber (baris {span[0]}–{span[1]})</div>
-                            <div style={{ fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: '180px', overflowY: 'auto', padding: '6px 8px', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
+                            <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', color: 'var(--color-text-muted)' }}>Sumber (baris {span[0]}–{span[1]})</div>
+                            <div style={{ borderRadius: 'var(--radius)',  fontSize: '13px', lineHeight: 1.6, whiteSpace: 'pre-wrap', maxHeight: '180px', overflowY: 'auto', padding: '6px 8px', background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
                               {detail.source.slice(span[0], span[1] + 1).filter(l => l.trim()).join('\n')}
                             </div>
                           </div>
@@ -211,52 +216,52 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
 
                         {preview && (
                           <div style={{ marginTop: '8px' }}>
-                            <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--fg-green,#28E272)' }}>Perbaikan otomatis (tanpa AI)</div>
-                            <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid var(--fg-green,#28E272)' }}>{preview}</div>
-                            <button onClick={() => save(preview)} disabled={busy || disabled} style={{ ...small, marginTop: '4px', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)' }}>
+                            <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', color: 'var(--fg-green,#28E272)' }}>Perbaikan otomatis (tanpa AI)</div>
+                            <div style={{ borderRadius: 'var(--radius)',  fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid var(--fg-green,#28E272)' }}>{preview}</div>
+                            <Button variant="ghost" onClick={() => save(preview)} disabled={busy || disabled} style={{ ...small, marginTop: '4px', background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)' }}>
                               <Wand2 size={12} /> TERAPKAN PERBAIKAN OTOMATIS
-                            </button>
+                            </Button>
                           </div>
                         )}
 
                         <div style={{ marginTop: '8px' }}>
-                          <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>Edit paragraf (baris kosong = pecah jadi beberapa paragraf)</div>
-                          <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={Math.min(12, Math.max(3, Math.ceil(draft.length / 90)))}
-                            style={{ width: '100%', fontSize: '14px', lineHeight: 1.6, padding: '6px 8px', border: '2px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', resize: 'vertical', outline: 'none' }} />
+                          <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', color: 'var(--color-text-muted)' }}>Edit paragraf (baris kosong = pecah jadi beberapa paragraf)</div>
+                          <Textarea value={draft} onChange={e => setDraft(e.target.value)} rows={Math.min(12, Math.max(3, Math.ceil(draft.length / 90)))}
+                            style={{ borderRadius: 'var(--radius)',  width: '100%', fontSize: '14px', lineHeight: 1.6, padding: '6px 8px', border: '1px solid var(--color-border)', background: 'var(--color-surface-2)', color: 'var(--color-text)', resize: 'vertical', outline: 'none' }} />
                           <div className="flex items-center gap-2 flex-wrap" style={{ marginTop: '4px' }}>
-                            <button onClick={() => save(draft)} disabled={busy || disabled || !draft.trim() || draft === p} style={{ ...small, background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (!draft.trim() || draft === p) ? 0.5 : 1 }}>
+                            <Button variant="ghost" onClick={() => save(draft)} disabled={busy || disabled || !draft.trim() || draft === p} style={{ ...small, background: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (!draft.trim() || draft === p) ? 0.5 : 1 }}>
                               {busy ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} SIMPAN
-                            </button>
-                            <button onClick={() => save('')} disabled={busy || disabled} style={{ ...small, background: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)' }}>
+                            </Button>
+                            <Button variant="ghost" onClick={() => save('')} disabled={busy || disabled} style={{ ...small, background: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)' }}>
                               <Trash2 size={12} /> HAPUS PARAGRAF
-                            </button>
-                            <button onClick={askAi} disabled={suggesting || busy} style={{ ...small, background: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)' }} title="Satu panggilan ke model worker series ini">
+                            </Button>
+                            <Button aria-label="Satu panggilan ke model worker series ini" variant="ghost" onClick={askAi} disabled={suggesting || busy} style={{ ...small, background: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)' }} title="Satu panggilan ke model worker series ini">
                               {suggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} MINTA SARAN AI
-                            </button>
-                            <button onClick={() => { setSelected(null); setSuggestion(null) }} style={{ ...small, background: 'transparent', marginLeft: 'auto' }}>TUTUP</button>
+                            </Button>
+                            <Button variant="ghost" onClick={() => { setSelected(null); setSuggestion(null) }} style={{ ...small, background: 'transparent', marginLeft: 'auto' }}>TUTUP</Button>
                           </div>
                         </div>
 
                         {suggestion && (
                           <div style={{ marginTop: '8px' }}>
-                            <div style={{ fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--fg-purple,#C9A7FF)' }}>Saran AI</div>
+                            <div style={{ fontSize: '10px', fontWeight: 600, textTransform: 'none', color: 'var(--fg-purple,#C9A7FF)' }}>Saran AI</div>
                             {suggestion.del ? (
-                              <p style={{ fontSize: '13px', padding: '6px 8px', border: '1px solid var(--fg-purple,#C9A7FF)' }}>Model menyarankan paragraf ini <strong>dihapus</strong>.</p>
+                              <p style={{ borderRadius: 'var(--radius)',  fontSize: '13px', padding: '6px 8px', border: '1px solid var(--fg-purple,#C9A7FF)' }}>Model menyarankan paragraf ini <strong>dihapus</strong>.</p>
                             ) : (
-                              <div style={{ fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid var(--fg-purple,#C9A7FF)' }}>{suggestion.text}</div>
+                              <div style={{ borderRadius: 'var(--radius)',  fontSize: '13px', whiteSpace: 'pre-wrap', padding: '6px 8px', border: '1px solid var(--fg-purple,#C9A7FF)' }}>{suggestion.text}</div>
                             )}
                             <div className="flex gap-2" style={{ marginTop: '4px' }}>
-                              <button onClick={() => save(suggestion.del ? '' : suggestion.text)} disabled={busy || disabled} style={{ ...small, background: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)' }}>
+                              <Button variant="ghost" onClick={() => save(suggestion.del ? '' : suggestion.text)} disabled={busy || disabled} style={{ ...small, background: 'var(--bg-purple,#C9A7FF)', color: 'var(--on-accent,#111)' }}>
                                 TERAPKAN SARAN
-                              </button>
+                              </Button>
                               {!suggestion.del && (
-                                <button onClick={() => setDraft(suggestion.text)} style={{ ...small, background: 'transparent' }}>SALIN KE EDITOR</button>
+                                <Button variant="ghost" onClick={() => setDraft(suggestion.text)} style={{ ...small, background: 'transparent' }}>SALIN KE EDITOR</Button>
                               )}
                             </div>
                           </div>
                         )}
 
-                        {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700, marginTop: '6px' }}>{err}</p>}
+                        {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600, marginTop: '6px' }}>{err}</p>}
                       </div>
                     )}
                   </div>
@@ -267,6 +272,6 @@ export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClos
         )}
         {!detail && err && <p style={{ padding: '20px', fontSize: '13px', color: 'var(--fg-red,#FF3C3C)' }}>{err}</p>}
       </div>
-    </div>
+    </ModalSurface>
   )
 }

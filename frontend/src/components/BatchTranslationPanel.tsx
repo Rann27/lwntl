@@ -1,6 +1,7 @@
+import { Button } from '@/components/ui/button'
 /**
  * BatchTranslationPanel - Floating progress bar for THIS series' active batch.
- * Scoped to seriesId — will not appear when viewing a different series.
+ * Scoped to seriesId: will not appear when viewing a different series.
  */
 
 import { useAppStore } from '../store/appStore'
@@ -39,13 +40,13 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center pb-6 pointer-events-none">
-      <div className="pointer-events-auto w-full max-w-2xl bg-[#111111] text-white border-2.5 border-[#111111] shadow-[6px_6px_0px_rgba(0,0,0,0.3)]"
+      <div className="pointer-events-auto w-full max-w-2xl bg-[#111111] text-white border border-border shadow-sm"
         style={{ borderRadius: 0 }}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[#333]">
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-[var(--bg-cyan,#00F7FF)] animate-pulse" />
-            <span className="font-space text-sm font-bold tracking-wide text-[var(--fg-cyan,#00F7FF)]">
+            <span className="font-space text-sm font-semibold tracking-wide text-[var(--fg-cyan,#00F7FF)]">
               {isAgent ? 'AGENT RUN' : 'BATCH TRANSLATION'}
             </span>
             <span className="text-xs text-[var(--fg-subtle,#999)] font-mono">
@@ -54,12 +55,12 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-[var(--fg-subtle,#999)] font-mono">{progressPct}%</span>
-            <button
+            <Button variant="ghost"
               onClick={onCancel}
-              className="px-3 py-1 text-xs font-bold border-2 border-[var(--fg-red,#FF3C3C)] text-[var(--fg-red,#FF3C3C)] hover:bg-[var(--bg-red,#FF3C3C)] hover:text-white transition-colors"
+              className="px-3 py-1 text-xs font-semibold border-2 border-[var(--fg-red,#FF3C3C)] text-[var(--fg-red,#FF3C3C)] hover:bg-[var(--bg-red,#FF3C3C)] hover:text-white transition-colors"
             >
               BATAL
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -108,7 +109,7 @@ export default function BatchTranslationPanel({ seriesId, chapters, onCancel }: 
         ) : batch.chapterNumber && (
           <div className="px-4 py-2 border-t border-[#333] text-xs text-[var(--fg-muted,#666)]">
             {phaseLabel}: <span className={isAgent && batch.phase === 'review' ? 'text-[var(--fg-purple,#C9A7FF)]' : 'text-[var(--fg-cyan,#00F7FF)]'}>Bab {batch.chapterNumber}</span>
-            {batch.chapterTitle ? ` — ${batch.chapterTitle}` : ''}
+            {batch.chapterTitle ? `: ${batch.chapterTitle}` : ''}
           </div>
         )}
       </div>

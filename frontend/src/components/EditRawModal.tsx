@@ -1,3 +1,6 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 /**
  * LWNTL Edit Raw Content Modal
  * Isolated modal so typing never triggers main page re-renders
@@ -31,7 +34,7 @@ export function EditRawModal({ open, chapter, onClose, onSave }: EditRawModalPro
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape' && !e.defaultPrevented) onClose() }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [open, onClose])
@@ -51,12 +54,12 @@ export function EditRawModal({ open, chapter, onClose, onSave }: EditRawModalPro
   }
 
   return (
-    <div
-      className="neo-modal-backdrop"
+    <ModalSurface label="Edit source text" onClose={onClose}
+      className="ui-modal-backdrop"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        className="neo-modal"
+        className="ui-modal"
         style={{ maxWidth: '780px', width: '90vw', animation: 'slideUp 150ms ease' }}
       >
         <div className="p-6 flex flex-col" style={{ maxHeight: '85vh' }}>
@@ -64,29 +67,29 @@ export function EditRawModal({ open, chapter, onClose, onSave }: EditRawModalPro
           <div className="flex items-center justify-between mb-4" style={{ flexShrink: 0 }}>
             <div className="flex items-center gap-2">
               <FileText size={18} />
-              <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '18px', color: 'var(--color-text)' }}>
-                {t.chapter.rawContent} — {t.common.edit}
+              <h2 style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '18px', color: 'var(--color-text)' }}>
+                {t.chapter.rawContent}: {t.common.edit}
               </h2>
               <span style={{ fontSize: '12px', color: 'var(--color-text-muted)', fontWeight: 500 }}>
-                Bab {chapter.chapterNumber}{chapter.title ? ` — ${chapter.title}` : ''}
+                Bab {chapter.chapterNumber}{chapter.title ? `: ${chapter.title}` : ''}
               </span>
             </div>
-            <button
+            <Button aria-label="Close" variant="ghost"
               onClick={onClose}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+              style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
               className="hover:opacity-70"
             >
               <X size={20} />
-            </button>
+            </Button>
           </div>
 
           {/* Warning note when chapter already has a translation */}
           {hasTranslation && (
             <div
               className="flex items-start gap-2 px-3 py-2 mb-4"
-              style={{
-                backgroundColor: 'rgba(255, 239, 51, 0.12)',
-                border: '2px solid var(--fg-yellow,#FFEF33)',
+              style={{ borderRadius: 'var(--radius)',
+                backgroundColor: 'var(--tint-yellow)',
+                border: '1px solid var(--fg-yellow,#FFEF33)',
                 fontSize: '12px',
                 lineHeight: '1.5',
                 color: 'var(--color-text)',
@@ -99,11 +102,11 @@ export function EditRawModal({ open, chapter, onClose, onSave }: EditRawModalPro
           )}
 
           {/* Textarea */}
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={rawContent}
             onChange={(e) => setRawContent(e.target.value)}
-            className="neo-textarea"
+            className="ui-textarea"
             style={{
               flex: 1,
               minHeight: '400px',
@@ -121,28 +124,28 @@ export function EditRawModal({ open, chapter, onClose, onSave }: EditRawModalPro
               {rawContent.length.toLocaleString()} karakter
             </span>
             <div className="flex gap-3">
-              <button
+              <Button variant="outline"
                 type="button"
                 onClick={onClose}
                 disabled={saving}
-                className="neo-button"
-                style={{ backgroundColor: 'var(--bg-surface-2,#F0F0F0)', opacity: saving ? 0.5 : 1 }}
+                className=""
+                style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-surface-2,#F0F0F0)', opacity: saving ? 0.5 : 1 }}
               >
                 {t.common.cancel}
-              </button>
-              <button
+              </Button>
+              <Button variant="default"
                 type="button"
                 onClick={handleSave}
                 disabled={saving}
-                className="neo-button"
+                className=""
                 style={{ backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: saving ? 0.5 : 1 }}
               >
                 {saving ? t.common.saving : t.common.save}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

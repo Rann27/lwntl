@@ -1,3 +1,7 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 /**
  * ProfileTemplatesModal
  * Edit per-profile system prompt and instructions prompt templates.
@@ -36,15 +40,15 @@ const textareaStyle: React.CSSProperties = {
   fontSize: '13px',
   fontFamily: 'monospace',
   lineHeight: '1.6',
-  border: '2px solid var(--color-border)',
+  border: '1px solid var(--color-border)',
   backgroundColor: 'var(--color-surface-2)',
   color: 'var(--color-text)',
   outline: 'none',
 }
 
 const smallButton: React.CSSProperties = {
-  fontSize: '10px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent',
-  color: 'var(--color-text-muted)', padding: '2px 8px', cursor: 'pointer', textTransform: 'uppercase',
+  fontSize: '10px', fontWeight: 600, border: '1.5px solid var(--color-border)', background: 'transparent',
+  color: 'var(--color-text-muted)', padding: '2px 8px', cursor: 'pointer', textTransform: 'none',
 }
 
 function TaskPromptEditor({ title, hint, value, onChange, defaults }: {
@@ -57,26 +61,26 @@ function TaskPromptEditor({ title, hint, value, onChange, defaults }: {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2 flex-wrap">
-        <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+        <Label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px', fontFamily: 'var(--font-body)' }}>
           {title}
-        </label>
-        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>— {hint}</span>
+        </Label>
+        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>: {hint}</span>
         {!value.trim() && (
-          <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', background: 'var(--bg-green,#28E272)', color: '#fff', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: '10px', fontWeight: 600, padding: '1px 6px', background: 'var(--bg-green,#28E272)', color: 'var(--fg-green)', textTransform: 'none' }}>
             bawaan (ikut bahasa target)
           </span>
         )}
         {defaults && (
           <div className="flex gap-1.5" style={{ marginLeft: 'auto' }}>
-            <button type="button" onClick={() => onChange(defaults.id)} style={smallButton}>Muat bawaan ID</button>
-            <button type="button" onClick={() => onChange(defaults.en)} style={smallButton}>Muat bawaan EN</button>
+            <Button variant="ghost" type="button" onClick={() => onChange(defaults.id)} style={smallButton}>Muat bawaan ID</Button>
+            <Button variant="ghost" type="button" onClick={() => onChange(defaults.en)} style={smallButton}>Muat bawaan EN</Button>
           </div>
         )}
       </div>
-      <textarea
+      <Textarea aria-label="Kosongkan untuk memakai bawaan LWNTL: versi Indonesia dipakai otomatis untuk series bertarget Indonesian, versi Inggris untuk lainnya."
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Kosongkan untuk memakai bawaan LWNTL — versi Indonesia dipakai otomatis untuk series bertarget Indonesian, versi Inggris untuk lainnya."
+        placeholder="Kosongkan untuk memakai bawaan LWNTL: versi Indonesia dipakai otomatis untuk series bertarget Indonesian, versi Inggris untuk lainnya."
         rows={7}
         style={textareaStyle}
       />
@@ -141,45 +145,45 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
   const chosenPreset = presets.find(p => p.id === systemPreset)
 
   return (
-    <div
+    <ModalSurface label="Prompt templates" onClose={onClose}
       style={{ position: 'fixed', inset: 0, zIndex: 1200, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div style={{
+      <div style={{ borderRadius: 'var(--radius)',
         width: 'min(760px, 95vw)',
         maxHeight: '90vh',
         backgroundColor: 'var(--color-surface)',
-        border: '2.5px solid var(--color-border)',
-        boxShadow: 'var(--neo-shadow-lg)',
+        border: '1px solid var(--color-border)',
+        boxShadow: 'var(--shadow-lg)',
         display: 'flex',
         flexDirection: 'column',
       }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
             <FileCode2 size={16} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '14px', color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px' }}>
               Template Prompt
             </span>
             {profiles.active && (
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--fg-cyan,#00F7FF)', border: '1.5px solid var(--fg-cyan,#00F7FF)', padding: '1px 7px', fontFamily: 'monospace' }}>
+              <span style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, color: 'var(--fg-cyan,#00F7FF)', border: '1px solid var(--fg-cyan,#00F7FF)', padding: '1px 7px', fontFamily: 'monospace' }}>
                 {profiles.active}
               </span>
             )}
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer', display: 'flex' }}>
+          <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer', display: 'flex' }}>
             <X size={16} />
-          </button>
+          </Button>
         </div>
 
         {/* Template variable reference */}
-        <div className="flex items-start gap-2 px-5 py-2" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'rgba(0,247,255,0.04)', flexShrink: 0 }}>
+        <div className="flex items-start gap-2 px-5 py-2" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--tint-cyan)', flexShrink: 0 }}>
           <Info size={13} style={{ color: 'var(--fg-cyan,#00F7FF)', marginTop: '1px', flexShrink: 0 }} />
           <div className="flex flex-wrap gap-x-4 gap-y-0.5">
             {TEMPLATE_VARS.map((v) => (
               <span key={v.variable} style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                 <code style={{ color: 'var(--fg-cyan,#00F7FF)', fontFamily: 'monospace', fontSize: '11px' }}>{v.variable}</code>
-                {' — '}{v.description}
+                {': '}{v.description}
               </span>
             ))}
           </div>
@@ -196,18 +200,18 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
               {/* System Prompt Template */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <Label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px', fontFamily: 'var(--font-body)' }}>
                     System Prompt Template
-                  </label>
+                  </Label>
                   <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                    — digunakan jika series tidak punya custom system prompt
+: digunakan jika series tidak punya custom system prompt
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Preset profil</span>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Preset profil</span>
                   <select value={systemPreset} onChange={(e) => setSystemPreset(e.target.value)}
-                    style={{ flex: 1, fontSize: '12px', padding: '5px 8px', border: '2px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', cursor: 'pointer' }}>
-                    <option value="">— Tanpa preset (otomatis per pasangan bahasa bila semua kosong) —</option>
+                    style={{ borderRadius: 'var(--radius)',  flex: 1, fontSize: '12px', padding: '5px 8px', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', cursor: 'pointer' }}>
+                    <option value="">: Tanpa preset (otomatis per pasangan bahasa bila semua kosong): </option>
                     <optgroup label="Preset bawaan (hanya baca)">
                       {presets.filter(p => p.builtin).map(p => <option key={p.id} value={p.id}>{presetLabel(p)}</option>)}
                     </optgroup>
@@ -217,33 +221,33 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
                       </optgroup>
                     )}
                   </select>
-                  <button type="button" onClick={() => setLibraryOpen(true)} className="flex items-center gap-1"
-                    style={{ fontSize: '11px', fontWeight: 800, border: '2px solid #111', background: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', padding: '4px 10px', cursor: 'pointer' }}>
+                  <Button variant="ghost" type="button" onClick={() => setLibraryOpen(true)} className="flex items-center gap-1"
+                    style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, border: '1px solid var(--border)', background: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', padding: '4px 10px', cursor: 'pointer' }}>
                     <Library size={12} /> PRESET
-                  </button>
+                  </Button>
                 </div>
                 {chosenPreset && (
                   <div className="flex items-center gap-2 flex-wrap" style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                     {systemPrompt.trim()
-                      ? <span style={{ color: 'var(--fg-orange,#FFB020)', fontWeight: 700 }}>Teks template di bawah diutamakan — kosongkan agar preset "{chosenPreset.name}" yang dipakai.</span>
+                      ? <span style={{ color: 'var(--fg-orange,#FFB020)', fontWeight: 600 }}>Teks template di bawah diutamakan: kosongkan agar preset "{chosenPreset.name}" yang dipakai.</span>
                       : <span>Dipakai: preset "{chosenPreset.name}" (≈{approxTokens(chosenPreset.text ?? '').toLocaleString()} token).</span>}
-                    <button type="button" onClick={() => setSystemPrompt(chosenPreset.text ?? '')} style={smallButton}>Salin preset ke teks</button>
+                    <Button variant="ghost" type="button" onClick={() => setSystemPrompt(chosenPreset.text ?? '')} style={smallButton}>Salin preset ke teks</Button>
                   </div>
                 )}
                 <PromptPresetLibrary open={libraryOpen} onClose={() => setLibraryOpen(false)} onChanged={setPresets} initialId={systemPreset} />
-                <textarea
+                <Textarea aria-label="Kosongkan jika tidak ingin menggunakan system prompt default..."
                   value={systemPrompt}
                   onChange={(e) => setSystemPrompt(e.target.value)}
                   placeholder="Kosongkan jika tidak ingin menggunakan system prompt default..."
                   rows={12}
-                  style={{
+                  style={{ borderRadius: 'var(--radius)',
                     width: '100%',
                     resize: 'vertical',
                     padding: '10px 12px',
                     fontSize: '13px',
                     fontFamily: 'monospace',
                     lineHeight: '1.6',
-                    border: '2px solid var(--color-border)',
+                    border: '1px solid var(--color-border)',
                     backgroundColor: 'var(--color-surface-2)',
                     color: 'var(--color-text)',
                     outline: 'none',
@@ -254,26 +258,26 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
               {/* Instructions Template */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
-                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)', textTransform: 'uppercase', letterSpacing: '0.4px', fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <Label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px', fontFamily: 'var(--font-body)' }}>
                     Instructions Template
-                  </label>
+                  </Label>
                   <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontWeight: 600 }}>
-                    — digunakan jika series tidak punya custom instructions
+: digunakan jika series tidak punya custom instructions
                   </span>
                 </div>
-                <textarea
+                <Textarea aria-label="Kosongkan jika tidak ingin instructions default..."
                   value={instructions}
                   onChange={(e) => setInstructions(e.target.value)}
                   placeholder="Kosongkan jika tidak ingin instructions default..."
                   rows={6}
-                  style={{
+                  style={{ borderRadius: 'var(--radius)',
                     width: '100%',
                     resize: 'vertical',
                     padding: '10px 12px',
                     fontSize: '13px',
                     fontFamily: 'monospace',
                     lineHeight: '1.6',
-                    border: '2px solid var(--color-border)',
+                    border: '1px solid var(--color-border)',
                     backgroundColor: 'var(--color-surface-2)',
                     color: 'var(--color-text)',
                     outline: 'none',
@@ -283,7 +287,7 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
 
               {/* Helper-pass prompts. Only the guidance is editable; the output
                   format the code parses is appended automatically. */}
-              <div className="flex items-start gap-2 px-3 py-2" style={{ border: '1.5px dashed var(--color-border)', fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+              <div className="flex items-start gap-2 px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px dashed var(--color-border)', fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
                 <Info size={13} style={{ color: 'var(--fg-cyan,#00F7FF)', marginTop: '2px', flexShrink: 0 }} />
                 <span>
                   Tiga prompt di bawah hanya berisi <strong>aturan/arahan</strong>. Format output (JSON untuk AutoFix &amp; Pre-pass,
@@ -305,27 +309,27 @@ export function ProfileTemplatesModal({ open, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '2px solid var(--color-border)', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderTop: '1px solid var(--color-border)', flexShrink: 0 }}>
           <div>
             {error && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{error}</p>}
-            {saved && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 700 }}>✓ Tersimpan</p>}
+            {saved && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 600 }}>✓ Tersimpan</p>}
           </div>
           <div className="flex gap-3">
-            <button onClick={onClose} className="neo-button" style={{ backgroundColor: 'var(--color-surface-2)', fontSize: '12px' }}>
+            <Button variant="outline" onClick={onClose} className="" style={{ color: 'var(--foreground)',  backgroundColor: 'var(--color-surface-2)', fontSize: '12px' }}>
               TUTUP
-            </button>
-            <button
+            </Button>
+            <Button variant="default"
               onClick={handleSave}
               disabled={saving || loading}
-              className="neo-button flex items-center gap-1.5"
-              style={{ backgroundColor: 'var(--bg-orange,#FFCF77)', fontSize: '12px', opacity: (saving || loading) ? 0.5 : 1 }}
+              className="flex items-center gap-1.5"
+              style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-orange,#FFCF77)', fontSize: '12px', opacity: (saving || loading) ? 0.5 : 1 }}
             >
               <Save size={13} />
               {saving ? 'MENYIMPAN...' : 'SIMPAN'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

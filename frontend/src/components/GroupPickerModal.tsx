@@ -1,3 +1,5 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
 /**
  * LWNTL Group Picker Modal
  * Lets the user pick a group (or root) to move a series into.
@@ -54,11 +56,11 @@ export function GroupPickerModal({ open, series, groups, onClose, onPick }: Grou
   }) => {
     const isCurrentGroup = series.groupId === groupId
     return (
-      <button
+      <Button variant="ghost"
         onClick={() => { onPick(series, groupId); onClose() }}
         disabled={isCurrentGroup}
         className="flex items-center gap-2 w-full text-left"
-        style={{
+        style={{ borderRadius: 'var(--radius)',
           padding: `10px 16px 10px ${16 + (depth || 0) * 20}px`,
           border: 'none',
           borderBottom: '1px solid var(--color-separator)',
@@ -78,21 +80,21 @@ export function GroupPickerModal({ open, series, groups, onClose, onPick }: Grou
           {name}
           {isCurrentGroup && <span style={{ marginLeft: 8, fontSize: '11px', opacity: 0.6 }}>✓ sekarang</span>}
         </span>
-      </button>
+      </Button>
     )
   }
 
   return (
-    <div
+    <ModalSurface label="Move series" onClose={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        style={{
+        style={{ borderRadius: 'var(--radius)',
           backgroundColor: 'var(--color-surface)',
-          border: '2.5px solid var(--color-border)',
-          boxShadow: 'var(--neo-shadow-lg)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-lg)',
           width: '100%',
           maxWidth: '360px',
           maxHeight: '70vh',
@@ -103,15 +105,15 @@ export function GroupPickerModal({ open, series, groups, onClose, onPick }: Grou
         {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4 flex-shrink-0"
-          style={{ borderBottom: '2.5px solid var(--color-border)' }}
+          style={{ borderBottom: '1px solid var(--color-border)' }}
         >
           <div>
             <span
               style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700,
+                fontFamily: 'var(--font-body)',
+                fontWeight: 600,
                 fontSize: '14px',
-                textTransform: 'uppercase',
+                textTransform: 'none',
                 color: 'var(--color-text)',
               }}
             >
@@ -121,12 +123,12 @@ export function GroupPickerModal({ open, series, groups, onClose, onPick }: Grou
               {series.title}
             </p>
           </div>
-          <button
+          <Button aria-label="Close" variant="ghost"
             onClick={onClose}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+            style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Options list */}
@@ -144,6 +146,6 @@ export function GroupPickerModal({ open, series, groups, onClose, onPick }: Grou
           ))}
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

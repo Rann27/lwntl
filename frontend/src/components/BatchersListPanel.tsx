@@ -1,3 +1,5 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
 /**
  * BatchersListPanel - Global monitor for all active batch translations.
  * Live updates via Zustand subscription (no polling needed).
@@ -39,18 +41,18 @@ export function BatchersListPanel({ open, onClose }: Props) {
   const entries = Object.entries(batches)
 
   return (
-    <div
+    <ModalSurface label="Active batches" onClose={onClose}
       className="fixed inset-0 z-70 flex items-start justify-end p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.35)' }}
       onClick={onClose}
     >
       <div
-        style={{
+        style={{ borderRadius: 'var(--radius)',
           width: 'min(460px, 100%)',
           maxHeight: '80vh',
           backgroundColor: 'var(--color-surface)',
-          border: '2.5px solid var(--color-border)',
-          boxShadow: 'var(--neo-shadow-lg)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-lg)',
           display: 'flex',
           flexDirection: 'column',
           marginTop: '52px',
@@ -60,14 +62,14 @@ export function BatchersListPanel({ open, onClose }: Props) {
         {/* Header */}
         <div
           className="flex items-center justify-between px-4 py-3"
-          style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}
+          style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}
         >
           <div className="flex items-center gap-2">
             <Activity size={15} style={{ color: 'var(--fg-cyan,#00F7FF)' }} />
             <h2
               style={{
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700,
+                fontFamily: 'var(--font-body)',
+                fontWeight: 600,
                 fontSize: '15px',
                 color: 'var(--color-text)',
               }}
@@ -76,11 +78,11 @@ export function BatchersListPanel({ open, onClose }: Props) {
             </h2>
             {entries.length > 0 && (
               <span
-                style={{
+                style={{ borderRadius: 'var(--radius)',
                   fontSize: '10px',
-                  fontWeight: 700,
+                  fontWeight: 600,
                   color: 'var(--fg-cyan,#00F7FF)',
-                  border: '1.5px solid var(--fg-cyan,#00F7FF)',
+                  border: '1px solid var(--fg-cyan,#00F7FF)',
                   padding: '1px 6px',
                   fontFamily: 'monospace',
                 }}
@@ -89,12 +91,12 @@ export function BatchersListPanel({ open, onClose }: Props) {
               </span>
             )}
           </div>
-          <button
+          <Button aria-label="Close" variant="ghost"
             onClick={onClose}
-            style={{ border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}
+            style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', color: 'var(--color-text)', cursor: 'pointer' }}
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -119,8 +121,8 @@ export function BatchersListPanel({ open, onClose }: Props) {
               return (
                 <div
                   key={seriesId}
-                  style={{
-                    border: '2.5px solid var(--color-border)',
+                  style={{ borderRadius: 'var(--radius)',
+                    border: '1px solid var(--color-border)',
                     backgroundColor: 'var(--color-surface-2)',
                     padding: '12px',
                   }}
@@ -131,10 +133,10 @@ export function BatchersListPanel({ open, onClose }: Props) {
                       <p
                         className="truncate"
                         style={{
-                          fontWeight: 700,
+                          fontWeight: 600,
                           fontSize: '13px',
                           color: 'var(--color-text)',
-                          fontFamily: "'Space Grotesk', sans-serif",
+                          fontFamily: 'var(--font-body)',
                         }}
                       >
                         {title}
@@ -148,26 +150,26 @@ export function BatchersListPanel({ open, onClose }: Props) {
                     <div className="flex items-center gap-2 shrink-0">
                       {isActive && <div className="w-2 h-2 bg-[var(--bg-cyan,#00F7FF)] animate-pulse" />}
                       {isDone && (
-                        <span style={{ fontSize: '10px', color: 'var(--fg-green,#28E272)', fontWeight: 700 }}>✓ SELESAI</span>
+                        <span style={{ fontSize: '10px', color: 'var(--fg-green,#28E272)', fontWeight: 600 }}>✓ SELESAI</span>
                       )}
                       {isCancelled && (
-                        <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontWeight: 700 }}>DIBATALKAN</span>
+                        <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontWeight: 600 }}>DIBATALKAN</span>
                       )}
                       {isActive && (
-                        <button
+                        <Button variant="ghost"
                           onClick={() => handleCancel(seriesId)}
-                          style={{
+                          style={{ borderRadius: 'var(--radius)',
                             fontSize: '10px',
-                            fontWeight: 700,
+                            fontWeight: 600,
                             color: 'var(--fg-red,#FF3C3C)',
-                            border: '1.5px solid var(--fg-red,#FF3C3C)',
+                            border: '1px solid var(--fg-red,#FF3C3C)',
                             padding: '2px 8px',
                             backgroundColor: 'transparent',
                             cursor: 'pointer',
                           }}
                         >
                           BATAL
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -200,7 +202,7 @@ export function BatchersListPanel({ open, onClose }: Props) {
                   {isActive && batch.chapterNumber && (
                     <p style={{ fontSize: '11px', color: 'var(--fg-cyan,#00F7FF)' }}>
                       Bab {batch.chapterNumber}
-                      {batch.chapterTitle ? ` — ${batch.chapterTitle}` : ''}
+                      {batch.chapterTitle ? `: ${batch.chapterTitle}` : ''}
                     </p>
                   )}
                 </div>
@@ -209,6 +211,6 @@ export function BatchersListPanel({ open, onClose }: Props) {
           )}
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

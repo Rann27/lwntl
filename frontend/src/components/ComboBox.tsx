@@ -1,9 +1,12 @@
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * LWNTL ComboBox Component
- * Combines dropdown with text input — user can select from list or type custom value
+ * Combines dropdown with text input: user can select from list or type custom value
  */
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useId } from 'react'
 import { ChevronDown, X, Plus } from 'lucide-react'
 
 interface ComboBoxProps {
@@ -17,6 +20,8 @@ interface ComboBoxProps {
 }
 
 export function ComboBox({ value, onChange, options, placeholder, label, onAddOption, id }: ComboBoxProps) {
+  const generatedId = useId()
+  const inputId = id || generatedId
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState(value)
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
@@ -111,19 +116,25 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
   return (
     <div ref={containerRef} className="relative" id={id}>
       {label && (
-        <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+        <Label htmlFor={inputId} className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)' }}>
           {label}
-        </label>
+        </Label>
       )}
       <div
         className="flex items-center"
-        style={{
-          border: '2.5px solid var(--color-border)',
+        style={{ borderRadius: 'var(--radius)',
+          border: '1px solid var(--color-border)',
           background: 'var(--color-surface)',
           position: 'relative',
         }}
       >
-        <input
+        <Input aria-label={placeholder}
+          id={inputId}
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-controls={`${inputId}-options`}
+          aria-autocomplete="list"
+          aria-activedescendant={highlightedIndex >= 0 ? `${inputId}-option-${highlightedIndex}` : undefined}
           ref={inputRef}
           type="text"
           value={inputValue}
@@ -132,11 +143,11 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           className="flex-1"
-          style={{
+          style={{ borderRadius: 'var(--radius)',
             border: 'none',
             outline: 'none',
             padding: '8px 12px',
-            fontFamily: "'Inter', sans-serif",
+            fontFamily: 'var(--font-body)',
             fontSize: '14px',
             background: 'transparent',
             color: 'var(--color-text)',
@@ -144,41 +155,47 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
           }}
         />
         {inputValue && (
-          <button
+          <Button variant="ghost"
             type="button"
+            aria-label="Clear value"
             onClick={() => { setInputValue(''); onChange(''); inputRef.current?.focus() }}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 4px 4px 0', color: 'var(--color-text-muted)' }}
+            style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 4px 4px 0', color: 'var(--color-text-muted)' }}
           >
             <X size={14} />
-          </button>
+          </Button>
         )}
-        <button
+        <Button variant="ghost"
           type="button"
+          aria-label="Show options"
+          aria-expanded={isOpen}
           onClick={() => { setIsOpen(!isOpen); inputRef.current?.focus() }}
-          style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 8px 4px 2px', color: 'var(--color-text)' }}
+          style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px 8px 4px 2px', color: 'var(--color-text)' }}
         >
           <ChevronDown size={16} style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-        </button>
+        </Button>
       </div>
 
       {isOpen && (filteredOptions.length > 0 || isCustomValue) && (
         <div
-          style={{
+          style={{ borderRadius: 'var(--radius)',
             position: 'absolute',
             top: '100%',
             left: 0,
             right: 0,
             background: 'var(--color-surface)',
-            border: '2.5px solid var(--color-border)',
+            border: '1px solid var(--color-border)',
             borderTop: 'none',
             zIndex: 50,
             maxHeight: '200px',
             overflowY: 'auto',
           }}
         >
-          <ul ref={listRef} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+          <ul id={`${inputId}-options`} role="listbox" aria-label={label || placeholder} ref={listRef} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {filteredOptions.map((opt, idx) => (
               <li
+                id={`${inputId}-option-${idx}`}
+                role="option"
+                aria-selected={highlightedIndex === idx}
                 key={opt}
                 onClick={() => handleSelect(opt)}
                 onMouseEnter={() => setHighlightedIndex(idx)}
@@ -186,7 +203,7 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
                   padding: '8px 12px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: 'var(--font-body)',
                   color: highlightedIndex === idx ? 'var(--on-accent,#111)' : 'var(--color-text)',
                   background: highlightedIndex === idx ? 'var(--bg-cyan,#00F7FF)' : 'transparent',
                   fontWeight: opt === value ? 700 : 400,
@@ -199,29 +216,29 @@ export function ComboBox({ value, onChange, options, placeholder, label, onAddOp
           {isCustomValue && onAddOption && (
             <div
               style={{
-                borderTop: '2px solid var(--color-separator)',
+                borderTop: '1px solid var(--color-separator)',
                 padding: '6px',
               }}
             >
-              <button
+              <Button variant="ghost"
                 type="button"
                 onClick={handleAddCustom}
                 className="flex items-center gap-1 w-full"
-                style={{
+                style={{ borderRadius: 'var(--radius)',
                   padding: '6px 8px',
-                  border: '2px dashed var(--color-border)',
+                  border: '1px dashed var(--color-border)',
                   background: 'var(--bg-cyan,#00F7FF)',
                   cursor: 'pointer',
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: 'var(--font-body)',
                   fontSize: '12px',
-                  fontWeight: 700,
-                  textTransform: 'uppercase',
+                  fontWeight: 600,
+                  textTransform: 'none',
                   color: 'var(--on-accent,#111)',
                 }}
               >
                 <Plus size={12} />
                 Tambah "{inputValue.trim()}" ke daftar
-              </button>
+              </Button>
             </div>
           )}
         </div>

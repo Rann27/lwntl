@@ -1,3 +1,6 @@
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * OpenRouterModelPicker
  *
@@ -56,14 +59,14 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
 
   return (
     <div ref={boxRef} style={{ position: 'relative', gridColumn: '1 / -1' }}>
-      <button type="button" onClick={() => setOpen(o => !o)} className="neo-input w-full flex items-center gap-2"
-        style={{ padding: '6px 10px', fontSize: '13px', backgroundColor: 'var(--color-surface)', textAlign: 'left', cursor: 'pointer' }}>
+      <Button variant="ghost" type="button" onClick={() => setOpen(o => !o)} className="ui-input w-full flex items-center gap-2"
+        style={{ color: 'var(--foreground)',  padding: '6px 10px', fontSize: '13px', backgroundColor: 'var(--color-surface)', textAlign: 'left', cursor: 'pointer' }}>
         <span className="truncate" style={{ flex: 1 }}>
           {current ? <><strong>{current.name}</strong> <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>{current.id}</span></>
             : value ? value : <span style={{ color: 'var(--color-text-muted)' }}>Pilih model OpenRouter…</span>}
         </span>
         <ChevronDown size={14} />
-      </button>
+      </Button>
       {current && (
         <div style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '3px' }}>
           ctx {fmtCtx(current.context)} · in {fmtPrice(current.priceIn)} / out {fmtPrice(current.priceOut)} per 1M
@@ -75,23 +78,23 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
       )}
 
       {open && (
-        <div style={{ position: 'absolute', zIndex: 50, left: 0, right: 0, top: '38px', border: '2px solid var(--color-border)', backgroundColor: 'var(--color-surface)', boxShadow: '4px 4px 0 #111' }}>
-          <div className="flex items-center gap-2" style={{ padding: '6px 8px', borderBottom: '1.5px solid var(--color-border)' }}>
+        <div style={{ borderRadius: 'var(--radius)',  position: 'absolute', zIndex: 50, left: 0, right: 0, top: '38px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface)', boxShadow: 'var(--shadow-sm)' }}>
+          <div className="flex items-center gap-2" style={{ padding: '6px 8px', borderBottom: '1px solid var(--color-border)' }}>
             <Search size={13} />
-            <input autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="cari: kimi, gemini, deepseek…"
-              style={{ flex: 1, border: 'none', outline: 'none', fontSize: '13px', background: 'transparent', color: 'var(--color-text)' }} />
-            <label className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 700, whiteSpace: 'nowrap', cursor: 'pointer' }}>
-              <input type="checkbox" checked={onlyTools} onChange={e => setOnlyTools(e.target.checked)} /> TOOLS
-            </label>
-            <button type="button" onClick={() => load(true)} title="Muat ulang katalog" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', display: 'flex' }}>
+            <Input aria-label="cari: kimi, gemini, deepseek…" autoFocus value={query} onChange={e => setQuery(e.target.value)} placeholder="cari: kimi, gemini, deepseek…"
+              style={{ borderRadius: 'var(--radius)',  flex: 1, border: 'none', outline: 'none', fontSize: '13px', background: 'transparent', color: 'var(--color-text)' }} />
+            <Label className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer' }}>
+              <Input type="checkbox" checked={onlyTools} onChange={e => setOnlyTools(e.target.checked)} /> TOOLS
+            </Label>
+            <Button aria-label="Muat ulang katalog" variant="ghost" type="button" onClick={() => load(true)} title="Muat ulang katalog" style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', display: 'flex' }}>
               <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-            </button>
+            </Button>
           </div>
           {err && <p style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)', padding: '6px 8px' }}>{err}</p>}
           <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
             {filtered.map(m => (
-              <button type="button" key={m.id} onClick={() => { onChange(m.id); setOpen(false); setQuery('') }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px', border: 'none', borderBottom: '1px dashed var(--color-border)', cursor: 'pointer',
+              <Button variant="ghost" type="button" key={m.id} onClick={() => { onChange(m.id); setOpen(false); setQuery('') }}
+                style={{ borderRadius: 'var(--radius)',  display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px', border: 'none', borderBottom: '1px dashed var(--color-border)', cursor: 'pointer',
                   background: m.id === value ? 'var(--color-surface-2)' : 'transparent', color: 'var(--color-text)' }}>
                 <div className="flex items-center gap-2">
                   <strong style={{ fontSize: '12px' }}>{m.name}</strong>
@@ -101,14 +104,14 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
                 </div>
                 <div className="flex items-center gap-1 flex-wrap" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                   <span style={{ fontFamily: 'monospace' }}>{m.id}</span>
-                  {m.reasoning && <span style={{ border: '1px solid var(--fg-purple,#C9A7FF)', color: '#9B6BFF', padding: '0 4px', fontWeight: 700 }}>
+                  {m.reasoning && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-purple,#C9A7FF)', color: '#9B6BFF', padding: '0 4px', fontWeight: 600 }}>
                     R {m.efforts.length ? m.efforts.join('/') : m.budgetReasoning ? 'budget' : ''}
                   </span>}
-                  {m.tools && <span style={{ border: '1px solid var(--fg-green,#28E272)', color: '#1BA556', padding: '0 4px', fontWeight: 700 }}>TOOLS</span>}
-                  {!m.temperature && <span style={{ border: '1px solid var(--color-border)', padding: '0 4px', fontWeight: 700 }}>NO TEMP</span>}
-                  {m.expires && <span style={{ color: 'var(--fg-red,#FF3C3C)', fontWeight: 700 }}>pensiun {m.expires}</span>}
+                  {m.tools && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-green,#28E272)', color: '#1BA556', padding: '0 4px', fontWeight: 600 }}>TOOLS</span>}
+                  {!m.temperature && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', padding: '0 4px', fontWeight: 600 }}>NO TEMP</span>}
+                  {m.expires && <span style={{ color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>pensiun {m.expires}</span>}
                 </div>
-              </button>
+              </Button>
             ))}
             {!loading && filtered.length === 0 && <p style={{ fontSize: '12px', padding: '10px', color: 'var(--color-text-muted)' }}>Tidak ada model yang cocok.</p>}
           </div>

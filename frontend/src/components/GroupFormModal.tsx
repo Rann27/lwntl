@@ -1,3 +1,7 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * LWNTL Group Form Modal
  * Used for creating new groups and renaming existing ones.
@@ -49,16 +53,16 @@ export function GroupFormModal({ open, mode, group, onClose, onSubmit, loading }
   }
 
   return (
-    <div
+    <ModalSurface label="Edit group" onClose={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
-        style={{
+        style={{ borderRadius: 'var(--radius)',
           backgroundColor: 'var(--color-surface)',
-          border: '2.5px solid var(--color-border)',
-          boxShadow: 'var(--neo-shadow-lg)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-lg)',
           width: '100%',
           maxWidth: '380px',
         }}
@@ -66,50 +70,50 @@ export function GroupFormModal({ open, mode, group, onClose, onSubmit, loading }
         {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4"
-          style={{ borderBottom: '2.5px solid var(--color-border)' }}
+          style={{ borderBottom: '1px solid var(--color-border)' }}
         >
           <span
             style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 700,
+              fontFamily: 'var(--font-body)',
+              fontWeight: 600,
               fontSize: '15px',
-              textTransform: 'uppercase',
+              textTransform: 'none',
               color: 'var(--color-text)',
             }}
           >
             {title}
           </span>
-          <button
+          <Button aria-label="Close" variant="ghost"
             onClick={onClose}
-            style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+            style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-text-muted)' }}
           >
             <X size={18} />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
           {/* Name field */}
           {showNameField && (
             <div>
-              <label
-                style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '6px' }}
+              <Label
+                style={{ display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'none', color: 'var(--color-text-muted)', marginBottom: '6px' }}
               >
                 {mode === 'create' ? t.group.newGroupName : t.group.editGroupName}
-              </label>
-              <input
+              </Label>
+              <Input aria-label={mode === 'create' ? t.group.newGroupName : t.group.editGroupName}
                 ref={inputRef}
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 maxLength={60}
                 placeholder={t.group.newGroupName}
-                style={{
+                style={{ borderRadius: 'var(--radius)',
                   width: '100%',
                   padding: '10px 12px',
-                  border: '2.5px solid var(--color-border)',
+                  border: '1px solid var(--color-border)',
                   background: 'var(--color-surface)',
                   color: 'var(--color-text)',
-                  fontFamily: "'Inter', sans-serif",
+                  fontFamily: 'var(--font-body)',
                   fontSize: '14px',
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -121,27 +125,27 @@ export function GroupFormModal({ open, mode, group, onClose, onSubmit, loading }
           {/* Color swatches */}
           {showColorField && (
             <div>
-              <label
-                style={{ display: 'block', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-text-muted)', marginBottom: '8px' }}
+              <Label
+                style={{ display: 'block', fontSize: '11px', fontWeight: 600, textTransform: 'none', color: 'var(--color-text-muted)', marginBottom: '8px' }}
               >
                 {t.group.colorLabel}
-              </label>
+              </Label>
               <div className="flex gap-2 flex-wrap">
                 {GROUP_COLORS.map((c) => (
-                  <button
+                  <Button aria-label={c.label} variant="ghost"
                     key={c.value}
                     type="button"
                     onClick={() => setColor(c.value)}
                     title={c.label}
-                    style={{
+                    style={{ borderRadius: 'var(--radius)',
                       width: '32px',
                       height: '32px',
                       backgroundColor: c.value,
                       border: color === c.value
-                        ? '3px solid var(--color-text)'
-                        : '2.5px solid var(--color-border)',
+                        ? '1px solid var(--color-text)'
+                        : '1px solid var(--color-border)',
                       cursor: 'pointer',
-                      boxShadow: color === c.value ? '2px 2px 0 var(--color-text)' : 'none',
+                      boxShadow: color === c.value ? 'var(--shadow-sm)' : 'none',
                       transition: 'box-shadow 0.1s',
                     }}
                   />
@@ -152,31 +156,31 @@ export function GroupFormModal({ open, mode, group, onClose, onSubmit, loading }
 
           {/* Actions */}
           <div className="flex gap-3 pt-1">
-            <button
+            <Button variant="ghost"
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 font-bold text-sm"
-              style={{
-                border: '2.5px solid var(--color-border)',
+              className="flex-1 py-2.5 font-semibold text-sm"
+              style={{ borderRadius: 'var(--radius)',
+                border: '1px solid var(--color-border)',
                 background: 'transparent',
                 cursor: 'pointer',
                 color: 'var(--color-text)',
-                fontFamily: "'Space Grotesk', sans-serif",
+                fontFamily: 'var(--font-body)',
               }}
             >
               {t.common.cancel}
-            </button>
-            <button
+            </Button>
+            <Button variant="default"
               type="submit"
               disabled={loading || (showNameField && !name.trim())}
-              className="flex-1 py-2.5 font-bold text-sm neo-button"
-              style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+              className="flex-1 py-2.5 font-semibold text-sm"
+              style={{ fontFamily: 'var(--font-body)' }}
             >
               {loading ? t.common.saving : t.common.save}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

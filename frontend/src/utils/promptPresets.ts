@@ -58,7 +58,7 @@ export function resolvePrompt(o: {
 }
 
 export function presetLabel(p: PromptPreset): string {
-  return `${p.builtin ? '🔒' : '✎'} ${p.name}`
+  return p.name
 }
 
 /** Rough token estimate for a prompt (≈4 chars/token for Latin text, denser for CJK). */

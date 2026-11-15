@@ -3,7 +3,7 @@
  * Bottom bar showing translation progress
  */
 
-import { Loader2, CheckCircle, XCircle, Zap } from 'lucide-react'
+import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-react'
 import type { TranslationState } from '../store/appStore'
 import { useI18n } from '../i18n'
 
@@ -31,7 +31,7 @@ export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
       className="flex items-center justify-between px-4 py-2"
       style={{
         backgroundColor: 'var(--color-surface)',
-        borderTop: '2.5px solid var(--color-border)',
+        borderTop: '1px solid var(--color-border)',
         fontSize: '12px',
         color: 'var(--color-text)',
       }}
@@ -45,10 +45,10 @@ export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
         ) : status === 'error' ? (
           <XCircle size={14} style={{ color: 'var(--fg-red,#FF3C3C)' }} />
         ) : (
-          <Zap size={14} style={{ color: 'var(--color-text-muted)' }} />
+          <Clock size={14} style={{ color: 'var(--color-text-muted)' }} />
         )}
 
-        <span style={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <span style={{ fontWeight: 600, textTransform: 'none', letterSpacing: 'normal' }}>
           {label}
         </span>
 
@@ -62,13 +62,13 @@ export function StatusBar({ translation, chapterStatus }: StatusBarProps) {
       {/* Progress bar */}
       {translation.isTranslating && (
         <div className="flex items-center gap-3">
-          <div className="neo-progress" style={{ width: '120px', height: '12px' }}>
+          <div className="ui-progress" style={{ width: '120px', height: '12px' }}>
             <div
-              className="neo-progress-fill"
+              className="ui-progress-fill"
               style={{ width: `${translation.progress}%` }}
             />
           </div>
-          <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+          <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
             {translation.progress}%
           </span>
         </div>

@@ -1,7 +1,11 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 /**
  * QaReportModal
  *
- * Deterministic QA over the whole series — no model calls, no tokens.
+ * Deterministic QA over the whole series: no model calls, no tokens.
  * Mirrors Step A/B of the agentic workflow: scan every translated chapter,
  * show per-chapter findings and cross-chapter checks, and apply the purely
  * mechanical fixes (each changed chapter is archived to version history first).
@@ -28,11 +32,11 @@ interface Props {
 
 type Tab = 'chapters' | 'volume' | 'glossary' | 'fixes' | 'rename'
 
-const SEV_COLOR: Record<QaSeverity, string> = { high: 'var(--fg-red,#FF3C3C)', medium: 'var(--fg-orange,#FFB020)', low: '#8A8A8A' }
+const SEV_COLOR: Record<QaSeverity, string> = { high: 'var(--fg-red)', medium: 'var(--fg-orange)', low: 'var(--muted-foreground)' }
 
 const FIX_LABELS: Record<string, { label: string; desc: string }> = {
-  typography: { label: 'Tipografi', desc: 'Spasi ganda, spasi sebelum tanda baca, -- → —' },
-  marks: { label: 'Tanda sumber', desc: '「」 → petik, …… → …, ─ / —— → —, ，。！？ → , . ! ?, `` \'\' → petik' },
+  typography: { label: 'Tipografi', desc: 'Rapikan spasi ganda, spasi sebelum tanda baca, dan tanda pisah.' },
+  marks: { label: 'Tanda sumber', desc: 'Ubah tanda kutip dan tanda baca bahasa sumber menjadi tanda baca terjemahan.' },
   macron: { label: 'Macron', desc: 'ā ī ū ē ō → aa ii uu ee ou (Tōkyō → Tokyo)' },
   tone: { label: 'Tanda nada', desc: 'Pinyin polos (Lín → Lin, Lǚ → Lu); Korea ŏ / ŭ → eo / eu' },
   homoglyph: { label: 'Huruf kembar', desc: 'Huruf Sirilik/Yunani yang menyamar di kata Latin (Toyоashihara → Toyoashihara)' },
@@ -44,13 +48,13 @@ const FIX_LABELS: Record<string, { label: string; desc: string }> = {
 }
 const DEFAULT_FIXES = ['typography', 'marks', 'macron', 'tone', 'homoglyph', 'bold', 'italic_spacing']
 
-const box: React.CSSProperties = { border: '2px solid var(--color-border)', padding: '10px 12px', backgroundColor: 'var(--color-surface)' }
-const h: React.CSSProperties = { fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: '6px' }
+const box: React.CSSProperties = { border: '1px solid var(--color-border)', padding: '10px 12px', backgroundColor: 'var(--color-surface)' }
+const h: React.CSSProperties = { fontSize: '11px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', marginBottom: '6px' }
 
 function SevBadge({ sev, n }: { sev: QaSeverity; n: number }) {
   if (!n) return null
   return (
-    <span style={{ fontSize: '10px', fontWeight: 800, padding: '1px 6px', color: '#fff', backgroundColor: SEV_COLOR[sev], fontFamily: 'monospace' }}>
+    <span style={{ fontSize: '10px', fontWeight: 600, padding: '1px 6px', color: 'var(--foreground)', backgroundColor: SEV_COLOR[sev], fontFamily: 'monospace' }}>
       {n}
     </span>
   )
@@ -97,25 +101,25 @@ function RenamePanel({ seriesId, disabled, initial, onApplied }: {
     finally { setBusy(false) }
   }
 
-  const input: React.CSSProperties = { flex: 1, border: '2px solid var(--color-border)', padding: '6px 8px', fontSize: '13px', background: 'var(--color-surface)', color: 'var(--color-text)', outline: 'none' }
+  const input: React.CSSProperties = { flex: 1, border: '1px solid var(--color-border)', padding: '6px 8px', fontSize: '13px', background: 'var(--color-surface)', color: 'var(--color-text)', outline: 'none' }
 
   return (
     <div className="flex flex-col gap-3">
       <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-        Ganti satu bentuk nama/istilah di seluruh series — teks terjemahan, ringkasan bab (rolling memory), memori jangka panjang,
-        dan glosarium — supaya bentuk lama tidak masuk lagi ke konteks bab berikutnya. Pencocokan per kata utuh dan peka huruf besar
+        Ganti satu bentuk nama/istilah di seluruh series: teks terjemahan, ringkasan bab (rolling memory), memori jangka panjang,
+        dan glosarium: supaya bentuk lama tidak masuk lagi ke konteks bab berikutnya. Pencocokan per kata utuh dan peka huruf besar
         (<code>Kanouma</code> juga mengenai <code>Kanouma-kun</code>, tapi tidak <code>kanoumaku</code>).
       </p>
       <div className="flex items-center gap-2">
-        <input value={oldText} onChange={e => { setOldText(e.target.value); setPreview(null) }} placeholder="Bentuk salah, mis. Kanouma" style={input} />
-        <span style={{ fontWeight: 800 }}>→</span>
-        <input value={newText} onChange={e => { setNewText(e.target.value); setPreview(null) }} placeholder="Bentuk benar, mis. Touma" style={input} />
-        <button onClick={runPreview} disabled={busy || !oldText.trim() || !newText.trim()} className="neo-button" style={{ fontSize: '12px', backgroundColor: 'var(--color-surface-2)', opacity: (!oldText.trim() || !newText.trim()) ? 0.5 : 1 }}>
+        <Input aria-label="Bentuk salah, mis. Kanouma" value={oldText} onChange={e => { setOldText(e.target.value); setPreview(null) }} placeholder="Bentuk salah, mis. Kanouma" style={input} />
+        <span style={{ fontWeight: 600 }}>→</span>
+        <Input aria-label="Bentuk benar, mis. Touma" value={newText} onChange={e => { setNewText(e.target.value); setPreview(null) }} placeholder="Bentuk benar, mis. Touma" style={input} />
+        <Button variant="outline" onClick={runPreview} disabled={busy || !oldText.trim() || !newText.trim()} className="" style={{ color: 'var(--foreground)',  fontSize: '12px', backgroundColor: 'var(--color-surface-2)', opacity: (!oldText.trim() || !newText.trim()) ? 0.5 : 1 }}>
           PRATINJAU
-        </button>
+        </Button>
       </div>
-      {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700 }}>{err}</p>}
-      {msg && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 700 }}>✓ {msg}</p>}
+      {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{err}</p>}
+      {msg && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 600 }}>✓ {msg}</p>}
       {preview && (
         <div style={box}>
           <div style={h}>{preview.total} kemunculan</div>
@@ -136,12 +140,12 @@ function RenamePanel({ seriesId, disabled, initial, onApplied }: {
             </div>
           ))}
           <div className="flex justify-end" style={{ marginTop: '8px' }}>
-            <button onClick={apply} disabled={busy || disabled || preview.total + preview.glossary.length === 0}
-              className="neo-button flex items-center gap-1.5"
+            <Button variant="default" onClick={apply} disabled={busy || disabled || preview.total + preview.glossary.length === 0}
+              className="flex items-center gap-1.5"
               style={{ backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', fontSize: '12px', opacity: (busy || disabled || preview.total + preview.glossary.length === 0) ? 0.5 : 1 }}>
               {busy ? <Loader2 size={13} className="animate-spin" /> : <Replace size={13} />}
               GANTI SEMUA
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -222,10 +226,10 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
   const checkItems = audit.entries.filter(e => e.suggestion === 'check' && e.resolution)
 
   const chip = (key: typeof filter, label: string, n: number, color?: string) => (
-    <button key={key} onClick={() => setFilter(key)} style={{
-      fontSize: '11px', fontWeight: 800, padding: '3px 9px', cursor: 'pointer', border: '2px solid var(--color-border)',
+    <Button variant="ghost" key={key} onClick={() => setFilter(key)} style={{ borderRadius: 'var(--radius)',
+      fontSize: '11px', fontWeight: 600, padding: '3px 9px', cursor: 'pointer', border: '1px solid var(--color-border)',
       backgroundColor: filter === key ? (color ?? 'var(--color-surface-2)') : 'transparent', color: filter === key && color ? 'var(--on-accent,#111)' : 'var(--color-text)',
-    }}>{label} ({n})</button>
+    }}>{label} ({n})</Button>
   )
 
   return (
@@ -242,23 +246,23 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
         {chip('character', 'Tokoh', audit.entries.filter(e => e.character).length)}
         {chip('all', 'Semua', audit.total)}
         {checkItems.length > 0 && (
-          <button onClick={() => setReviewing(checkItems)} disabled={disabled}
-            style={{ fontSize: '11px', fontWeight: 800, padding: '3px 10px', cursor: 'pointer', border: '2px solid #111', backgroundColor: 'var(--bg-orange,#FFB020)', color: 'var(--on-accent,#111)', boxShadow: '2px 2px 0 #111' }}>
+          <Button variant="ghost" onClick={() => setReviewing(checkItems)} disabled={disabled}
+            style={{ borderRadius: 'var(--radius)',  fontSize: '11px', fontWeight: 600, padding: '3px 10px', cursor: 'pointer', border: '1px solid var(--border)', backgroundColor: 'var(--bg-orange,#FFB020)', color: 'var(--on-accent,#111)', boxShadow: 'var(--shadow-sm)' }}>
             TINJAU & PERBAIKI ({checkItems.length})
-          </button>
+          </Button>
         )}
-        <button onClick={load} title="Audit ulang" style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', display: 'flex' }}>
+        <Button aria-label="Audit ulang" variant="ghost" onClick={load} title="Audit ulang" style={{ borderRadius: 'var(--radius)',  marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text)', display: 'flex' }}>
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-        </button>
+        </Button>
       </div>
-      {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700 }}>{err}</p>}
-      {msg && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 700, wordBreak: 'break-all' }}>✓ {msg}</p>}
+      {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{err}</p>}
+      {msg && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 600, wordBreak: 'break-all' }}>✓ {msg}</p>}
 
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
         <thead>
-          <tr style={{ borderBottom: '2px solid var(--color-border)', textAlign: 'left', fontSize: '10px', textTransform: 'uppercase', color: 'var(--color-text-muted)' }}>
+          <tr style={{ borderBottom: '1px solid var(--color-border)', textAlign: 'left', fontSize: '10px', textTransform: 'none', color: 'var(--color-text-muted)' }}>
             <th style={{ width: 28 }}>
-              <input type="checkbox" checked={rows.length > 0 && visibleSelected === rows.length}
+              <Input type="checkbox" checked={rows.length > 0 && visibleSelected === rows.length}
                 onChange={e => setSelected(prev => { const n = new Set(prev); rows.forEach(r => e.target.checked ? n.add(r.id) : n.delete(r.id)); return n })} />
             </th>
             <th>Sumber</th><th>Terjemahan</th>
@@ -270,23 +274,23 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
         <tbody>
           {rows.map((r: GlossaryAuditEntry) => (
             <tr key={r.id} style={{ borderBottom: '1px dashed var(--color-border)', verticalAlign: 'top', opacity: selected.has(r.id) ? 1 : 0.85 }}>
-              <td style={{ padding: '4px 0' }}><input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} /></td>
-              <td style={{ padding: '4px 6px', fontWeight: 700 }}>
+              <td style={{ padding: '4px 0' }}><Input type="checkbox" checked={selected.has(r.id)} onChange={() => toggle(r.id)} /></td>
+              <td style={{ padding: '4px 6px', fontWeight: 600 }}>
                 {r.sourceTerm}
-                {r.character && <span style={{ marginLeft: 4, fontSize: '9px', padding: '0 4px', border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple,#C9A7FF)' }}>TOKOH</span>}
+                {r.character && <span style={{ borderRadius: 'var(--radius)',  marginLeft: 4, fontSize: '9px', padding: '0 4px', border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple,#C9A7FF)' }}>TOKOH</span>}
               </td>
               <td style={{ padding: '4px 6px' }}>{r.translatedTerm}</td>
               <td style={{ padding: '4px 6px', fontFamily: 'monospace' }}>{r.srcChapters}</td>
               <td style={{ padding: '4px 6px', fontFamily: 'monospace' }}>{r.usedCount}</td>
               <td style={{ padding: '4px 6px' }}>
-                <span style={{ fontSize: '10px', fontWeight: 800, color: SUGGEST_COLOR[r.suggestion] }}>{SUGGEST_LABEL[r.suggestion]}</span>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: SUGGEST_COLOR[r.suggestion] }}>{SUGGEST_LABEL[r.suggestion]}</span>
                 {r.flags.length > 0 && <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}> · {r.flags.map(f => FLAG_LABELS[f] ?? f).join(', ')}</span>}
                 {r.conflictWith && <div style={{ fontSize: '10px', color: 'var(--fg-red,#FF3C3C)' }}>vs {r.conflictWith}</div>}
                 {r.variants.map((v, i) => (
                   <div key={i} style={{ fontSize: '10px' }}>
                     teks memakai <strong>{v.form}</strong> ×{v.count} (bab {v.chapters.join(', ')})
-                    <button onClick={() => onRename(v.form, r.translatedTerm)} style={miniBtn}>→ {r.translatedTerm}</button>
-                    <button onClick={() => onRename(r.translatedTerm, v.form)} style={miniBtn}>{r.translatedTerm} → {v.form}</button>
+                    <Button variant="ghost" onClick={() => onRename(v.form, r.translatedTerm)} style={miniBtn}>→ {r.translatedTerm}</Button>
+                    <Button variant="ghost" onClick={() => onRename(r.translatedTerm, v.form)} style={miniBtn}>{r.translatedTerm} → {v.form}</Button>
                   </div>
                 ))}
               </td>
@@ -295,19 +299,19 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
         </tbody>
       </table>
 
-      <div className="flex items-center justify-end gap-2" style={{ position: 'sticky', bottom: 0, background: 'var(--color-surface)', padding: '8px 0', borderTop: '2px solid var(--color-border)' }}>
+      <div className="flex items-center justify-end gap-2" style={{ position: 'sticky', bottom: 0, background: 'var(--color-surface)', padding: '8px 0', borderTop: '1px solid var(--color-border)' }}>
         <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginRight: 'auto' }}>{visibleSelected} dipilih di tampilan ini</span>
         {confirming ? (
           <>
-            <span style={{ fontSize: '12px', fontWeight: 700 }}>Hapus {visibleSelected} entri? Cadangan JSON dibuat dulu.</span>
-            <button onClick={() => setConfirming(false)} className="neo-button" style={{ fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}>BATAL</button>
-            <button onClick={remove} className="neo-button" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF3C3C)', color: '#fff' }}>YA, HAPUS</button>
+            <span style={{ fontSize: '12px', fontWeight: 600 }}>Hapus {visibleSelected} entri? Cadangan JSON dibuat dulu.</span>
+            <Button variant="outline" onClick={() => setConfirming(false)} className="" style={{ color: 'var(--foreground)',  fontSize: '12px', backgroundColor: 'var(--color-surface-2)' }}>BATAL</Button>
+            <Button variant="default" onClick={remove} className="" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF3C3C)', color: 'var(--fg-red)' }}>YA, HAPUS</Button>
           </>
         ) : (
-          <button onClick={() => setConfirming(true)} disabled={disabled || visibleSelected === 0} className="neo-button"
-            style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF3C3C)', color: '#fff', opacity: (disabled || visibleSelected === 0) ? 0.5 : 1 }}>
+          <Button variant="default" onClick={() => setConfirming(true)} disabled={disabled || visibleSelected === 0} className=""
+            style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF3C3C)', color: 'var(--fg-red)', opacity: (disabled || visibleSelected === 0) ? 0.5 : 1 }}>
             HAPUS TERPILIH
-          </button>
+          </Button>
         )}
       </div>
     </div>
@@ -315,7 +319,7 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
 }
 
 const miniBtn: React.CSSProperties = {
-  marginLeft: '4px', fontSize: '10px', fontWeight: 800, border: '1px solid var(--color-border)',
+  marginLeft: '4px', fontSize: '10px', fontWeight: 600, border: '1px solid var(--color-border)',
   background: 'transparent', color: 'var(--color-text)', padding: '0 5px', cursor: 'pointer',
 }
 
@@ -391,7 +395,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
     }
   }
 
-  // Every safe-fix category the scan found anywhere — all of them are mechanical.
+  // Every safe-fix category the scan found anywhere: all of them are mechanical.
   const autoFixCats = report
     ? [...new Set(report.chapters.flatMap(c => c.findings.map(f => f.fix).filter((x): x is string => !!x)))]
     : []
@@ -425,14 +429,14 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
     <>
     <ChapterReviewModal open={!!reviewChapter} seriesId={seriesId} chapterId={reviewChapter} disabled={disabled}
       onClose={(changed) => { setReviewChapter(null); if (changed) { onApplied?.(); scan() } }} />
-    <div className="neo-modal-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
-      <div className="neo-modal" style={{ width: '920px', maxWidth: '95vw', height: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+    <ModalSurface label="Quality report" onClose={onClose} className="ui-modal-backdrop" style={{ zIndex: 210 }} onClick={onClose}>
+      <div className="ui-modal" style={{ width: '920px', maxWidth: '95vw', height: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#8AF0FF)', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#8AF0FF)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
-            <ShieldCheck size={17} color="#111" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>QA Scan</span>
-            <span style={{ fontSize: '10px', fontWeight: 800, color: 'var(--on-accent,#111)', border: '1.5px solid #111', padding: '0 6px' }}>TANPA AI · 0 TOKEN</span>
+            <ShieldCheck size={17} color="var(--foreground)" />
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'none', letterSpacing: '0.05em' }}>QA Scan</span>
+            <span style={{ borderRadius: 'var(--radius)',  fontSize: '10px', fontWeight: 600, color: 'var(--on-accent,#111)', border: '1px solid var(--border)', padding: '0 6px' }}>TANPA AI · 0 TOKEN</span>
             {report && (
               <span className="flex items-center gap-1" style={{ marginLeft: '6px' }}>
                 <SevBadge sev="high" n={report.totals.high} />
@@ -442,21 +446,21 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
             )}
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={scan} disabled={loading} title="Pindai ulang" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
+            <Button aria-label="Pindai ulang" variant="ghost" onClick={scan} disabled={loading} title="Pindai ulang" style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}>
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-            </button>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></button>
+            </Button>
+            <Button aria-label="Close" variant="ghost" onClick={onClose} style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></Button>
           </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex" style={{ borderBottom: '2px solid var(--color-border)', flexShrink: 0 }}>
+        <div className="flex" style={{ borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
           {([['chapters', 'Per Bab'], ['volume', 'Volume'], ['glossary', 'Glosarium'], ['fixes', 'Perbaikan Aman'], ['rename', 'Ganti Nama']] as [Tab, string][]).map(([k, label]) => (
-            <button key={k} onClick={() => setTab(k)} style={{
-              padding: '8px 16px', fontSize: '12px', fontWeight: 800, textTransform: 'uppercase', border: 'none', cursor: 'pointer',
-              borderRight: '2px solid var(--color-border)',
+            <Button variant="ghost" key={k} onClick={() => setTab(k)} style={{ borderRadius: 'var(--radius)',
+              padding: '8px 16px', fontSize: '12px', fontWeight: 600, textTransform: 'none', border: 'none', cursor: 'pointer',
+              borderRight: '1px solid var(--color-border)',
               backgroundColor: tab === k ? 'var(--color-surface-2)' : 'transparent', color: 'var(--color-text)',
-            }}>{label}</button>
+            }}>{label}</Button>
           ))}
         </div>
 
@@ -466,62 +470,62 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
               <Loader2 size={18} className="animate-spin" /> Memindai seluruh bab...
             </div>
           )}
-          {error && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700, marginBottom: '8px' }}>{error}</p>}
+          {error && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600, marginBottom: '8px' }}>{error}</p>}
 
           {/* ── Per chapter ── */}
           {report && tab === 'chapters' && (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-2" style={{ fontSize: '11px' }}>
-                <span style={{ fontWeight: 700 }}>Tampilkan:</span>
+                <span style={{ fontWeight: 600 }}>Tampilkan:</span>
                 {(['high', 'medium', 'low'] as QaSeverity[]).map(s => (
-                  <label key={s} className="flex items-center gap-1" style={{ cursor: 'pointer' }}>
-                    <input type="checkbox" checked={sevFilter[s]} onChange={e => setSevFilter(p => ({ ...p, [s]: e.target.checked }))} style={{ accentColor: SEV_COLOR[s] }} />
-                    <span style={{ color: SEV_COLOR[s], fontWeight: 800, textTransform: 'uppercase' }}>{s}</span>
-                  </label>
+                  <Label key={s} className="flex items-center gap-1" style={{ cursor: 'pointer' }}>
+                    <Input type="checkbox" checked={sevFilter[s]} onChange={e => setSevFilter(p => ({ ...p, [s]: e.target.checked }))} style={{ accentColor: SEV_COLOR[s] }} />
+                    <span style={{ color: SEV_COLOR[s], fontWeight: 600, textTransform: 'none' }}>{s}</span>
+                  </Label>
                 ))}
                 <span style={{ marginLeft: 'auto', color: 'var(--color-text-muted)' }}>{report.chapterCount} bab terjemahan dipindai</span>
               </div>
               {autoFixCount > 0 && (
-                <div className="flex items-center gap-2 flex-wrap" style={{ border: '2px solid var(--fg-green,#28E272)', padding: '6px 10px', fontSize: '12px' }}>
+                <div className="flex items-center gap-2 flex-wrap" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-green,#28E272)', padding: '6px 10px', fontSize: '12px' }}>
                   <Wand2 size={14} style={{ color: 'var(--fg-green,#28E272)' }} />
                   <span><strong>{autoFixCount}</strong> temuan bisa diperbaiki otomatis tanpa AI ({autoFixCats.map(c => FIX_LABELS[c]?.label ?? c).join(', ')}).</span>
-                  <button onClick={fixAll} disabled={applying || disabled} className="neo-button flex items-center gap-1.5"
+                  <Button variant="default" onClick={fixAll} disabled={applying || disabled} className="flex items-center gap-1.5"
                     style={{ marginLeft: 'auto', fontSize: '11px', padding: '4px 10px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (applying || disabled) ? 0.5 : 1 }}>
                     {applying ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} PERBAIKI SEMUA AUTO-FIX
-                  </button>
+                  </Button>
                 </div>
               )}
-              {appliedMsg && tab === 'chapters' && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 700 }}>{appliedMsg}</p>}
+              {appliedMsg && tab === 'chapters' && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 600 }}>{appliedMsg}</p>}
               {visibleChapters.length === 0 && (
                 <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', padding: '24px 0', textAlign: 'center' }}>Tidak ada temuan untuk filter ini.</p>
               )}
               {visibleChapters.map(c => (
-                <div key={c.chapterId} style={{ border: '2px solid var(--color-border)' }}>
-                  <button onClick={() => toggleExpand(c.chapterId)} className="w-full flex items-center gap-2" style={{ padding: '7px 10px', background: 'var(--color-surface-2)', border: 'none', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}>
+                <div key={c.chapterId} style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)' }}>
+                  <Button variant="ghost" onClick={() => toggleExpand(c.chapterId)} className="w-full flex items-center gap-2" style={{ borderRadius: 'var(--radius)',  padding: '7px 10px', background: 'var(--color-surface-2)', border: 'none', cursor: 'pointer', color: 'var(--color-text)', textAlign: 'left' }}>
                     {expanded.has(c.chapterId) ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    <span style={{ fontSize: '12px', fontWeight: 800, fontFamily: 'monospace' }}>Bab {c.chapterNumber}</span>
+                    <span style={{ fontSize: '12px', fontWeight: 600, fontFamily: 'monospace' }}>Bab {c.chapterNumber}</span>
                     <span className="truncate" style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{c.title}</span>
                     <span className="flex items-center gap-1" style={{ marginLeft: 'auto' }}>
                       <SevBadge sev="high" n={c.stats.high} /><SevBadge sev="medium" n={c.stats.medium} /><SevBadge sev="low" n={c.stats.low} />
                     </span>
-                  </button>
+                  </Button>
                   {expanded.has(c.chapterId) && (
                     <div style={{ padding: '6px 10px 10px' }}>
                       {c.shown.map((f, i) => (
                         <div key={i} style={{ padding: '5px 0', borderBottom: '1px dashed var(--color-border)', fontSize: '12px' }}>
                           <div className="flex items-center gap-2">
                             <span style={{ width: 8, height: 8, backgroundColor: SEV_COLOR[f.severity], flexShrink: 0 }} />
-                            <code style={{ fontSize: '11px', fontWeight: 700 }}>{f.type}</code>
+                            <code style={{ fontSize: '11px', fontWeight: 600 }}>{f.type}</code>
                             {f.para !== null && <span style={{ fontSize: '10px', color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>¶{f.para}</span>}
-                            {f.fix && <span style={{ fontSize: '9px', fontWeight: 800, padding: '0 5px', border: '1px solid var(--fg-green,#28E272)', color: 'var(--fg-green,#28E272)', textTransform: 'uppercase' }}>auto-fix</span>}
+                            {f.fix && <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, padding: '0 5px', border: '1px solid var(--fg-green,#28E272)', color: 'var(--fg-green,#28E272)', textTransform: 'none' }}>auto-fix</span>}
                             <span style={{ color: 'var(--color-text-muted)' }}>{language === 'id' ? (f.detailId ?? f.detail) : f.detail}</span>
                           </div>
                           {f.text && <div style={{ marginTop: '3px', marginLeft: '16px', fontSize: '11px', fontStyle: 'italic', color: 'var(--color-text-subtle)', whiteSpace: 'pre-wrap' }}>“{f.text}”</div>}
                         </div>
                       ))}
-                      <button onClick={() => openChapter(c)} className="flex items-center gap-1" style={{ marginTop: '8px', fontSize: '11px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '3px 8px', cursor: 'pointer' }}>
+                      <Button variant="ghost" onClick={() => openChapter(c)} className="flex items-center gap-1" style={{ borderRadius: 'var(--radius)',  marginTop: '8px', fontSize: '11px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '3px 8px', cursor: 'pointer' }}>
                         <ExternalLink size={11} /> Tinjau &amp; perbaiki
-                      </button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -544,10 +548,10 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                             <strong style={{ color: f.glossary ? 'var(--fg-green,#28E272)' : f.macron ? 'var(--fg-red,#FF3C3C)' : 'var(--color-text)' }}>{f.form}</strong>
                             <span style={{ color: 'var(--color-text-muted)' }}> ×{f.count} (bab {f.chapters.slice(0, 6).join(', ')}{f.chapters.length > 6 ? '…' : ''})</span>
                             {f.form !== target.form && (
-                              <button onClick={() => { setRenameSeed({ old: f.form, new: target.form }); setTab('rename') }}
-                                style={{ marginLeft: '4px', fontSize: '10px', fontWeight: 800, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '0 5px', cursor: 'pointer' }}>
+                              <Button variant="ghost" onClick={() => { setRenameSeed({ old: f.form, new: target.form }); setTab('rename') }}
+                                style={{ borderRadius: 'var(--radius)',  marginLeft: '4px', fontSize: '10px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '0 5px', cursor: 'pointer' }}>
                                 → {target.form}
-                              </button>
+                              </Button>
                             )}
                           </span>
                         )
@@ -563,7 +567,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                 {v.length.outliers.length === 0 ? <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Tidak ada bab yang menyimpang.</p> :
                   v.length.outliers.map((o, i) => (
                     <p key={i} style={{ fontSize: '12px', color: o.kind === 'short' ? 'var(--fg-red,#FF3C3C)' : 'var(--fg-orange,#FFB020)' }}>
-                      Bab {o.chapter}: {Math.round(o.relative * 100)}% dari biasanya — {o.kind === 'short' ? 'kemungkinan ada isi hilang' : 'kemungkinan ada duplikasi/tambahan'}
+                      Bab {o.chapter}: {Math.round(o.relative * 100)}% dari biasanya: {o.kind === 'short' ? 'kemungkinan ada isi hilang' : 'kemungkinan ada duplikasi/tambahan'}
                     </p>
                   ))}
               </div>
@@ -588,7 +592,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                     v.spellingMixed.map((s, i) => (
                       <p key={i} style={{ fontSize: '12px' }}>
                         <strong>{s.us}…</strong> ×{s.usCount} <span style={{ color: 'var(--color-text-muted)' }}>vs</span> <strong>{s.uk}…</strong> ×{s.ukCount}
-                        <span style={{ color: 'var(--color-text-muted)' }}> — pilih satu standar untuk seluruh volume</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>: pilih satu standar untuk seluruh volume</span>
                       </p>
                     ))}
                 </div>
@@ -637,12 +641,12 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                 {v.glossary.length === 0 ? <p style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Bersih.</p> :
                   v.glossary.map((g, i) => (
                     <p key={i} style={{ fontSize: '12px' }}>
-                      {g.sourceTerm} = {g.translatedTerm} — <span style={{ color: 'var(--fg-red,#FF3C3C)' }}>{g.issue}</span>
+                      {g.sourceTerm} = {g.translatedTerm}: <span style={{ color: 'var(--fg-red,#FF3C3C)' }}>{g.issue}</span>
                       {g.suggestOld && g.suggestNew && (
-                        <button onClick={() => { setRenameSeed({ old: g.suggestOld!, new: g.suggestNew! }); setTab('rename') }}
-                          style={{ marginLeft: '6px', fontSize: '10px', fontWeight: 800, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '0 5px', cursor: 'pointer' }}>
+                        <Button variant="ghost" onClick={() => { setRenameSeed({ old: g.suggestOld!, new: g.suggestNew! }); setTab('rename') }}
+                          style={{ borderRadius: 'var(--radius)',  marginLeft: '6px', fontSize: '10px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '0 5px', cursor: 'pointer' }}>
                           {g.suggestOld} → {g.suggestNew}
-                        </button>
+                        </Button>
                       )}
                     </p>
                   ))}
@@ -667,7 +671,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
           {tab === 'fixes' && (
             <div className="flex flex-col gap-3">
               <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
-                Perbaikan mekanis yang sepenuhnya ditentukan aturan — tanpa AI. Baris placeholder, penanda adegan, dan tabel glosarium tidak disentuh.
+                Perbaikan mekanis yang sepenuhnya ditentukan aturan: tanpa AI. Baris placeholder, penanda adegan, dan tabel glosarium tidak disentuh.
                 Setiap bab yang berubah diarsipkan dulu ke riwayat versinya.
               </p>
               <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
@@ -676,15 +680,15 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                   const n = preview?.categories[cat] ?? 0
                   const on = fixCats.includes(cat)
                   return (
-                    <label key={cat} className="flex items-start gap-2" style={{ ...box, cursor: 'pointer', opacity: on ? 1 : 0.65 }}>
-                      <input type="checkbox" checked={on} style={{ marginTop: '3px', accentColor: 'var(--fg-green,#28E272)' }}
+                    <Label key={cat} className="flex items-start gap-2" style={{ ...box, cursor: 'pointer', opacity: on ? 1 : 0.65 }}>
+                      <Input type="checkbox" checked={on} style={{ marginTop: '3px', accentColor: 'var(--fg-green,#28E272)' }}
                         onChange={e => setFixCats(prev => e.target.checked ? [...prev, cat] : prev.filter(c => c !== cat))} />
                       <span>
-                        <span style={{ fontSize: '12px', fontWeight: 800 }}>{meta?.label ?? cat}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 600 }}>{meta?.label ?? cat}</span>
                         <span style={{ fontSize: '11px', fontFamily: 'monospace', marginLeft: '6px', color: n ? 'var(--fg-green,#28E272)' : 'var(--color-text-muted)' }}>{previewing ? '…' : `${n} perubahan`}</span>
                         <br /><span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>{meta?.desc}</span>
                       </span>
-                    </label>
+                    </Label>
                   )
                 })}
               </div>
@@ -694,7 +698,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                   <div style={h}>Contoh perubahan</div>
                   {Object.entries(preview.samples).filter(([cat]) => fixCats.includes(cat)).map(([cat, items]) => (
                     <div key={cat} style={{ marginBottom: '8px' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 800 }}>{FIX_LABELS[cat]?.label ?? cat}</div>
+                      <div style={{ fontSize: '11px', fontWeight: 600 }}>{FIX_LABELS[cat]?.label ?? cat}</div>
                       {items.slice(0, 3).map((s, i) => (
                         <div key={i} style={{ fontSize: '11px', padding: '3px 0', borderBottom: '1px dashed var(--color-border)' }}>
                           <span style={{ fontFamily: 'monospace', color: 'var(--color-text-muted)' }}>Bab {s.chapter} ¶{s.para}</span>
@@ -707,24 +711,24 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                 </div>
               )}
 
-              {appliedMsg && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 700 }}>✓ {appliedMsg}</p>}
+              {appliedMsg && <p style={{ fontSize: '12px', color: 'var(--fg-green,#28E272)', fontWeight: 600 }}>✓ {appliedMsg}</p>}
               <div className="flex items-center justify-between">
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
                   {preview ? `${preview.chapters.length} bab akan berubah` : ''}
                   {disabled ? ' · series sedang diproses' : ''}
                 </span>
-                <button onClick={apply} disabled={applying || disabled || !preview || preview.chapters.length === 0 || fixCats.length === 0}
-                  className="neo-button flex items-center gap-1.5"
+                <Button variant="default" onClick={apply} disabled={applying || disabled || !preview || preview.chapters.length === 0 || fixCats.length === 0}
+                  className="flex items-center gap-1.5"
                   style={{ backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', fontSize: '12px', opacity: (applying || disabled || !preview || preview.chapters.length === 0) ? 0.5 : 1 }}>
                   {applying ? <Loader2 size={13} className="animate-spin" /> : <Wand2 size={13} />}
                   TERAPKAN PERBAIKAN
-                </button>
+                </Button>
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </ModalSurface>
     </>
   )
 }

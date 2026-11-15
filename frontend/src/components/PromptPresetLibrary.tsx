@@ -1,3 +1,7 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 /**
  * PromptPresetLibrary
  *
@@ -84,37 +88,37 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
   })
 
   const item = (p: PromptPreset) => (
-    <button key={p.id} type="button" onClick={() => guard(() => select(p))}
+    <Button variant="ghost" key={p.id} type="button" onClick={() => guard(() => select(p))}
       className="flex items-center gap-1.5 w-full text-left"
-      style={{
+      style={{ borderRadius: 'var(--radius)',
         padding: '6px 8px', fontSize: '12px', fontWeight: p.id === selectedId ? 800 : 500, cursor: 'pointer',
-        border: 'none', borderLeft: `4px solid ${p.id === selectedId ? 'var(--fg-cyan,#00F7FF)' : 'transparent'}`,
+        border: 'none', borderLeft: `1px solid ${p.id === selectedId ? 'var(--fg-cyan,#00F7FF)' : 'transparent'}`,
         background: p.id === selectedId ? 'var(--color-surface-2)' : 'transparent', color: 'var(--color-text)',
       }}>
       {p.builtin ? <Lock size={11} style={{ flexShrink: 0, opacity: 0.6 }} /> : <span style={{ width: 11, flexShrink: 0 }}>✎</span>}
       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-    </button>
+    </Button>
   )
 
-  const groupLabel: React.CSSProperties = { fontSize: '10px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)', padding: '8px 8px 4px' }
+  const groupLabel: React.CSSProperties = { fontSize: '10px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)', padding: '8px 8px 4px' }
 
   return (
-    <div className="neo-modal-backdrop" style={{ zIndex: 1300 }} onClick={() => guard(onClose)}>
-      <div className="neo-modal" style={{ width: '1040px', maxWidth: '96vw', height: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+    <ModalSurface label="Prompt preset library" onClose={() => guard(onClose)} className="ui-modal-backdrop" style={{ zIndex: 1300 }} onClick={() => guard(onClose)}>
+      <div className="ui-modal" style={{ width: '1040px', maxWidth: '96vw', height: '86vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '2.5px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#00F7FF)', flexShrink: 0 }}>
+        <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--bg-cyan,#00F7FF)', flexShrink: 0 }}>
           <div className="flex items-center gap-2">
-            <Library size={17} color="#111" />
-            <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <Library size={17} color="var(--foreground)" />
+            <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '15px', color: 'var(--on-accent,#111)', textTransform: 'none', letterSpacing: '0.05em' }}>
               Pustaka Preset Prompt
             </span>
           </div>
-          <button onClick={() => guard(onClose)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></button>
+          <Button aria-label="Close" variant="ghost" onClick={() => guard(onClose)} style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--on-accent,#111)', display: 'flex' }}><X size={18} /></Button>
         </div>
 
         <div className="flex" style={{ flex: 1, minHeight: 0 }}>
           {/* List */}
-          <div style={{ width: '250px', flexShrink: 0, borderRight: '2.5px solid var(--color-border)', overflowY: 'auto' }}>
+          <div style={{ width: '250px', flexShrink: 0, borderRight: '1px solid var(--color-border)', overflowY: 'auto' }}>
             <div style={groupLabel}>Bawaan LWNTL</div>
             {builtins.map(item)}
             <div style={groupLabel}>Milikku</div>
@@ -132,13 +136,13 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
               <>
                 <div className="flex items-center gap-2 flex-wrap">
                   {selected.builtin ? (
-                    <span style={{ fontSize: '16px', fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif" }}>{selected.name}</span>
+                    <span style={{ fontSize: '16px', fontWeight: 600, fontFamily: 'var(--font-body)' }}>{selected.name}</span>
                   ) : (
-                    <input value={name} onChange={e => { setName(e.target.value); setDirty(true) }} className="neo-input"
-                      style={{ fontSize: '14px', fontWeight: 700, padding: '4px 8px', maxWidth: '360px' }} />
+                    <Input aria-label="Preset name" value={name} onChange={e => { setName(e.target.value); setDirty(true) }} className="ui-input"
+                      style={{ fontSize: '14px', fontWeight: 600, padding: '4px 8px', maxWidth: '360px' }} />
                   )}
                   {selected.builtin && (
-                    <span className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 800, padding: '1px 6px', background: '#111', color: 'var(--fg-yellow,#FFEF33)', textTransform: 'uppercase' }}>
+                    <span className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 600, padding: '1px 6px', background: 'var(--muted)', color: 'var(--fg-yellow,#FFEF33)', textTransform: 'none' }}>
                       <Lock size={10} /> hanya baca
                     </span>
                   )}
@@ -149,27 +153,27 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
                   </span>
                 </div>
                 {selected.builtin && (
-                  <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5, borderLeft: '3px solid var(--fg-cyan,#00F7FF)', paddingLeft: '8px' }}>
-                    Preset bawaan diperbarui bersama LWNTL, jadi tidak bisa diedit langsung. Tekan DUPLIKAT untuk membuat salinan milikmu — salinan itu bisa diedit dan dipilih di series maupun profil mana pun.
+                  <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', lineHeight: 1.5, borderLeft: '1px solid var(--fg-cyan,#00F7FF)', paddingLeft: '8px' }}>
+                    Preset bawaan diperbarui bersama LWNTL, jadi tidak bisa diedit langsung. Tekan DUPLIKAT untuk membuat salinan milikmu: salinan itu bisa diedit dan dipilih di series maupun profil mana pun.
                   </p>
                 )}
-                <textarea value={text} readOnly={selected.builtin} onChange={e => { setText(e.target.value); setDirty(true) }}
-                  className="neo-textarea"
+                <Textarea aria-label="Preset prompt" value={text} readOnly={selected.builtin} onChange={e => { setText(e.target.value); setDirty(true) }}
+                  className="ui-textarea"
                   style={{ flex: 1, minHeight: 0, resize: 'none', fontSize: '12px', fontFamily: 'monospace', lineHeight: 1.55, background: selected.builtin ? 'var(--color-surface-2)' : 'var(--color-surface)', color: 'var(--color-text)' }} />
-                {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 700 }}>{err}</p>}
+                {err && <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>{err}</p>}
                 <div className="flex items-center gap-2">
-                  <button onClick={duplicate} disabled={busy} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)' }}>
+                  <Button variant="default" onClick={duplicate} disabled={busy} className="flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)' }}>
                     {busy ? <Loader2 size={13} className="animate-spin" /> : <Copy size={13} />} DUPLIKAT
-                  </button>
+                  </Button>
                   {!selected.builtin && (
                     <>
-                      <button onClick={save} disabled={busy || !dirty || !name.trim()} className="neo-button flex items-center gap-1.5"
+                      <Button variant="default" onClick={save} disabled={busy || !dirty || !name.trim()} className="flex items-center gap-1.5"
                         style={{ fontSize: '12px', backgroundColor: 'var(--bg-green,#28E272)', color: 'var(--on-accent,#111)', opacity: (busy || !dirty || !name.trim()) ? 0.5 : 1 }}>
                         <Save size={13} /> SIMPAN
-                      </button>
-                      <button onClick={remove} disabled={busy} className="neo-button flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)', marginLeft: 'auto' }}>
+                      </Button>
+                      <Button variant="default" onClick={remove} disabled={busy} className="flex items-center gap-1.5" style={{ fontSize: '12px', backgroundColor: 'var(--bg-red,#FF8A8A)', color: 'var(--on-accent,#111)', marginLeft: 'auto' }}>
                         <Trash2 size={13} /> HAPUS
-                      </button>
+                      </Button>
                     </>
                   )}
                 </div>
@@ -180,6 +184,6 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
           </div>
         </div>
       </div>
-    </div>
+    </ModalSurface>
   )
 }

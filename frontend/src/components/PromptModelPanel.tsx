@@ -1,3 +1,8 @@
+import { Switch } from '@/components/ui/switch'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 /**
  * LWNTL Prompt and Worker Panel
  * Center panel: worker selection, system prompt, instruction prompt, sliders
@@ -28,12 +33,12 @@ interface PromptModelPanelProps {
 }
 
 const SOURCE_BADGE: Record<ResolvedPrompt['source'], { label: string; bg: string; fg: string }> = {
-  series: { label: 'Teks series', bg: '#111', fg: 'var(--fg-yellow,#FFEF33)' },
-  series_preset: { label: 'Preset series', bg: 'var(--fg-cyan,#00F7FF)', fg: '#111' },
-  profile: { label: 'Template profil', bg: 'var(--fg-green,#28E272)', fg: '#111' },
-  profile_preset: { label: 'Preset profil', bg: 'var(--fg-green,#28E272)', fg: '#111' },
-  auto: { label: 'Otomatis', bg: 'var(--fg-purple,#C9A7FF)', fg: '#111' },
-  none: { label: 'Kosong', bg: 'var(--fg-red,#FF8A8A)', fg: '#111' },
+  series: { label: 'Teks series', bg: 'var(--bg-yellow)', fg: 'var(--fg-yellow)' },
+  series_preset: { label: 'Preset series', bg: 'var(--bg-cyan)', fg: 'var(--fg-cyan)' },
+  profile: { label: 'Template profil', bg: 'var(--bg-green)', fg: 'var(--fg-green)' },
+  profile_preset: { label: 'Preset profil', bg: 'var(--bg-green)', fg: 'var(--fg-green)' },
+  auto: { label: 'Otomatis', bg: 'var(--bg-purple)', fg: 'var(--fg-purple)' },
+  none: { label: 'Kosong', bg: 'var(--bg-red)', fg: 'var(--fg-red)' },
 }
 
 function describe(r: ResolvedPrompt): string {
@@ -69,7 +74,7 @@ const CONTEXT_PRESETS = [
 ]
 const CONTEXT_LIMIT = CONTEXT_PRESETS[CONTEXT_PRESETS.length - 1]
 
-/** Index of the preset closest to `value` — lets a custom value still position the slider. */
+/** Index of the preset closest to `value`: lets a custom value still position the slider. */
 function nearestPresetIndex(presets: number[], value: number): number {
   let best = 0
   for (let i = 1; i < presets.length; i++) {
@@ -79,7 +84,7 @@ function nearestPresetIndex(presets: number[], value: number): number {
 }
 
 function formatTokens(value: number): string {
-  // Plain "1024K" — no locale grouping, which would render as an ambiguous "1.024K".
+  // Plain "1024K": no locale grouping, which would render as an ambiguous "1.024K".
   return value >= 1000 && value % 1000 === 0
     ? `${value / 1000}K`
     : value.toLocaleString()
@@ -189,7 +194,7 @@ export function PromptModelPanel({
     setLibraryOpen(true)
   }
 
-  // Instructions are optional — an all-in-one system prompt needs no second
+  // Instructions are optional: an all-in-one system prompt needs no second
   // section. A placeholder-only value ("-", ".") counts as empty, matching how
   // the backend treats it, so the field reflects what is actually sent.
   const hasMeaning = (t: string) => /[0-9A-Za-z぀-ヿ一-鿿가-힯]/.test(t)
@@ -203,7 +208,7 @@ export function PromptModelPanel({
   const statusByWorker = new Map(workerStatuses.map((w) => [w.id, w]))
   const selectedStatus = selectedWorker ? statusByWorker.get(selectedWorker.id) : null
   const tempMax = selectedWorker?.provider === 'deepseek' ? 2.0 : 1.0
-  // What the worker's model really accepts — some refuse temperature outright
+  // What the worker's model really accepts: some refuse temperature outright
   // (GPT-6, Claude 5.x, Kimi), DeepSeek ignores it while thinking.
   const [reqParams, setReqParams] = useState<RequestParams | null>(null)
   useEffect(() => {
@@ -245,28 +250,28 @@ export function PromptModelPanel({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-y-auto" style={{ backgroundColor: 'var(--color-surface)', border: '2.5px solid var(--color-border)', boxShadow: '4px 4px 0px var(--color-border)' }}>
-      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '2.5px solid var(--color-border)' }}>
-        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text)' }}>
+    <div className="flex flex-col h-full overflow-y-auto" style={{ borderRadius: 'var(--radius)',  backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+      <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '14px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text)' }}>
           {t.seriesSettings.promptModel}
         </span>
         {dirty && (
           <div className="flex items-center gap-1" style={{ color: 'var(--fg-yellow,#FFEF33)' }}>
             <AlertCircle size={12} />
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase' }}>{t.seriesSettings.notSaved}</span>
+            <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none' }}>{t.seriesSettings.notSaved}</span>
           </div>
         )}
       </div>
 
       <div className="flex-1 p-4 space-y-5" style={{ minHeight: 0, overflowY: 'auto' }}>
         <div>
-          <label className="block mb-1.5" style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+          <Label className="block mb-1.5" style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
             {t.seriesSettings.worker}
-          </label>
-          <select
+          </Label>
+          <select aria-label={t.seriesSettings.worker}
             value={workerId}
             onChange={(e) => { setWorkerId(e.target.value); setDirty(true) }}
-            className="neo-input"
+            className="ui-input"
             style={{ cursor: 'pointer', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           >
             {workers.map((worker) => {
@@ -284,27 +289,27 @@ export function PromptModelPanel({
             })}
           </select>
           {selectedWorker && !config?.[PROVIDERS[selectedWorker.provider]?.apiKeyName as keyof AppConfig] && (
-            <p style={{ fontSize: '11px', color: 'var(--fg-red,#FF3C3C)', marginTop: '4px', fontWeight: 600 }}>
+            <p style={{ fontSize: '12px', color: 'var(--fg-red,#FF3C3C)', marginTop: '4px', fontWeight: 600 }}>
               API key worker ini belum diisi - {t.topbar.settings}
             </p>
           )}
           {selectedStatus?.active && (
-            <p style={{ fontSize: '11px', color: 'var(--fg-yellow,#FFEF33)', marginTop: '4px', fontWeight: 600 }}>
+            <p style={{ fontSize: '12px', color: 'var(--fg-yellow,#FFEF33)', marginTop: '4px', fontWeight: 600 }}>
               Worker sedang aktif ({selectedStatus.activeCount ?? 1}/{selectedStatus.maxConcurrent ?? 1} slot). Slot tersisa untuk series ini jika ada.
             </p>
           )}
         </div>
 
         {selectedWorker && (
-          <div className="flex items-center justify-between gap-3 px-3 py-2" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase' }}>
+          <div className="flex items-center justify-between gap-3 px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'none' }}>
               {PROVIDERS[selectedWorker.provider]?.label || selectedWorker.provider}
             </span>
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)' }}>
               {PROVIDERS[selectedWorker.provider]?.displayNames?.[selectedWorker.model] || selectedWorker.model}
             </span>
             {PROVIDERS[selectedWorker.provider]?.docsUrl && (
-              <a href={PROVIDERS[selectedWorker.provider]?.docsUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--color-text-muted)' }}>
+              <a aria-label="Provider documentation" href={PROVIDERS[selectedWorker.provider]?.docsUrl} target="_blank" rel="noreferrer" style={{ color: 'var(--color-text-muted)' }}>
                 <ExternalLink size={13} />
               </a>
             )}
@@ -316,21 +321,22 @@ export function PromptModelPanel({
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+            <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
               {t.seriesSettings.systemPrompt}
-            </label>
-            <span style={{ fontSize: '10px', fontWeight: 700, color: SOURCE_BADGE[resolved.source].fg, background: SOURCE_BADGE[resolved.source].bg, padding: '2px 6px', textTransform: 'uppercase' }}>
+            </Label>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: SOURCE_BADGE[resolved.source].fg, background: SOURCE_BADGE[resolved.source].bg, padding: '2px 6px', textTransform: 'none' }}>
               {SOURCE_BADGE[resolved.source].label}
             </span>
           </div>
           <div className="flex gap-2 mb-2">
             <select
+              aria-label="System prompt preset"
               value={promptChoice}
               onChange={(e) => choosePrompt(e.target.value)}
-              className="neo-input"
+              className="ui-input"
               style={{ flex: 1, cursor: 'pointer', fontSize: '12px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
             >
-              <option value="">Ikuti profil — {describe(inherited)}</option>
+              <option value="">Ikuti profil: {describe(inherited)}</option>
               <option value="__custom">Teks khusus series ini</option>
               <optgroup label="Preset bawaan (hanya baca)">
                 {builtinPresets.map(p => <option key={p.id} value={p.id}>{presetLabel(p)}</option>)}
@@ -341,54 +347,54 @@ export function PromptModelPanel({
                 </optgroup>
               )}
             </select>
-            <button type="button" onClick={() => setLibraryOpen(true)} className="neo-button flex items-center gap-1"
-              style={{ fontSize: '11px', padding: '4px 10px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)' }} title="Lihat, duplikat, dan edit preset">
+            <Button aria-label="Lihat, duplikat, dan edit preset" variant="default" type="button" onClick={() => setLibraryOpen(true)} className="flex items-center gap-1"
+              style={{ fontSize: '12px', padding: '4px 10px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)' }} title="Lihat, duplikat, dan edit preset">
               <Library size={12} /> PRESET
-            </button>
+            </Button>
           </div>
-          <textarea
+          <Textarea aria-label={loadingDefault ? t.common.loading : 'System prompt...'}
             value={customMode ? systemPrompt : resolved.text}
             readOnly={!customMode}
             onChange={(e) => { onSystemPromptChange(e.target.value); setDirty(true) }}
             placeholder={loadingDefault ? t.common.loading : 'System prompt...'}
-            className="neo-textarea"
+            className="ui-textarea"
             style={{ minHeight: '200px', fontSize: '12px', fontFamily: "'Inter', monospace", backgroundColor: customMode ? 'var(--color-surface)' : 'var(--color-surface-2)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           />
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap" style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
             <span>≈{approxTokens(customMode ? systemPrompt : resolved.text).toLocaleString()} token</span>
             {!customMode && resolved.text && (
               <>
-                <span>· hanya baca —</span>
-                <button type="button" onClick={() => choosePrompt('__custom')}
-                  style={{ fontSize: '10px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '1px 6px', cursor: 'pointer', textTransform: 'uppercase' }}>
+                <span>· hanya baca: </span>
+                <Button variant="ghost" type="button" onClick={() => choosePrompt('__custom')}
+                  style={{ borderRadius: 'var(--radius)',  fontSize: '12px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '1px 6px', cursor: 'pointer', textTransform: 'none' }}>
                   Salin jadi teks series
-                </button>
+                </Button>
                 {resolved.preset && (
-                  <button type="button" onClick={duplicateAndUse} className="flex items-center gap-1"
-                    style={{ fontSize: '10px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '1px 6px', cursor: 'pointer', textTransform: 'uppercase' }}>
+                  <Button variant="ghost" type="button" onClick={duplicateAndUse} className="flex items-center gap-1"
+                    style={{ borderRadius: 'var(--radius)',  fontSize: '12px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text)', padding: '1px 6px', cursor: 'pointer', textTransform: 'none' }}>
                     <Copy size={10} /> Duplikat preset & pakai
-                  </button>
+                  </Button>
                 )}
               </>
             )}
           </div>
           <PromptPresetLibrary open={libraryOpen} onClose={() => setLibraryOpen(false)} onChanged={setPresets}
             initialId={resolved.preset?.id ?? preset} />
-          <div className="mt-2 p-2.5" style={{ backgroundColor: 'var(--color-surface-2)', border: '2px solid var(--color-separator)', fontSize: '11px' }}>
-            <div className="flex items-center gap-1 mb-1.5" style={{ fontWeight: 700, color: 'var(--color-text-muted)' }}>
+          <div className="mt-2 p-2.5" style={{ borderRadius: 'var(--radius)',  backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-separator)', fontSize: '12px' }}>
+            <div className="flex items-center gap-1 mb-1.5" style={{ fontWeight: 600, color: 'var(--color-text-muted)' }}>
               <Info size={11} /> {t.seriesSettings.templateVars}
             </div>
             <div className="space-y-0.5">
               {TEMPLATE_VARS.map((tv) => (
                 <div key={tv.variable} className="flex items-start gap-2">
-                  <code style={{ fontFamily: "'Space Grotesk', monospace", fontWeight: 700, color: 'var(--fg-cyan,#00F7FF)', backgroundColor: '#111', padding: '1px 5px', fontSize: '10px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  <code style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--foreground)', backgroundColor: 'var(--card)', borderRadius: '4px', padding: '2px 5px', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                     {tv.variable}
                   </code>
-                  <span style={{ color: 'var(--color-text-muted)', fontSize: '11px' }}>{tv.description}</span>
+                  <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>{tv.description}</span>
                 </div>
               ))}
             </div>
-            <p style={{ marginTop: '6px', color: 'var(--color-text-subtle)', fontSize: '10px', lineHeight: 1.4 }}>
+            <p style={{ marginTop: '6px', color: 'var(--color-text-subtle)', fontSize: '12px', lineHeight: 1.4 }}>
               {t.seriesSettings.templateVarsDesc}
             </p>
           </div>
@@ -398,34 +404,38 @@ export function PromptModelPanel({
 
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+            <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
               {t.seriesSettings.instructionPrompt}
               {!instructionsActive && (
-                <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1.5px solid var(--color-separator)', color: 'var(--color-text-subtle)', letterSpacing: '0.3px' }}>
+                <span style={{ borderRadius: 'var(--radius)',  marginLeft: '8px', fontSize: '12px', fontWeight: 600, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-separator)', color: 'var(--color-text-subtle)', letterSpacing: 'normal' }}>
                   TIDAK DIPAKAI
                 </span>
               )}
-            </label>
+            </Label>
             {(isCustomInstructions || templateInUse) && (
               <div className="flex items-center gap-2">
-                <span style={{ fontSize: '10px', fontWeight: 700, color: isCustomInstructions ? 'var(--fg-yellow,#FFEF33)' : '#fff', background: isCustomInstructions ? '#111' : 'var(--bg-green,#28E272)', padding: '2px 6px', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: isCustomInstructions ? 'var(--fg-yellow,#FFEF33)' : 'var(--foreground)', background: isCustomInstructions ? 'var(--accent)' : 'var(--bg-green,#28E272)', padding: '2px 6px', textTransform: 'none' }}>
                   {isCustomInstructions ? t.seriesSettings.custom : t.seriesSettings.default}
                 </span>
                 {isCustomInstructions && (
-                  <button
+                  <Button aria-label="Reset ke default template" variant="ghost"
                     type="button"
                     onClick={() => { onInstructionsChange(''); setDirty(true) }}
                     className="flex items-center gap-1"
-                    style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', border: 'none', background: 'transparent', cursor: 'pointer', textTransform: 'uppercase' }}
+                    style={{ borderRadius: 'var(--radius)',  fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', border: 'none', background: 'transparent', cursor: 'pointer', textTransform: 'none' }}
                     title="Reset ke default template"
                   >
                     <RotateCcw size={10} /> Reset
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
           </div>
-          <textarea
+          <Textarea aria-label={loadingDefault
+              ? t.common.loading
+              : effectiveDefaultInstructions
+                ? 'Kosong → memakai template profil di bawah. Isi untuk menimpanya.'
+                : 'Kosong → instructions tidak dikirim ke model.'}
             value={instructions}
             onChange={(e) => { onInstructionsChange(e.target.value); setDirty(true) }}
             placeholder={loadingDefault
@@ -433,33 +443,33 @@ export function PromptModelPanel({
               : effectiveDefaultInstructions
                 ? 'Kosong → memakai template profil di bawah. Isi untuk menimpanya.'
                 : 'Kosong → instructions tidak dikirim ke model.'}
-            className="neo-textarea"
+            className="ui-textarea"
             style={{ minHeight: '80px', fontSize: '13px', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
           />
           {templateInUse ? (
-            <div className="mt-2 px-2.5 py-2" style={{ border: '1.5px solid var(--color-separator)', backgroundColor: 'var(--color-surface-2)' }}>
+            <div className="mt-2 px-2.5 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-separator)', backgroundColor: 'var(--color-surface-2)' }}>
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'none', letterSpacing: 'normal' }}>
                   Template profil sedang dipakai
                 </span>
-                <button
+                <Button variant="ghost"
                   type="button"
                   onClick={() => { onInstructionsChange(effectiveDefaultInstructions); setDirty(true) }}
-                  style={{ fontSize: '10px', fontWeight: 700, border: '1.5px solid var(--color-border)', background: 'transparent', color: 'var(--color-text-muted)', padding: '2px 8px', cursor: 'pointer', textTransform: 'uppercase', flexShrink: 0 }}
+                  style={{ borderRadius: 'var(--radius)',  fontSize: '12px', fontWeight: 600, border: '1px solid var(--color-border)', background: 'transparent', color: 'var(--color-text-muted)', padding: '2px 8px', cursor: 'pointer', textTransform: 'none', flexShrink: 0 }}
                 >
                   Salin ke sini
-                </button>
+                </Button>
               </div>
-              <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', margin: 0, lineHeight: 1.5 }}>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', margin: 0, lineHeight: 1.5 }}>
                 Untuk mematikan instructions di SEMUA series pada profil ini, kosongkan
                 Instructions Template lewat menu Profile Templates.
               </p>
             </div>
           ) : (
-            <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
               {isCustomInstructions
                 ? t.seriesSettings.instructionDesc
-                : 'Tidak dipakai — system prompt jalan sendiri. Kosongkan saja jika sudah all-in-one.'}
+                : 'Tidak dipakai: system prompt jalan sendiri. Kosongkan saja jika sudah all-in-one.'}
             </p>
           )}
         </div>
@@ -469,17 +479,18 @@ export function PromptModelPanel({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
-              <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.maxTokens}</label>
-              <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1.5px solid var(--color-separator)', color: 'var(--color-text-muted)', letterSpacing: '0.3px' }}>
+              <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>{t.seriesSettings.maxTokens}</Label>
+              <span style={{ borderRadius: 'var(--radius)',  fontSize: '12px', fontWeight: 600, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-separator)', color: 'var(--color-text-muted)', letterSpacing: 'normal' }}>
                 output
               </span>
             </div>
-            <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
               {formatTokens(maxTokens)}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <input
+            <Input
+              aria-label="Maximum output tokens preset"
               type="range"
               min={0}
               max={MAX_TOKEN_PRESETS.length - 1}
@@ -489,7 +500,8 @@ export function PromptModelPanel({
               className="flex-1"
               style={{ accentColor: 'var(--fg-cyan,#00F7FF)' }}
             />
-            <input
+            <Input
+              aria-label="Maximum output tokens"
               type="number"
               value={maxTokens}
               onChange={(e) => {
@@ -497,13 +509,13 @@ export function PromptModelPanel({
                 setMaxTokens(isNaN(v) ? 16000 : Math.min(Math.max(v, 1000), MAX_TOKEN_LIMIT))
                 setDirty(true)
               }}
-              className="neo-input"
+              className="ui-input"
               style={{ width: '104px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
               min={1000}
               max={MAX_TOKEN_LIMIT}
             />
           </div>
-          <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
             Batas panjang output per iterasi. Slider menempel ke preset; isi angka manual untuk nilai bebas.
           </p>
         </div>
@@ -511,19 +523,20 @@ export function PromptModelPanel({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
-              <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>
+              <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>
                 Context Window
-              </label>
-              <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1.5px solid var(--color-separator)', color: 'var(--color-text-muted)', letterSpacing: '0.3px' }}>
+              </Label>
+              <span style={{ borderRadius: 'var(--radius)',  fontSize: '12px', fontWeight: 600, padding: '1px 6px', backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-separator)', color: 'var(--color-text-muted)', letterSpacing: 'normal' }}>
                 input
               </span>
             </div>
-            <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
               {formatTokens(maxContext)}
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <input
+            <Input
+              aria-label="Context window preset"
               type="range"
               min={0}
               max={CONTEXT_PRESETS.length - 1}
@@ -533,7 +546,8 @@ export function PromptModelPanel({
               className="flex-1"
               style={{ accentColor: 'var(--fg-cyan,#00F7FF)' }}
             />
-            <input
+            <Input
+              aria-label="Context window tokens"
               type="number"
               value={maxContext}
               onChange={(e) => {
@@ -541,13 +555,13 @@ export function PromptModelPanel({
                 setMaxContext(isNaN(v) ? 128000 : Math.min(Math.max(v, 4000), CONTEXT_LIMIT))
                 setDirty(true)
               }}
-              className="neo-input"
+              className="ui-input"
               style={{ width: '104px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
               min={4000}
               max={CONTEXT_LIMIT}
             />
           </div>
-          <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', marginTop: '4px' }}>
             Total context window model. Indikator di chapter memakai sisa setelah dikurangi Max Tokens:{' '}
             <strong style={{ color: 'var(--color-text-muted)' }}>
               {formatTokens(Math.max(maxContext - Math.min(maxTokens, Math.floor(maxContext / 2)), 0))} untuk input
@@ -558,158 +572,135 @@ export function PromptModelPanel({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <div className="flex items-center gap-2">
-              <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.temperature}</label>
+              <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>{t.seriesSettings.temperature}</Label>
               {tempMax === 2.0 && (
-                <span style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', letterSpacing: '0.3px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 600, padding: '1px 6px', backgroundColor: 'var(--bg-cyan,#00F7FF)', color: 'var(--on-accent,#111)', letterSpacing: 'normal' }}>
                   max 2.0 · DeepSeek
                 </span>
               )}
               {temperatureIgnored && (
                 <span
-                  title={deepseekThinkingOn ? 'DeepSeek thinking mode aktif — temperature tidak berpengaruh' : (reqParams?.notes.join(' · ') || 'Model ini tidak menerima temperature')}
-                  style={{ fontSize: '10px', fontWeight: 700, padding: '1px 6px', backgroundColor: 'var(--bg-yellow,#FFEF33)', color: 'var(--on-accent,#111)', letterSpacing: '0.3px' }}
+                  title={deepseekThinkingOn ? 'DeepSeek thinking mode aktif: temperature tidak berpengaruh' : (reqParams?.notes.join(' · ') || 'Model ini tidak menerima temperature')}
+                  style={{ fontSize: '12px', fontWeight: 600, padding: '1px 6px', backgroundColor: 'var(--bg-yellow,#FFEF33)', color: 'var(--on-accent,#111)', letterSpacing: 'normal' }}
                 >
                   {deepseekThinkingOn ? 'diabaikan · thinking ON' : 'tidak dikirim · model'}
                 </span>
               )}
             </div>
-            <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>{temperature.toFixed(1)}</span>
+            <span style={{ fontSize: '13px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>{temperature.toFixed(1)}</span>
           </div>
           <div className="flex items-center gap-3">
-            <input type="range" min={0} max={tempMax} step={0.1} value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: 'var(--fg-cyan,#00F7FF)' }} />
-            <input type="number" value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value) || 0.3); setDirty(true) }} className="neo-input" style={{ width: '70px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} min={0} max={tempMax} step={0.1} />
+            <Input aria-label="Temperature slider" type="range" min={0} max={tempMax} step={0.1} value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value)); setDirty(true) }} className="flex-1" style={{ accentColor: 'var(--fg-cyan,#00F7FF)' }} />
+            <Input aria-label="Temperature" type="number" value={temperature} onChange={(e) => { setTemperature(parseFloat(e.target.value) || 0.3); setDirty(true) }} className="ui-input" style={{ width: '70px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }} min={0} max={tempMax} step={0.1} />
           </div>
         </div>
 
-        <div style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+        <div style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <div className="flex items-center justify-between px-3 py-2.5">
             <div>
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+              <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
                 Look Up
               </span>
-              <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>
+              <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>
                 {lookupEnabled
                   ? 'Bawa teks terjemahan + istilah bab sebelumnya sebagai acuan gaya. Rolling memory otomatis melewati bab yang sudah dibawa.'
                   : 'Bawa bab sebelumnya utuh agar suara narasi dan istilah konsisten di batas bab.'}
               </p>
             </div>
-            <button
-              onClick={() => { setLookupEnabled(v => !v); setDirty(true) }}
-              style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: lookupEnabled ? 'var(--bg-orange,#FFCF77)' : 'var(--color-surface)', color: lookupEnabled ? 'var(--on-accent,#111)' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
-            >
-              {lookupEnabled ? 'ON' : 'OFF'}
-            </button>
+            <Switch aria-label="Look Up" checked={lookupEnabled} onCheckedChange={value => { setLookupEnabled(value); setDirty(true) }} className="ml-3" />
           </div>
           {lookupEnabled && (
-            <div className="px-3 pb-3" style={{ borderTop: '1.5px solid var(--color-separator)', paddingTop: '10px' }}>
+            <div className="px-3 pb-3" style={{ borderTop: '1px solid var(--color-separator)', paddingTop: '10px' }}>
               <div className="flex items-center justify-between mb-1.5">
-                <label style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text-muted)' }}>
+                <Label style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text-muted)' }}>
                   Jumlah bab
-                </label>
-                <span style={{ fontSize: '13px', fontWeight: 700, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
+                </Label>
+                <span style={{ fontSize: '13px', fontWeight: 600, fontVariantNumeric: 'tabular-nums', color: 'var(--color-text)' }}>
                   {lookupChapters}
                 </span>
               </div>
               <div className="flex items-center gap-3">
-                <input
+                <Input
+                  aria-label="Look up chapter count slider"
                   type="range" min={1} max={5} step={1} value={lookupChapters}
                   onChange={(e) => { setLookupChapters(parseInt(e.target.value)); setDirty(true) }}
                   className="flex-1" style={{ accentColor: 'var(--fg-orange,#FFCF77)' }}
                 />
-                <input
+                <Input
+                  aria-label="Look up chapter count"
                   type="number" min={1} max={10} value={lookupChapters}
                   onChange={(e) => { const v = parseInt(e.target.value); setLookupChapters(isNaN(v) ? 1 : Math.min(Math.max(v, 1), 10)); setDirty(true) }}
-                  className="neo-input"
+                  className="ui-input"
                   style={{ width: '58px', padding: '4px 8px', fontSize: '12px', fontVariantNumeric: 'tabular-nums', backgroundColor: 'var(--color-surface)', color: 'var(--color-text)', borderColor: 'var(--color-border)' }}
                 />
               </div>
-              <p style={{ fontSize: '10px', color: 'var(--color-text-subtle)', marginTop: '5px', lineHeight: 1.5 }}>
-                Bab panjang (LN): 1 sudah cukup. Bab pendek (WN): 3 ke atas. Ada pagar 60K karakter — bab paling baru diprioritaskan.
+              <p style={{ fontSize: '12px', color: 'var(--color-text-subtle)', marginTop: '5px', lineHeight: 1.5 }}>
+                Bab panjang (LN): 1 sudah cukup. Bab pendek (WN): 3 ke atas. Ada pagar 60K karakter: bab paling baru diprioritaskan.
               </p>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+        <div className="flex items-center justify-between px-3 py-2.5" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <div>
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
               Revision Pass
             </span>
-            <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px', lineHeight: 1.5 }}>
               {revisionPass
-                ? 'Model membaca ulang draft-nya sendiri dan memperbaiki prosa — repetisi struktur, atribusi mubazir, ritme. +1 call per chapter.'
+                ? 'Model membaca ulang draft-nya sendiri dan memperbaiki prosa: repetisi struktur, atribusi mubazir, ritme. +1 call per chapter.'
                 : 'Pass kedua untuk kualitas prosa. Draft tetap dipakai kalau hasil revisi gagal cek struktur.'}
             </p>
           </div>
-          <button
-            onClick={() => { setRevisionPass(v => !v); setDirty(true) }}
-            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: revisionPass ? 'var(--bg-lime,#C8FF8A)' : 'var(--color-surface)', color: revisionPass ? 'var(--on-accent,#111)' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
-          >
-            {revisionPass ? 'ON' : 'OFF'}
-          </button>
+          <Switch aria-label="Revision pass" checked={revisionPass} onCheckedChange={value => { setRevisionPass(value); setDirty(true) }} className="ml-3" />
         </div>
 
-        <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+        <div className="flex items-center justify-between px-3 py-2.5" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <div>
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
               AutoFix CJK
             </span>
-            <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
               {autoFixCjk
-                ? 'Post-processing aktif — CJK noise diperbaiki per baris setelah tiap chapter (simbol seperti 「」 dikecualikan)'
+                ? 'Post-processing aktif: CJK noise diperbaiki per baris setelah tiap chapter (simbol seperti 「」 dikecualikan)'
                 : 'Perbaiki sisa karakter CJK otomatis setelah translation, berbasis baris + konteks'}
             </p>
           </div>
-          <button
-            onClick={() => { setAutoFixCjk(v => !v); setDirty(true) }}
-            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: autoFixCjk ? 'var(--bg-orange,#FF7A00)' : 'var(--color-surface)', color: autoFixCjk ? '#fff' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
-          >
-            {autoFixCjk ? 'ON' : 'OFF'}
-          </button>
+          <Switch aria-label="AutoFix CJK" checked={autoFixCjk} onCheckedChange={value => { setAutoFixCjk(value); setDirty(true) }} className="ml-3" />
         </div>
 
-        <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+        <div className="flex items-center justify-between px-3 py-2.5" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <div>
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
               {t.seriesSettings.glossaryPreFilter}
             </span>
-            <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
               {t.seriesSettings.glossaryPreFilterDesc}
             </p>
           </div>
-          <button
-            onClick={() => { setGlossaryPreFilter(v => !v); setDirty(true) }}
-            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: glossaryPreFilter ? 'var(--bg-green,#28E272)' : 'var(--color-surface)', color: glossaryPreFilter ? 'var(--on-accent,#111)' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
-          >
-            {glossaryPreFilter ? 'ON' : 'OFF'}
-          </button>
+          <Switch aria-label="Glossary pre-filter" checked={glossaryPreFilter} onCheckedChange={value => { setGlossaryPreFilter(value); setDirty(true) }} className="ml-3" />
         </div>
 
-        <div className="flex items-center justify-between px-3 py-2.5" style={{ border: '1.5px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
+        <div className="flex items-center justify-between px-3 py-2.5" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
           <div>
-            <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, textTransform: 'none', letterSpacing: '0.4px', color: 'var(--color-text)' }}>
               Iteration Lock
             </span>
-            <p style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginTop: '2px' }}>
               {iterationLock
-                ? 'Max 1 iterasi — aman untuk chapter yang muat dalam 1 output'
-                : 'Multi-iterasi aktif — translator akan lanjutkan jika konten belum selesai'}
+                ? 'Max 1 iterasi: aman untuk chapter yang muat dalam 1 output'
+                : 'Multi-iterasi aktif: translator akan lanjutkan jika konten belum selesai'}
             </p>
           </div>
-          <button
-            onClick={() => { setIterationLock(v => !v); setDirty(true) }}
-            style={{ flexShrink: 0, marginLeft: '12px', padding: '4px 12px', fontSize: '11px', fontWeight: 700, border: '2px solid var(--color-border)', backgroundColor: iterationLock ? 'var(--bg-cyan,#00F7FF)' : 'var(--color-surface)', color: iterationLock ? 'var(--on-accent,#111)' : 'var(--color-text-muted)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.4px' }}
-          >
-            {iterationLock ? 'ON' : 'OFF'}
-          </button>
+          <Switch aria-label="Iteration lock" checked={iterationLock} onCheckedChange={value => { setIterationLock(value); setDirty(true) }} className="ml-3" />
         </div>
       </div>
 
-      <div style={{ borderTop: '2.5px solid var(--color-border)', padding: '12px 16px' }}>
-        <button onClick={handleSave} disabled={loading} className="neo-button flex items-center justify-center gap-2 w-full" style={{ opacity: loading ? 0.5 : 1 }}>
+      <div style={{ borderTop: '1px solid var(--color-border)', padding: '12px 16px' }}>
+        <Button variant="default" onClick={handleSave} disabled={loading} className="flex items-center justify-center gap-2 w-full" style={{ opacity: loading ? 0.5 : 1 }}>
           <Save size={16} />
           {loading ? t.common.saving : t.seriesSettings.saveSettings}
-        </button>
+        </Button>
       </div>
     </div>
   )

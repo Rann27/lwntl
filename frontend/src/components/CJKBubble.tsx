@@ -1,5 +1,7 @@
+import { ModalSurface } from '@/components/ui/modal-surface'
+import { Button } from '@/components/ui/button'
 /**
- * CJKBubble — floating QC indicator for CJK characters in translated text
+ * CJKBubble: floating QC indicator for CJK characters in translated text
  * Shows incident count; click opens a modal listing each occurrence with context.
  * Each incident has a "Fix this line" button that calls AI to clean the CJK inline.
  */
@@ -49,10 +51,10 @@ export default function CJKBubble({ incidents, workerId }: Props) {
   return (
     <>
       {/* Floating bubble */}
-      <button
+      <Button aria-label={`${incidents.length} CJK character(s) detected in translation`} variant="ghost"
         onClick={() => setOpen(true)}
         title={`${incidents.length} CJK character(s) detected in translation`}
-        style={{
+        style={{ borderRadius: 'var(--radius)',
           position: 'fixed',
           bottom: '80px',
           right: '20px',
@@ -63,33 +65,33 @@ export default function CJKBubble({ incidents, workerId }: Props) {
           padding: '8px 14px',
           backgroundColor: 'var(--bg-yellow,#FFEF33)',
           color: 'var(--on-accent,#111)',
-          border: '2.5px solid #111',
-          boxShadow: '4px 4px 0px #111',
-          fontFamily: "'Space Grotesk', sans-serif",
-          fontWeight: 700,
+          border: '1px solid var(--border)',
+          boxShadow: 'var(--shadow-sm)',
+          fontFamily: 'var(--font-body)',
+          fontWeight: 600,
           fontSize: '13px',
           cursor: 'pointer',
           transition: 'transform 0.1s, box-shadow 0.1s',
         }}
         onMouseEnter={e => {
           const el = e.currentTarget
-          el.style.transform = 'translate(2px,2px)'
-          el.style.boxShadow = '2px 2px 0px #111'
+          el.style.transform = 'none'
+          el.style.boxShadow = 'var(--shadow-sm)'
         }}
         onMouseLeave={e => {
           const el = e.currentTarget
           el.style.transform = ''
-          el.style.boxShadow = '4px 4px 0px #111'
+          el.style.boxShadow = 'var(--shadow-sm)'
         }}
         onMouseDown={e => {
           const el = e.currentTarget
-          el.style.transform = 'translate(4px,4px)'
+          el.style.transform = 'none'
           el.style.boxShadow = 'none'
         }}
         onMouseUp={e => {
           const el = e.currentTarget
           el.style.transform = ''
-          el.style.boxShadow = '4px 4px 0px #111'
+          el.style.boxShadow = 'var(--shadow-sm)'
         }}
       >
         <AlertTriangle size={14} />
@@ -102,20 +104,20 @@ export default function CJKBubble({ incidents, workerId }: Props) {
             minWidth: '20px',
             height: '20px',
             padding: '0 5px',
-            backgroundColor: '#111',
+            backgroundColor: 'var(--muted)',
             color: 'var(--fg-yellow,#FFEF33)',
             fontSize: '11px',
-            fontWeight: 700,
+            fontWeight: 600,
             borderRadius: '2px',
           }}
         >
           {incidents.length}
         </span>
-      </button>
+      </Button>
 
       {/* Modal */}
       {open && (
-        <div
+        <ModalSurface label="CJK characters" onClose={() => setOpen(false)}
           style={{
             position: 'fixed',
             inset: 0,
@@ -128,13 +130,13 @@ export default function CJKBubble({ incidents, workerId }: Props) {
           onClick={() => setOpen(false)}
         >
           <div
-            style={{
+            style={{ borderRadius: 'var(--radius)',
               width: '560px',
               maxWidth: '92vw',
               maxHeight: '80vh',
               backgroundColor: 'var(--color-surface)',
-              border: '2.5px solid #111',
-              boxShadow: '6px 6px 0px #111',
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow-sm)',
               display: 'flex',
               flexDirection: 'column',
               overflow: 'hidden',
@@ -148,40 +150,40 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '12px 16px',
-                borderBottom: '2.5px solid #111',
+                borderBottom: '1px solid var(--border)',
                 backgroundColor: 'var(--bg-yellow,#FFEF33)',
                 flexShrink: 0,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertTriangle size={16} color="#111" />
-                <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '14px', color: 'var(--on-accent,#111)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <AlertTriangle size={16} color="var(--foreground)" />
+                <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '14px', color: 'var(--on-accent,#111)', textTransform: 'none', letterSpacing: '0.05em' }}>
                   CJK Detector
                 </span>
-                <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--on-accent,#111)', opacity: 0.7 }}>
-                  — {incidents.length} incident{incidents.length !== 1 ? 's' : ''}
+                <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--on-accent,#111)', opacity: 0.7 }}>
+: {incidents.length} incident{incidents.length !== 1 ? 's' : ''}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 {/* Fix All button */}
-                <button
+                <Button aria-label="Fix all CJK incidents with AI" variant="ghost"
                   onClick={fixAll}
                   disabled={fixingAll}
                   title="Fix all CJK incidents with AI"
-                  style={{
+                  style={{ borderRadius: 'var(--radius)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '5px',
                     padding: '4px 10px',
-                    backgroundColor: fixingAll ? '#888' : '#111',
+                    backgroundColor: fixingAll ? '#888' : 'var(--accent)',
                     color: 'var(--fg-yellow,#FFEF33)',
-                    border: '2px solid #111',
-                    fontFamily: "'Space Grotesk', sans-serif",
-                    fontWeight: 700,
+                    border: '1px solid var(--border)',
+                    fontFamily: 'var(--font-body)',
+                    fontWeight: 600,
                     fontSize: '11px',
                     cursor: fixingAll ? 'not-allowed' : 'pointer',
                     letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
+                    textTransform: 'none',
                     flexShrink: 0,
                   }}
                 >
@@ -191,20 +193,20 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                       ? <><Wrench size={11} /> Fixed All</>
                       : <><Wrench size={11} /> Fix All</>
                   }
-                </button>
-                <button
+                </Button>
+                <Button aria-label="Close" variant="ghost"
                   onClick={() => setOpen(false)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--on-accent,#111)', display: 'flex' }}
+                  style={{ borderRadius: 'var(--radius)',  background: 'none', border: 'none', cursor: 'pointer', padding: '2px', color: 'var(--on-accent,#111)', display: 'flex' }}
                 >
                   <X size={18} />
-                </button>
+                </Button>
               </div>
             </div>
 
             {/* Description */}
-            <div style={{ padding: '10px 16px', borderBottom: '1.5px solid var(--color-border)', flexShrink: 0, backgroundColor: 'var(--color-surface-2)' }}>
+            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--color-border)', flexShrink: 0, backgroundColor: 'var(--color-surface-2)' }}>
               <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', margin: 0, lineHeight: '1.5' }}>
-                Karakter CJK yang terdeteksi dalam hasil terjemahan. Ini bisa menandakan noise/bias AI — periksa manual apakah perlu ditranslate ulang.
+                Karakter CJK yang terdeteksi dalam hasil terjemahan. Ini bisa menandakan noise/bias AI: periksa manual apakah perlu ditranslate ulang.
               </p>
             </div>
 
@@ -226,10 +228,10 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                         style={{
                           display: 'inline-block',
                           padding: '1px 8px',
-                          backgroundColor: '#111',
+                          backgroundColor: 'var(--muted)',
                           color: 'var(--fg-yellow,#FFEF33)',
                           fontSize: '13px',
-                          fontWeight: 700,
+                          fontWeight: 600,
                           fontFamily: 'monospace',
                           letterSpacing: '0.05em',
                           flexShrink: 0,
@@ -251,24 +253,24 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                       {/* Spacer */}
                       <span style={{ flexGrow: 1 }} />
                       {/* Fix this line button */}
-                      <button
+                      <Button aria-label="Fix this CJK with AI" variant="ghost"
                         onClick={() => fixOne(i)}
                         disabled={fix?.status === 'loading'}
                         title="Fix this CJK with AI"
-                        style={{
+                        style={{ borderRadius: 'var(--radius)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '4px',
                           padding: '2px 8px',
-                          backgroundColor: fix?.status === 'done' ? 'var(--color-surface-2)' : fix?.status === 'loading' ? 'var(--color-surface-2)' : '#111',
+                          backgroundColor: fix?.status === 'done' ? 'var(--color-surface-2)' : fix?.status === 'loading' ? 'var(--color-surface-2)' : 'var(--accent)',
                           color: fix?.status === 'done' ? 'var(--color-text-muted)' : fix?.status === 'loading' ? 'var(--color-text-muted)' : 'var(--fg-yellow,#FFEF33)',
-                          border: '1.5px solid var(--color-border)',
-                          fontFamily: "'Space Grotesk', sans-serif",
+                          border: '1px solid var(--color-border)',
+                          fontFamily: 'var(--font-body)',
                           fontWeight: 600,
                           fontSize: '10px',
                           cursor: fix?.status === 'loading' ? 'not-allowed' : 'pointer',
                           letterSpacing: '0.03em',
-                          textTransform: 'uppercase',
+                          textTransform: 'none',
                           flexShrink: 0,
                         }}
                       >
@@ -278,12 +280,12 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                             ? <><Wrench size={10} /> Re-fix</>
                             : <><Wrench size={10} /> Fix this</>
                         }
-                      </button>
+                      </Button>
                     </div>
 
                     {/* Original context */}
                     <p
-                      style={{
+                      style={{ borderRadius: 'var(--radius)',
                         fontSize: '12px',
                         color: 'var(--color-text)',
                         margin: 0,
@@ -357,7 +359,7 @@ export default function CJKBubble({ incidents, workerId }: Props) {
               })}
             </div>
           </div>
-        </div>
+        </ModalSurface>
       )}
 
       <style>{`

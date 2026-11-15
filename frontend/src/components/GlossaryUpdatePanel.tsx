@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button'
 /**
  * LWNTL Glossary Update Panel
  * Shows AI-extracted terms with status vs series glossary and per-entry add action.
@@ -58,17 +59,17 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
 
   return (
     <div style={{
-      borderTop: '4px solid var(--fg-cyan,#00F7FF)',
+      borderTop: '1px solid var(--fg-cyan,#00F7FF)',
       backgroundColor: 'var(--color-surface)',
-      borderLeft: '2.5px solid var(--color-border)',
-      borderRight: '2.5px solid var(--color-border)',
-      borderBottom: '2.5px solid var(--color-border)',
+      borderLeft: '1px solid var(--color-border)',
+      borderRight: '1px solid var(--color-border)',
+      borderBottom: '1px solid var(--color-border)',
     }}>
       {/* Toggle header */}
-      <button
+      <Button variant="ghost"
         onClick={() => setExpanded(!expanded)}
         className="flex items-center justify-between w-full px-4 py-2.5 transition-colors"
-        style={{ border: 'none', background: 'transparent', cursor: 'pointer', width: '100%' }}
+        style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', width: '100%' }}
         onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
         onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
       >
@@ -78,23 +79,23 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
             style={{ transform: expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform 150ms ease', color: 'var(--color-text)' }}
           />
           <BookOpen size={14} style={{ color: 'var(--color-text-muted)' }} />
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: '13px', textTransform: 'uppercase', color: 'var(--color-text)' }}>
+          <span style={{ fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: '13px', textTransform: 'none', color: 'var(--color-text)' }}>
             {t.glossaryUpdates.title} ({entryCount})
           </span>
         </div>
         <div className="flex items-center gap-2">
           {hasError && (
-            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--fg-red,#FF3C3C)', padding: '2px 6px', border: '2px solid var(--fg-red,#FF3C3C)', textTransform: 'uppercase' }}>
+            <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, color: 'var(--fg-red,#FF3C3C)', padding: '2px 6px', border: '1px solid var(--fg-red,#FF3C3C)', textTransform: 'none' }}>
               ERROR
             </span>
           )}
           {pendingEntries.length > 0 && !expanded && (
-            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--on-accent,#111)', background: 'var(--bg-green,#28E272)', padding: '2px 6px', border: '2px solid var(--color-border)', textTransform: 'uppercase' }}>
+            <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, color: 'var(--on-accent,#111)', background: 'var(--bg-green,#28E272)', padding: '2px 6px', border: '1px solid var(--color-border)', textTransform: 'none' }}>
               {pendingEntries.length} {t.common.new}
             </span>
           )}
         </div>
-      </button>
+      </Button>
 
       {/* Expanded content */}
       {expanded && (
@@ -109,26 +110,26 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
             <>
               {pendingEntries.length > 0 && (
                 <div className="px-4 py-2" style={{ borderBottom: `1px solid var(--color-separator)` }}>
-                  <button
+                  <Button variant="default"
                     onClick={handleAddAll}
                     disabled={addingAll || loading}
-                    className="neo-button text-xs flex items-center gap-1"
+                    className="text-xs flex items-center gap-1"
                     style={{ padding: '6px 12px', fontSize: '11px', opacity: addingAll || loading ? 0.5 : 1 }}
                   >
                     <Plus size={12} />
                     {addingAll ? t.common.saving : `${t.glossaryUpdates.addAllNew} (${pendingEntries.length})`}
-                  </button>
+                  </Button>
                 </div>
               )}
 
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid var(--color-border)`, backgroundColor: 'var(--color-surface-2)' }}>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.sourceTerm}</th>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.translatedTerm}</th>
-                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--color-text-muted)' }}>{t.seriesSettings.notes}</th>
-                    <th className="px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '90px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Status</th>
-                    <th className="px-3 py-1.5" style={{ fontWeight: 700, fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.5px', width: '110px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Aksi</th>
+                  <tr style={{ borderBottom: `1px solid var(--color-border)`, backgroundColor: 'var(--color-surface-2)' }}>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 600, fontSize: '10px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>{t.seriesSettings.sourceTerm}</th>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 600, fontSize: '10px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>{t.seriesSettings.translatedTerm}</th>
+                    <th className="text-left px-3 py-1.5" style={{ fontWeight: 600, fontSize: '10px', textTransform: 'none', letterSpacing: 'normal', color: 'var(--color-text-muted)' }}>{t.seriesSettings.notes}</th>
+                    <th className="px-3 py-1.5" style={{ fontWeight: 600, fontSize: '10px', textTransform: 'none', letterSpacing: 'normal', width: '90px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Status</th>
+                    <th className="px-3 py-1.5" style={{ fontWeight: 600, fontSize: '10px', textTransform: 'none', letterSpacing: 'normal', width: '110px', textAlign: 'center', color: 'var(--color-text-muted)' }}>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -140,15 +141,15 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
                       <tr key={i} style={{ borderBottom: `1px solid var(--color-separator)`, opacity: inGlossary ? 0.6 : 1 }}>
                         <td className="px-3 py-1.5" style={{ fontWeight: 600, color: 'var(--color-text)' }}>{entry.sourceTerm}</td>
                         <td className="px-3 py-1.5" style={{ color: 'var(--color-text)' }}>{entry.translatedTerm}</td>
-                        <td className="px-3 py-1.5" style={{ color: 'var(--color-text-muted)' }}>{entry.notes || '—'}</td>
+                        <td className="px-3 py-1.5" style={{ color: 'var(--color-text-muted)' }}>{entry.notes || ': '}</td>
 
                         <td className="px-3 py-1.5" style={{ textAlign: 'center' }}>
                           {inGlossary ? (
-                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--color-text-muted)', padding: '2px 6px', border: `1.5px solid var(--color-separator)`, textTransform: 'uppercase' }}>
+                            <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, color: 'var(--color-text-muted)', padding: '2px 6px', border: `1px solid var(--color-separator)`, textTransform: 'none' }}>
                               {t.common.exists}
                             </span>
                           ) : (
-                            <span style={{ fontSize: '9px', fontWeight: 700, color: 'var(--on-accent,#111)', background: 'var(--bg-yellow,#FFEF33)', padding: '2px 6px', border: '1.5px solid #111', textTransform: 'uppercase' }}>
+                            <span style={{ borderRadius: 'var(--radius)',  fontSize: '9px', fontWeight: 600, color: 'var(--on-accent,#111)', background: 'var(--bg-yellow,#FFEF33)', padding: '2px 6px', border: '1px solid var(--border)', textTransform: 'none' }}>
                               {t.common.new}
                             </span>
                           )}
@@ -156,30 +157,30 @@ export function GlossaryUpdatePanel({ updates, seriesGlossary, onAddEntry, loadi
 
                         <td className="px-3 py-1.5" style={{ textAlign: 'center' }}>
                           {inGlossary ? (
-                            <span style={{ color: 'var(--fg-green,#28E272)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', fontSize: '10px', fontWeight: 700 }}>
+                            <span style={{ color: 'var(--fg-green,#28E272)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', fontSize: '10px', fontWeight: 600 }}>
                               <Check size={11} /> ✓
                             </span>
                           ) : (
-                            <button
+                            <Button variant="ghost"
                               onClick={() => handleAdd(entry.sourceTerm, entry.translatedTerm, entry.notes)}
                               disabled={isBeingAdded || addingAll || loading}
-                              style={{
+                              style={{ borderRadius: 'var(--radius)',
                                 fontSize: '10px',
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 padding: '3px 10px',
-                                border: '2px solid var(--color-border)',
+                                border: '1px solid var(--color-border)',
                                 background: isBeingAdded ? 'var(--color-surface-2)' : 'var(--bg-cyan,#00F7FF)',
                                 color: 'var(--on-accent,#111)',
                                 cursor: isBeingAdded || addingAll ? 'not-allowed' : 'pointer',
                                 opacity: isBeingAdded || addingAll ? 0.6 : 1,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.3px',
-                                boxShadow: '2px 2px 0px var(--color-border)',
+                                textTransform: 'none',
+                                letterSpacing: 'normal',
+                                boxShadow: 'var(--shadow-sm)',
                                 transition: 'all 0.1s',
                               }}
                             >
                               {isBeingAdded ? '...' : t.common.add}
-                            </button>
+                            </Button>
                           )}
                         </td>
                       </tr>

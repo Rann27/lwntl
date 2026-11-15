@@ -21,24 +21,24 @@ export default function ContextInfoBar({ info }: Props) {
   const warnColor = utilization > 90 ? 'var(--fg-red,#FF3C3C)' : utilization > 70 ? 'var(--fg-yellow,#FFEF33)' : 'var(--fg-green,#28E272)'
 
   return (
-    <div style={{
+    <div style={{ borderRadius: 'var(--radius)',
       width: '100%',
       backgroundColor: 'var(--color-surface)',
-      border: '2.5px solid var(--color-border)',
-      boxShadow: '2px 2px 0px var(--color-border)',
+      border: '1px solid var(--color-border)',
+      boxShadow: 'var(--shadow-sm)',
       padding: '12px',
     }}>
       <div className="flex items-center justify-between mb-2">
-        <span style={{ fontSize: '12px', fontWeight: 700, fontFamily: "'Space Grotesk', sans-serif", letterSpacing: '0.05em', color: 'var(--color-text)' }}>
+        <span style={{ fontSize: '12px', fontWeight: 600, fontFamily: 'var(--font-body)', letterSpacing: '0.05em', color: 'var(--color-text)' }}>
           CONTEXT WINDOW
         </span>
-        <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 700, color: warnColor }}>
+        <span style={{ fontSize: '12px', fontFamily: 'monospace', fontWeight: 600, color: warnColor }}>
           {formatTokens(info.totalTokens)} / {formatTokens(info.availableTokens)} tokens ({utilization}%)
         </span>
       </div>
 
       {/* Utilization bar */}
-      <div style={{ height: '12px', backgroundColor: 'var(--color-surface-2)', border: '2px solid var(--color-border)', position: 'relative', marginBottom: '8px' }}>
+      <div style={{ borderRadius: 'var(--radius)',  height: '12px', backgroundColor: 'var(--color-surface-2)', border: '1px solid var(--color-border)', position: 'relative', marginBottom: '8px' }}>
         <div className="h-full flex" style={{ width: `${Math.min(utilization, 100)}%` }}>
           <div className="h-full transition-all" title={`System: ${breakdown.system}`}
             style={{ width: `${(breakdown.system / info.totalTokens) * 100}%`, backgroundColor: 'var(--color-text-muted)' }} />

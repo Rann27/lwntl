@@ -1,20 +1,6 @@
-/**
- * LWNTL Skeleton Card - Loading placeholder
- */
+import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export function SkeletonCard() {
-  return (
-    <div
-      className="neo-skeleton"
-      style={{ height: '200px' }}
-    >
-      <div style={{ height: '6px', backgroundColor: '#ddd', borderBottom: '2.5px solid #111' }} />
-      <div className="p-5">
-        <div className="neo-skeleton" style={{ height: '20px', width: '70%', marginBottom: '12px', border: 'none' }} />
-        <div className="neo-skeleton" style={{ height: '14px', width: '50%', marginBottom: '20px', border: 'none' }} />
-        <div className="neo-skeleton" style={{ height: '24px', width: '100%', marginBottom: '8px', border: 'none' }} />
-        <div className="neo-skeleton" style={{ height: '12px', width: '40%', border: 'none' }} />
-      </div>
-    </div>
-  )
+  return <Card aria-label="Loading" className="py-0"><CardContent className="space-y-5 p-5"><Skeleton className="size-11 rounded-xl" /><Skeleton className="h-5 w-3/4" /><Skeleton className="h-3 w-1/2" /><Skeleton className="h-1.5 w-full" /><Skeleton className="h-7 w-1/3" /></CardContent></Card>
 }
