@@ -371,10 +371,10 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
               <tbody>
                 {filtered.map((row, i) => {
                   const bg = row.isInconsistent
-                    ? (i % 2 === 0 ? 'var(--fg-red,#fff5f5)' : 'var(--fg-red,#ffeeee)')
-                    : (i % 2 === 0 ? '#fff' : '#faf6ee')
+                    ? 'var(--bg-red)'
+                    : (i % 2 === 0 ? 'var(--card)' : 'color-mix(in srgb, var(--muted) 60%, var(--card))')
                   const borderLeft = row.isInconsistent ? '1px solid var(--fg-red,#FF3C3C)' : '1px solid transparent'
-                  const srcColor = row.isInconsistent ? 'var(--fg-red,#cc1111)' : '#111'
+                  const srcColor = row.isInconsistent ? 'var(--fg-red)' : 'var(--foreground)'
                   const badge = statusBadge(row)
 
                   return (

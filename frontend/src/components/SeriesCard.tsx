@@ -28,7 +28,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete, onMoveToGroup, 
     : (id ? 'Sedang berjalan' : 'In progress')
 
   return (
-    <Card className="group gap-0 overflow-hidden py-0 shadow-xs transition-colors hover:border-primary/40" draggable
+    <Card className="group relative cursor-pointer gap-0 overflow-hidden py-0 shadow-xs transition-colors hover:border-primary/40 hover:shadow-sm" draggable
       style={{ opacity: isDragging ? 0.4 : 1 }}
       onDragStart={e => { e.dataTransfer.setData('series-id', series.id); e.dataTransfer.effectAllowed = 'move'; onDragStart?.(series.id) }}
       onDragEnd={onDragEnd}>
@@ -36,7 +36,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete, onMoveToGroup, 
         <div className="mb-5 flex items-start justify-between gap-3">
           <div className="flex size-11 items-center justify-center rounded-xl border border-border bg-muted text-muted-foreground"><BookOpen size={21} aria-hidden="true" /></div>
           <DropdownMenu>
-            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`${language === 'id' ? 'Menu series' : 'Series menu'}: ${series.title}`}><MoreHorizontal size={18} /></Button></DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" className="relative z-10" aria-label={`${language === 'id' ? 'Menu series' : 'Series menu'}: ${series.title}`}><MoreHorizontal size={18} /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onEdit(series)}><Pencil />{t.common.edit}</DropdownMenuItem>
               <DropdownMenuItem onClick={open}><Settings />{t.topbar.settings}</DropdownMenuItem>
@@ -46,7 +46,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete, onMoveToGroup, 
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-        <button onClick={open} className="mb-2 block w-full rounded text-left text-base font-semibold leading-snug text-foreground hover:text-primary" title={series.title}>
+        <button onClick={open} className="mb-2 block w-full rounded text-left text-base font-semibold leading-snug text-foreground group-hover:text-primary after:absolute after:inset-0 after:z-[5] after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50" title={series.title}>
           <span className="line-clamp-2 break-words">{series.title}</span>
         </button>
         <div className="mb-6 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
@@ -59,7 +59,7 @@ export function SeriesCard({ series, chapters, onEdit, onDelete, onMoveToGroup, 
         <Progress value={progress} aria-label={language === 'id' ? 'Progres terjemahan' : 'Translation progress'} className="h-1.5" />
         <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
           <Badge variant="secondary" className="text-[11px] font-normal">{status}</Badge>
-          <Button variant="ghost" size="sm" className="-mr-2 text-primary" onClick={open}>{language === 'id' ? 'Buka series' : 'Open series'}<ArrowRight className="size-3.5" /></Button>
+          <Button variant="ghost" size="sm" className="relative z-10 -mr-2 text-primary" tabIndex={-1} onClick={open}>{language === 'id' ? 'Buka series' : 'Open series'}<ArrowRight className="size-3.5" /></Button>
         </div>
       </CardContent>
     </Card>

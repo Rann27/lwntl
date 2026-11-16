@@ -137,6 +137,7 @@ const id = {
     glossaryPreFilterDesc: 'Hanya injeksi term glossary yang muncul di chapter. Nonaktifkan jika term penting sering terlewat.',
     saveSettings: 'Simpan pengaturan',
     glossary: 'Glossary',
+    tools: 'Alat series',
     addEntry: 'Entri',
     searchGlossary: 'Cari glossary...',
     noGlossary: 'Belum ada entri glossary.',

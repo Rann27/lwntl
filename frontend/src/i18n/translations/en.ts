@@ -133,6 +133,7 @@ const en: TranslationStrings = {
     glossaryPreFilterDesc: 'Only inject glossary terms that appear in the chapter. Disable if important terms are being missed.',
     saveSettings: 'Save settings',
     glossary: 'Glossary',
+    tools: 'Series tools',
     addEntry: 'Entry',
     searchGlossary: 'Search glossary...',
     noGlossary: 'No glossary entries yet.',

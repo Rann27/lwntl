@@ -1,0 +1,26 @@
+[
+  {
+    "id": "classic",
+    "file": "classic.docx",
+    "name": "Classic",
+    "description": "Template bawaan LWNTL sejak awal: A4, Noto Sans, judul bab Constantia di tengah."
+  },
+  {
+    "id": "plain",
+    "file": "plain.docx",
+    "name": "Polos",
+    "description": "Times New Roman 12 pt di A4 dengan margin lega. Tampilan ekspor LWNTL tanpa template."
+  },
+  {
+    "id": "novel-a5",
+    "file": "novel-a5.docx",
+    "name": "Novel A5",
+    "description": "Halaman buku A5: Georgia, indentasi baris pertama tanpa jarak antarparagraf, nomor halaman."
+  },
+  {
+    "id": "screen",
+    "file": "screen.docx",
+    "name": "Baca di layar",
+    "description": "Segoe UI dengan spasi lapang dan jarak antarparagraf, enak dibaca di monitor atau tablet."
+  }
+]

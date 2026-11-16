@@ -114,7 +114,7 @@ for (const tab of ['Provider & API', 'Worker']) {
 }
 
 for (const theme of ['light', 'dark']) {
-  for (const name of ['Run agent', 'QA Scan', 'Pre-pass terms', 'Image source', 'All terms', 'Rolling memory', 'Tambah bab']) {
+  for (const name of ['Run agent', 'QA Scan', 'Pre-pass terms', 'Image source', 'All terms', 'Rolling memory', 'Template DOCX', 'Tambah bab']) {
     test(`${name}: ${theme} dialog controls and accessibility`, async ({ page }) => {
       const errors: string[] = []
       page.on('pageerror', error => errors.push(error.message))
@@ -183,3 +183,18 @@ for (const theme of ['light', 'dark']) {
     await expect(welcome).toHaveCount(0)
   })
 }
+
+test('docx template modal: pick a template for the series', async ({ page }) => {
+  await installMockApi(page)
+  await page.goto('/#/series/series-1/settings')
+  await page.getByRole('button', { name: /pilih template word/i }).click()
+  const dialog = page.getByRole('dialog', { name: 'Template DOCX' })
+  await expect(dialog.getByText(/mengikuti default/)).toBeVisible()
+  await dialog.getByRole('button', { name: /novel a5/i }).click()
+  await expect(dialog.getByText('A5', { exact: true })).toBeVisible()
+  await dialog.getByRole('button', { name: 'Pakai untuk series ini' }).click()
+  await expect(dialog.getByRole('button', { name: 'Dipakai series ini' })).toBeDisabled()
+  await expect(dialog.getByText('Series ini memakai')).toContainText('Novel A5')
+  await dialog.getByRole('button', { name: /ikuti default/i }).click()
+  await expect(dialog.getByText(/mengikuti default/)).toBeVisible()
+})

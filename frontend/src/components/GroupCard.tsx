@@ -34,14 +34,14 @@ export function GroupCard({ group, allGroups, allSeries, chaptersMap, depth, onO
   const done = chapters.filter(c => c.status === 'done').length
   const progress = chapters.length ? Math.round(done / chapters.length * 100) : 0
   const subgroups = allGroups.filter(g => g.parentId === group.id).length
-  return <Card className="gap-0 py-0 shadow-xs" style={{ borderColor: isDragOver ? 'var(--primary)' : undefined, background: isDragOver ? 'var(--accent)' : undefined }}
+  return <Card className="group relative cursor-pointer gap-0 py-0 shadow-xs transition-colors hover:border-primary/40 hover:shadow-sm" style={{ borderColor: isDragOver ? 'var(--primary)' : undefined, background: isDragOver ? 'var(--accent)' : undefined }}
     onDragOver={e => { if (e.dataTransfer.types.includes('series-id')) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setIsDragOver(true) } }}
     onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false) }}
     onDrop={e => { e.preventDefault(); setIsDragOver(false); const id = e.dataTransfer.getData('series-id'); if (id) onDropSeries?.(id, group.id) }}>
     <CardContent className="p-5">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex size-11 items-center justify-center rounded-xl bg-muted"><Folder size={21} style={{ color: group.color }} aria-hidden="true" /></div>
-        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" aria-label={`${language === 'id' ? 'Menu grup' : 'Group menu'}: ${group.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger>
+        <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm" className="relative z-10" aria-label={`${language === 'id' ? 'Menu grup' : 'Group menu'}: ${group.name}`}><MoreHorizontal /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => onRename(group)}><Pencil />{t.group.rename}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => onChangeColor(group)}><Palette />{t.group.changeColor}</DropdownMenuItem>
@@ -50,7 +50,7 @@ export function GroupCard({ group, allGroups, allSeries, chaptersMap, depth, onO
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <button className="mb-2 block w-full rounded text-left text-base font-semibold hover:text-primary" onClick={() => !anyDragging && onOpen(group)}><span className="line-clamp-2 break-words">{group.name}</span></button>
+      <button className="mb-2 block w-full rounded text-left text-base font-semibold group-hover:text-primary after:absolute after:inset-0 after:z-[5] after:rounded-xl after:content-[''] focus-visible:outline-none focus-visible:after:ring-[3px] focus-visible:after:ring-ring/50" onClick={() => !anyDragging && onOpen(group)}><span className="line-clamp-2 break-words">{group.name}</span></button>
       <p className="mb-5 text-xs text-muted-foreground">{series.length} {t.group.series}{subgroups ? ` / ${subgroups} ${t.group.subgroups}` : ''}</p>
       <Progress value={progress} aria-label={language === 'id' ? 'Progres grup' : 'Group progress'} className="mb-2 h-1.5" />
       <p className="text-xs text-muted-foreground">{done} / {chapters.length} {t.group.translated} ({progress}%)</p>

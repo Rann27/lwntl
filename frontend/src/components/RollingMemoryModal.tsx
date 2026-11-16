@@ -169,7 +169,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
                               width: '8px',
                               height: '8px',
                               borderRadius: '50%',
-                              backgroundColor: hasSummary ? 'var(--bg-green,#28E272)' : '#ddd',
+                              backgroundColor: hasSummary ? 'var(--fg-green)' : 'var(--border)',
                               flexShrink: 0,
                             }}
                           />
@@ -310,7 +310,7 @@ export function RollingMemoryModal({ open, onClose, seriesId, chapters, onChapte
           style={{ borderTop: '1px solid var(--border)', flexShrink: 0 }}
         >
           <div className="flex items-center gap-2">
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--bg-green,#28E272)', display: 'inline-block' }} />
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--fg-green)', display: 'inline-block' }} />
             <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>Has summary</span>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--muted)', display: 'inline-block', marginLeft: '8px' }} />
             <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>No summary</span>

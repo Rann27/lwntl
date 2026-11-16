@@ -23,7 +23,7 @@ export const MANAGE_USAGE_URL = 'https://chatgpt.com/settings/usage'
 export function ChatGPTPlanBadge() {
   return (
     <span className="flex items-center gap-1.5 flex-wrap" style={{ fontSize: '11px' }}>
-      <span style={{ fontWeight: 600, padding: '1px 6px', background: 'var(--muted)', color: 'var(--background)' }}>Using ChatGPT plan</span>
+      <span style={{ fontWeight: 600, padding: '1px 6px', borderRadius: 'var(--radius)', background: 'var(--bg-green)', color: 'var(--fg-green)' }}>Using ChatGPT plan</span>
       <a href={MANAGE_USAGE_URL} target="_blank" rel="noreferrer" className="flex items-center gap-0.5"
         style={{ fontWeight: 600, color: 'var(--color-text)' }}>
         Manage usage <ExternalLink size={10} />

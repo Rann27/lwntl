@@ -278,7 +278,7 @@ export function ImageFolderModal({ open, onClose, series, onSeriesUpdated, onSyn
               </div>
               {result.missing > 0 && (
                 <div>
-                  <p style={{ fontSize: '11px', color: '#C97A00', fontWeight: 600, margin: '0 0 3px' }}>
+                  <p style={{ fontSize: '11px', color: 'var(--fg-orange)', fontWeight: 600, margin: '0 0 3px' }}>
                     {result.missing} placeholder tidak ketemu gambarnya:
                   </p>
                   <p style={{ fontSize: '10px', fontFamily: 'monospace', color: 'var(--color-text-muted)', margin: 0, lineHeight: 1.5, wordBreak: 'break-all' }}>

@@ -43,14 +43,14 @@ export default function ContextInfoBar({ info }: Props) {
           <div className="h-full transition-all" title={`System: ${breakdown.system}`}
             style={{ width: `${(breakdown.system / info.totalTokens) * 100}%`, backgroundColor: 'var(--color-text-muted)' }} />
           <div className="h-full transition-all" title={`Rolling: ${breakdown.rolling}`}
-            style={{ width: `${(breakdown.rolling / info.totalTokens) * 100}%`, backgroundColor: 'var(--bg-cyan,#00F7FF)' }} />
+            style={{ width: `${(breakdown.rolling / info.totalTokens) * 100}%`, backgroundColor: 'var(--fg-cyan)' }} />
           <div className="h-full transition-all" title={`Memory: ${breakdown.memory}`}
-            style={{ width: `${(breakdown.memory / info.totalTokens) * 100}%`, backgroundColor: 'var(--bg-yellow,#FFEF33)' }} />
+            style={{ width: `${(breakdown.memory / info.totalTokens) * 100}%`, backgroundColor: 'var(--fg-yellow)' }} />
           <div className="h-full transition-all" title={`Current: ${breakdown.current}`}
-            style={{ width: `${(breakdown.current / info.totalTokens) * 100}%`, backgroundColor: 'var(--bg-green,#28E272)' }} />
+            style={{ width: `${(breakdown.current / info.totalTokens) * 100}%`, backgroundColor: 'var(--fg-green)' }} />
         </div>
         {!fits && (
-          <div className="absolute right-0 top-0 h-full w-2 bg-[var(--bg-red,#FF3C3C)] animate-pulse" />
+          <div className="absolute right-0 top-0 h-full w-2 bg-[var(--fg-red)] animate-pulse" />
         )}
       </div>
 
@@ -60,15 +60,15 @@ export default function ContextInfoBar({ info }: Props) {
           <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--color-text-muted)' }} /> System {formatTokens(breakdown.system)}
         </span>
         <span className="flex items-center gap-1">
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--bg-cyan,#00F7FF)' }} /> Rolling {formatTokens(breakdown.rolling)}
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--fg-cyan)' }} /> Rolling {formatTokens(breakdown.rolling)}
           {info.summariesAvailable > 0 && <span style={{ color: 'var(--color-text-subtle)' }}>({info.summariesAvailable} bab)</span>}
         </span>
         <span className="flex items-center gap-1">
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--bg-yellow,#FFEF33)' }} /> Memory {formatTokens(breakdown.memory)}
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--fg-yellow)' }} /> Memory {formatTokens(breakdown.memory)}
           {info.memoriesAvailable > 0 && <span style={{ color: 'var(--color-text-subtle)' }}>({info.memoriesAvailable} blok)</span>}
         </span>
         <span className="flex items-center gap-1">
-          <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--bg-green,#28E272)' }} /> Current {formatTokens(breakdown.current)}
+          <span style={{ display: 'inline-block', width: '8px', height: '8px', backgroundColor: 'var(--fg-green)' }} /> Current {formatTokens(breakdown.current)}
         </span>
       </div>
     </div>

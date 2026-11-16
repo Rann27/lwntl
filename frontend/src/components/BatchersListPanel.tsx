@@ -148,7 +148,7 @@ export function BatchersListPanel({ open, onClose }: Props) {
                       )}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      {isActive && <div className="w-2 h-2 bg-[var(--bg-cyan,#00F7FF)] animate-pulse" />}
+                      {isActive && <div className="size-2 rounded-full bg-primary animate-pulse" />}
                       {isDone && (
                         <span style={{ fontSize: '10px', color: 'var(--fg-green,#28E272)', fontWeight: 600 }}>✓ Selesai</span>
                       )}
@@ -181,7 +181,7 @@ export function BatchersListPanel({ open, onClose }: Props) {
                         style={{
                           width: `${pct}%`,
                           height: '100%',
-                          backgroundColor: isDone ? 'var(--bg-green,#28E272)' : isCancelled ? '#555' : 'var(--bg-cyan,#00F7FF)',
+                          backgroundColor: isDone ? 'var(--fg-green)' : isCancelled ? 'var(--muted-foreground)' : 'var(--primary)',
                           transition: 'width 0.5s',
                         }}
                       />

@@ -104,10 +104,10 @@ export function OpenRouterModelPicker({ value, onChange }: Props) {
                 </div>
                 <div className="flex items-center gap-1 flex-wrap" style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                   <span style={{ fontFamily: 'monospace' }}>{m.id}</span>
-                  {m.reasoning && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-purple,#C9A7FF)', color: '#9B6BFF', padding: '0 4px', fontWeight: 600 }}>
+                  {m.reasoning && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-purple,#C9A7FF)', color: 'var(--fg-purple)', padding: '0 4px', fontWeight: 600 }}>
                     R {m.efforts.length ? m.efforts.join('/') : m.budgetReasoning ? 'budget' : ''}
                   </span>}
-                  {m.tools && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-green,#28E272)', color: '#1BA556', padding: '0 4px', fontWeight: 600 }}>Tools</span>}
+                  {m.tools && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--fg-green,#28E272)', color: 'var(--fg-green)', padding: '0 4px', fontWeight: 600 }}>Tools</span>}
                   {!m.temperature && <span style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', padding: '0 4px', fontWeight: 600 }}>No temp</span>}
                   {m.expires && <span style={{ color: 'var(--fg-red,#FF3C3C)', fontWeight: 600 }}>pensiun {m.expires}</span>}
                 </div>

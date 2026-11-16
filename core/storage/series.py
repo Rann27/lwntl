@@ -53,6 +53,7 @@ def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
     series.setdefault("lookupEnabled", False)
     series.setdefault("lookupChapters", 1)
     series.setdefault("systemPromptPreset", "")
+    series.setdefault("docTemplate", "")
     return series
 
 

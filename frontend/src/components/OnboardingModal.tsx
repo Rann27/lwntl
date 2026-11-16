@@ -95,7 +95,7 @@ export function OnboardingModal({ open, onComplete }: OnboardingModalProps) {
                 style={{ borderRadius: 'var(--radius)',
                   width: step >= s ? '32px' : '12px',
                   height: '12px',
-                  backgroundColor: step >= s ? 'var(--bg-cyan,#00F7FF)' : '#ddd',
+                  backgroundColor: step >= s ? 'var(--primary)' : 'var(--muted)',
                   border: '1px solid var(--border)',
                   transition: 'all 200ms ease',
                 }}

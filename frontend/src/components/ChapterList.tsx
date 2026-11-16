@@ -25,7 +25,7 @@ interface ChapterListProps {
 }
 
 const statusColors: Record<ChapterStatus, string> = {
-  pending:    '#999',
+  pending:    'var(--muted-foreground)',
   processing: 'var(--fg-yellow,#FFEF33)',
   done:       'var(--fg-green,#28E272)',
   error:      'var(--fg-red,#FF3C3C)',
@@ -82,18 +82,16 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
 
   return (
     <div
-      className="flex flex-col flex-1 min-h-0"
+      className="chapter-list flex flex-col flex-1 min-h-0 overflow-hidden"
       style={{ borderRadius: 'var(--radius)',
         backgroundColor: 'var(--color-surface)',
         border: '1px solid var(--color-border)',
         boxShadow: 'var(--shadow-sm)',
-        minWidth: '220px',
-        maxWidth: '280px',
       }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between px-4 py-3"
+        className="flex items-center justify-between px-3 py-2.5"
         style={{ borderBottom: '1px solid var(--color-border)' }}
       >
         <span
@@ -222,7 +220,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
       <div style={{ borderTop: '1px solid var(--color-border)' }}>
         <Button variant="ghost"
           onClick={onAddChapter}
-          className="flex items-center justify-center gap-2 w-full py-3 font-semibold transition-colors"
+          className="flex items-center justify-center gap-2 w-full h-9 font-semibold transition-colors"
           style={{ borderRadius: 'var(--radius)',
             border: 'none',
             background: 'transparent',
@@ -234,7 +232,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
         >
-          <Plus size={16} />
+          <Plus size={15} />
           {t.chapter.addChapter}
         </Button>
       </div>
@@ -276,27 +274,27 @@ function ChapterItem({
 
   return (
     <div
-      className="flex items-center gap-3 px-4 py-2.5 cursor-pointer group"
+      className="flex items-center gap-2.5 pl-3 pr-1.5 py-1.5 cursor-pointer group"
       style={{
         borderBottom: `1px solid var(--color-separator)`,
-        backgroundColor: selected ? 'rgba(0,247,255,0.08)' : 'transparent',
+        backgroundColor: selected ? 'var(--accent)' : 'transparent',
         borderLeft: selected ? '1px solid var(--fg-cyan,#00F7FF)' : '1px solid transparent',
       }}
       onClick={onClick}
       onMouseEnter={(e) => { if (!selected) e.currentTarget.style.backgroundColor = 'var(--color-surface-2)' }}
-      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = selected ? 'rgba(0,247,255,0.08)' : 'transparent' }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = selected ? 'var(--accent)' : 'transparent' }}
     >
       {/* Checkbox (select mode) or status dot (normal mode) */}
       {selectMode ? (
         <div
           style={{ borderRadius: 'var(--radius)',
             width: '16px', height: '16px', flexShrink: 0,
-            border: `1px solid ${selected ? 'var(--fg-cyan,#00F7FF)' : 'var(--color-border)'}`,
-            backgroundColor: selected ? 'var(--fg-cyan,#00F7FF)' : 'transparent',
+            border: `1px solid ${selected ? 'var(--primary)' : 'var(--color-border)'}`,
+            backgroundColor: selected ? 'var(--primary)' : 'transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
         >
-          {selected && <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--on-accent,#111)', lineHeight: 1 }}>✓</span>}
+          {selected && <span style={{ fontSize: '10px', fontWeight: 650, color: 'var(--primary-foreground)', lineHeight: 1 }}>✓</span>}
         </div>
       ) : (
         <div
@@ -327,9 +325,9 @@ function ChapterItem({
         />
       ) : (
         <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
-          <Button aria-label="More options" variant="ghost"
+          <Button aria-label="More options" variant="ghost" size="icon-xs"
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
-            className="opacity-0 group-hover:opacity-100 transition-opacity p-1"
+            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
             style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer' }}
           >
             <MoreVertical size={14} style={{ color: 'var(--color-text-muted)' }} />

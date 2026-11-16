@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import type { ReactNode } from 'react'
 import { useParams } from 'react-router-dom'
 import { Topbar } from '../components/Topbar'
 import { ChapterList } from '../components/ChapterList'
@@ -19,11 +20,12 @@ import { AllTermsModal, countInconsistencies } from '../components/AllTermsModal
 import { RollingMemoryModal } from '../components/RollingMemoryModal'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch, Bot, ShieldCheck, Image as ImageIcon } from 'lucide-react'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch, Bot, ShieldCheck, Image as ImageIcon, ChevronDown, FileType2 } from 'lucide-react'
 import { TerminologyPrepassModal } from '../components/TerminologyPrepassModal'
 import { AgentRunModal } from '../components/AgentRunModal'
 import { QaReportModal } from '../components/QaReportModal'
 import { ImageFolderModal } from '../components/ImageFolderModal'
+import { DocTemplateModal } from '../components/DocTemplateModal'
 import type { ProposedTerm } from '../api'
 import {
   getAllSeries,
@@ -72,6 +74,10 @@ export function SeriesSettingsPage() {
   const [showRollingMemory, setShowRollingMemory] = useState(false)
   const [seriesLogLines, setSeriesLogLines] = useState<string[]>([])
   const logEndRef = useRef<HTMLDivElement>(null)
+  const [showDocTemplate, setShowDocTemplate] = useState(false)
+  const [toolsOpen, setToolsOpen] = useState(() => {
+    try { return localStorage.getItem(TOOLS_OPEN_KEY) !== '0' } catch { return true }
+  })
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [deleteSelectedOpen, setDeleteSelectedOpen] = useState(false)
@@ -287,8 +293,7 @@ export function SeriesSettingsPage() {
     try {
       const result = await exportSeriesMerged(seriesId!)
       if (!result.cancelled) {
-        const note = result.usedTemplate ? ' ✓' : ` (${t.batch.batchExportNoTemplate})`
-        toast.success(`${result.message}${note}`)
+        toast.success(result.usedTemplate ? result.message : `${result.message} (${t.batch.batchExportNoTemplate})`)
       }
     } catch (e: any) {
       toast.error(e.message || 'Export failed')
@@ -475,6 +480,14 @@ export function SeriesSettingsPage() {
     }
   }
 
+  const pendingCount = chapters.filter(c => c.status === 'pending').length
+  const errorCount = chapters.filter(c => c.status === 'error').length
+  const doneCount = chapters.filter(c => c.status === 'done').length
+  const toggleTools = () => setToolsOpen(open => {
+    try { localStorage.setItem(TOOLS_OPEN_KEY, open ? '0' : '1') } catch { /* storage unavailable */ }
+    return !open
+  })
+
   if (loading) {
     return (
       <div className="app-layout">
@@ -505,107 +518,89 @@ export function SeriesSettingsPage() {
         className="workspace-layout flex-1 overflow-hidden p-4 gap-4"
         style={{ backgroundColor: 'var(--color-bg)', display: 'flex' }}
       >
-        {/* Left: Chapter List */}
-        <div className="chapter-sidebar flex flex-col gap-2 overflow-y-auto overflow-x-visible" style={{ minWidth: '240px', maxWidth: '280px', minHeight: 0, paddingRight: '4px' }}>
+        {/* Left: batch actions, chapter list (takes the free height), series tools */}
+        <div className="chapter-sidebar flex flex-col gap-2 overflow-y-auto" style={{ minHeight: 0 }}>
 
           {!selectMode ? (
-            /* Normal mode: Translate All + Retry Failed (if any) + Select */
+            /* Normal mode: Translate All, Retry Failed (if any), Run agent + Select */
             <div className="flex flex-col gap-1.5">
               <Button variant="default"
                 onClick={() => startBatch(chapters)}
-                disabled={isBatchActive || chapters.filter(c => c.status === 'pending').length === 0}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                disabled={isBatchActive || pendingCount === 0}
+                className="w-full gap-2 font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Play size={16} />
+                <Play size={15} />
                 {t.batch.title}
-                <span className="text-xs font-normal">
-                  ({chapters.filter(c => c.status === 'pending').length} {t.home.chapters})
-                </span>
+                <span className="text-xs font-normal opacity-80">({pendingCount} {t.home.chapters})</span>
               </Button>
-              <Button aria-label={t.agent.buttonTitle} variant="ghost"
-                onClick={() => setShowAgentRun(true)}
-                disabled={isBatchActive || !chapters.some(c => c.status === 'done')}
-                title={t.agent.buttonTitle}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                style={{ color: 'var(--on-accent,#111)' }}
-              >
-                <Bot size={14} />
-                {t.agent.button}
-              </Button>
-              {chapters.filter(c => c.status === 'error').length > 0 && (
-                <Button variant="ghost"
+              {errorCount > 0 && (
+                <Button variant="outline" size="sm"
                   onClick={() => {
                     const ids = chapters.filter(c => c.status === 'error').sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(c => c.id)
                     startSelectedBatch(ids)
                   }}
                   disabled={isBatchActive}
-                  className="w-full flex items-center justify-center gap-2 px-3 py-2 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  style={{ color: 'var(--foreground)' }}
+                  className="w-full gap-1.5 text-xs font-semibold"
                 >
                   <RefreshCw size={13} />
                   {t.batch.retryFailed}
-                  <span className="font-normal">({chapters.filter(c => c.status === 'error').length})</span>
+                  <span className="font-normal">({errorCount})</span>
                 </Button>
               )}
-              <Button variant="ghost"
-                onClick={handleEnterSelectMode}
-                disabled={isBatchActive || chapters.length === 0}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-semibold text-xs border border-border shadow-sm bg-(--color-surface) active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                style={{ color: 'var(--color-text)' }}
-              >
-                <CheckSquare size={13} />
-                {t.batch.selectChapter}
-              </Button>
-              <Button aria-label={t.batch.batchExportTitle} variant="ghost"
-                onClick={handleBatchExport}
-                disabled={batchExporting || chapters.filter(c => c.status === 'done').length === 0}
-                title={t.batch.batchExportTitle}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                style={{ color: 'var(--on-accent,#111)' }}
-              >
-                <FileDown size={13} />
-                {batchExporting ? '...' : t.batch.batchExport}
-                <span className="font-normal">({chapters.filter(c => c.status === 'done').length})</span>
-              </Button>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button aria-label={t.agent.buttonTitle} variant="outline" size="sm"
+                  onClick={() => setShowAgentRun(true)}
+                  disabled={isBatchActive || doneCount === 0}
+                  title={t.agent.buttonTitle}
+                  className="gap-1.5 text-xs font-semibold"
+                >
+                  <Bot size={13} />
+                  {t.agent.button}
+                </Button>
+                <Button variant="outline" size="sm"
+                  onClick={handleEnterSelectMode}
+                  disabled={isBatchActive || chapters.length === 0}
+                  className="gap-1.5 text-xs font-semibold"
+                >
+                  <CheckSquare size={13} />
+                  {t.batch.selectChapter}
+                </Button>
+              </div>
             </div>
           ) : (
             /* Select mode: Translate Selected + Delete Selected + Cancel */
             <div className="flex flex-col gap-1.5">
-              <div className="flex gap-1.5">
-                <Button variant="ghost"
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button variant="default" size="sm"
                   onClick={handleTranslateSelected}
                   disabled={isBatchActive || selectedIds.size === 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  style={{ color: 'var(--on-accent,#111)' }}
+                  className="gap-1.5 text-xs font-semibold disabled:opacity-40"
                 >
                   <Play size={12} />
                   {t.batch.translateSelected}
                   {selectedIds.size > 0 && <span className="font-normal">({selectedIds.size})</span>}
                 </Button>
-                <Button variant="ghost"
+                <Button variant="outline" size="sm"
                   onClick={() => { if (selectedIds.size > 0) setDeleteSelectedOpen(true) }}
                   disabled={selectedIds.size === 0}
-                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-2.5 font-semibold text-xs border border-border shadow-sm bg-card active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-                  style={{ color: 'var(--foreground)' }}
+                  className="gap-1.5 text-xs font-semibold"
+                  style={{ color: 'var(--fg-red,#C62828)' }}
                 >
                   <Trash2 size={12} />
                   {t.batch.deleteSelected}
                   {selectedIds.size > 0 && <span className="font-normal">({selectedIds.size})</span>}
                 </Button>
               </div>
-              <Button variant="ghost"
-                onClick={handleExitSelectMode}
-                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 font-semibold text-xs border-2 border-(--color-border) bg-transparent hover:bg-(--color-surface-2) transition-colors"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                <X size={12} /> {t.batch.cancelSelect}
-              </Button>
-              {/* Selection count indicator */}
-              <p style={{ fontSize: '11px', textAlign: 'center', color: 'var(--color-text-muted)', margin: 0 }}>
-                {selectedIds.size > 0
-                  ? t.batch.selectedCount.replace('{count}', String(selectedIds.size))
-                  : 'Klik bab untuk memilih'}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="flex-1" style={{ fontSize: '11px', color: 'var(--color-text-muted)', margin: 0 }}>
+                  {selectedIds.size > 0
+                    ? t.batch.selectedCount.replace('{count}', String(selectedIds.size))
+                    : 'Klik bab untuk memilih'}
+                </p>
+                <Button variant="ghost" size="xs" onClick={handleExitSelectMode} className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  <X size={12} /> {t.batch.cancelSelect}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -621,125 +616,71 @@ export function SeriesSettingsPage() {
             onToggleSelect={handleToggleSelect}
           />
 
-          {/* Deterministic QA: no AI, no tokens */}
-          <Button aria-label="Periksa seluruh terjemahan tanpa AI: sisa huruf Jepang, omisi, varian nama, ejaan, dan lainnya" variant="ghost"
-            onClick={() => setShowQa(true)}
-            disabled={chapters.filter(c => c.status === 'done').length === 0}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm active:shadow-none disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            style={{ backgroundColor: 'var(--bg-cyan,#8AF0FF)', color: 'var(--on-accent,#111)' }}
-            title="Periksa seluruh terjemahan tanpa AI: sisa huruf Jepang, omisi, varian nama, ejaan, dan lainnya"
-          >
-            <ShieldCheck size={14} />
-            QA scan
-          </Button>
-
-          {/* Terminology pre-pass: build the glossary before translating */}
-          <Button aria-label="Pindai raw semua chapter untuk mengunci istilah sebelum menerjemahkan" variant="ghost"
-            onClick={() => setShowPrepass(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm active:shadow-none transition-all"
-            style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-lime,#C8FF8A)' }}
-            title="Pindai raw semua chapter untuk mengunci istilah sebelum menerjemahkan"
-          >
-            <ScanSearch size={14} />
-            Pre-pass terms
-          </Button>
-
-          {/* Image source: link placeholder lines to real images */}
-          <Button aria-label="Tetapkan folder gambar untuk mengisi Image Placeholder" variant="ghost"
-            onClick={() => setShowImageFolder(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm active:shadow-none transition-all"
-            style={{ color: 'var(--foreground)',  backgroundColor: 'var(--bg-blue,#9AD5FF)' }}
-            title="Tetapkan folder gambar untuk mengisi Image Placeholder"
-          >
-            <ImageIcon size={14} />
-            Image source
-          </Button>
-
-          {/* All Extracted Terms */}
-          <div className="relative">
-            <Button variant="ghost"
-              onClick={() => setShowAllTerms(true)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm active:shadow-none transition-all"
-              style={{ color: 'var(--foreground)',  backgroundColor: inconsistencyCount > 0 ? 'var(--bg-red,#FFE0E0)' : 'var(--bg-purple,#E8D5FF)' }}
+          {/* Series tools: one compact list instead of a stack of large buttons */}
+          <div className="shrink-0 overflow-hidden" style={{ borderRadius: 'var(--radius)', backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-sm)' }}>
+            <button type="button" onClick={toggleTools} aria-expanded={toolsOpen}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left hover:bg-(--color-surface-2)"
+              style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text-muted)', borderBottom: toolsOpen ? '1px solid var(--color-separator)' : 'none' }}
             >
-              <BookOpen size={14} />
-              All terms ({chapters.reduce((n, c) => n + (c.glossaryUpdates?.entries?.length ?? 0), 0)})
-            </Button>
-            {inconsistencyCount > 0 && (
-              <span
-                className="absolute -top-1.5 -right-1.5 flex items-center justify-center"
-                style={{ borderRadius: 'var(--radius)',
-                  minWidth: '18px',
-                  height: '18px',
-                  padding: '0 3px',
-                  backgroundColor: 'var(--bg-red,#FF3C3C)',
-                  color: 'var(--fg-red)',
-                  fontSize: '9px',
-                  fontWeight: 650,
-                  fontFamily: 'monospace',
-                  border: '1px solid var(--border)',
-                  lineHeight: 1,
-                }}
-                title={`${inconsistencyCount} inconsistenc${inconsistencyCount === 1 ? 'y' : 'ies'} detected`}
-              >
-                !{inconsistencyCount > 1 ? inconsistencyCount : ''}
-              </span>
+              <span className="flex-1">{t.seriesSettings.tools}</span>
+              {!toolsOpen && inconsistencyCount > 0 && <span className="size-1.5 rounded-full" style={{ backgroundColor: 'var(--fg-red,#C62828)' }} />}
+              <ChevronDown size={14} style={{ transform: toolsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
+            </button>
+            {toolsOpen && (
+              <div className="grid grid-cols-2 gap-0.5 p-1">
+                <ToolRow icon={<ShieldCheck size={14} />} color="var(--fg-cyan,#00838F)" label="QA scan"
+                  title="Periksa seluruh terjemahan tanpa AI: sisa huruf Jepang, omisi, varian nama, ejaan, dan lainnya"
+                  onClick={() => setShowQa(true)} disabled={doneCount === 0} />
+                <ToolRow icon={<ScanSearch size={14} />} color="var(--fg-green,#2E7D32)" label="Pre-pass terms"
+                  title="Pindai raw semua chapter untuk mengunci istilah sebelum menerjemahkan"
+                  onClick={() => setShowPrepass(true)} />
+                <ToolRow icon={<ImageIcon size={14} />} color="var(--fg-blue,#1565C0)" label="Image source"
+                  title="Tetapkan folder gambar untuk mengisi Image Placeholder"
+                  onClick={() => setShowImageFolder(true)} />
+                <ToolRow icon={<BookOpen size={14} />} color="var(--fg-purple,#6A1B9A)" label="All terms"
+                  count={chapters.reduce((n, c) => n + (c.glossaryUpdates?.entries?.length ?? 0), 0)}
+                  alert={inconsistencyCount > 0 ? `!${inconsistencyCount}` : undefined}
+                  alertTitle={`${inconsistencyCount} ${inconsistencyCount === 1 ? 'inconsistency' : 'inconsistencies'} detected`}
+                  onClick={() => setShowAllTerms(true)} />
+                <ToolRow icon={<Brain size={14} />} color="var(--fg-orange,#B45309)" label={t.memory.title}
+                  count={series.memory?.length || 0} expanded={showMemory}
+                  onClick={() => setShowMemory(!showMemory)} />
+                <ToolRow icon={<ScrollText size={14} />} color="var(--color-text-muted)" label="Logs"
+                  count={seriesLogLines.length || undefined} expanded={showLogs}
+                  onClick={() => setShowLogs(!showLogs)} />
+                {showMemory && (
+                  <div className="col-span-2 mx-1 mb-1 max-h-40 overflow-y-auto" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--color-separator)' }}>
+                    <MemoryPanel memories={series.memory || []} />
+                  </div>
+                )}
+                {showLogs && (
+                  <div className="col-span-2 mx-1 mb-1 max-h-40 overflow-y-auto" style={{ borderRadius: 'var(--radius)', backgroundColor: 'var(--muted)', padding: '8px' }}>
+                    {seriesLogLines.length === 0 ? (
+                      <p style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontFamily: 'monospace', margin: 0 }}>
+                        No logs yet.
+                      </p>
+                    ) : (
+                      seriesLogLines.map((line, i) => (
+                        <p key={i} style={{ fontSize: '10px', color: 'var(--fg-subtle,#aaa)', fontFamily: 'monospace', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
+                          {line}
+                        </p>
+                      ))
+                    )}
+                    <div ref={logEndRef} />
+                  </div>
+                )}
+                <ToolRow icon={<BookText size={14} />} color="var(--fg-cyan,#00838F)" label="Rolling memory" wide
+                  count={`${chapters.filter(c => c.summary).length}/${chapters.length}`}
+                  onClick={() => setShowRollingMemory(true)} />
+                <ToolRow icon={<FileDown size={14} />} color="var(--color-text-muted)"
+                  label={batchExporting ? '...' : t.batch.batchExport} title={t.batch.batchExportTitle}
+                  count={doneCount} onClick={handleBatchExport} disabled={batchExporting || doneCount === 0} />
+                <ToolRow icon={<FileType2 size={14} />} color="var(--fg-blue,#1565C0)" label="Template DOCX"
+                  title="Pilih template Word untuk ekspor series ini"
+                  onClick={() => setShowDocTemplate(true)} />
+              </div>
             )}
           </div>
-
-          {/* Rolling Memory */}
-          <Button variant="ghost"
-            onClick={() => setShowRollingMemory(true)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm bg-card hover:opacity-80 transition-all"
-            style={{ color: 'var(--fg-cyan,#00F7FF)' }}
-          >
-            <BookText size={14} />
-            Rolling memory ({chapters.filter(c => c.summary).length}/{chapters.length})
-          </Button>
-
-          {/* Memory toggle */}
-          <Button variant="ghost"
-            onClick={() => setShowMemory(!showMemory)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm bg-card active:shadow-none transition-all"
-          >
-            <Brain size={14} />
-            {t.memory.title} ({series.memory?.length || 0})
-          </Button>
-
-          {showMemory && (
-            <div className="border border-border bg-[var(--bg-surface,#fff)] max-h-48 overflow-y-auto">
-              <MemoryPanel memories={series.memory || []} />
-            </div>
-          )}
-
-          {/* Series Logs toggle */}
-          <Button variant="ghost"
-            onClick={() => setShowLogs(!showLogs)}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold border border-border shadow-sm bg-card active:shadow-none transition-all"
-          >
-            <ScrollText size={14} />
-            Logs {seriesLogLines.length > 0 && <span className="font-normal">({seriesLogLines.length})</span>}
-          </Button>
-
-          {showLogs && (
-            <div
-              className="border border-border max-h-48 overflow-y-auto"
-              style={{ backgroundColor: 'var(--muted)', padding: '8px' }}
-            >
-              {seriesLogLines.length === 0 ? (
-                <p style={{ fontSize: '10px', color: 'var(--fg-muted,#666)', fontFamily: 'monospace', margin: 0 }}>
-                  No logs yet.
-                </p>
-              ) : (
-                seriesLogLines.map((line, i) => (
-                  <p key={i} style={{ fontSize: '10px', color: 'var(--fg-subtle,#aaa)', fontFamily: 'monospace', margin: 0, lineHeight: '1.5', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
-                    {line}
-                  </p>
-                ))
-              )}
-              <div ref={logEndRef} />
-            </div>
-          )}
         </div>
 
         {/* Center: Prompt/Model Panel */}
@@ -758,7 +699,7 @@ export function SeriesSettingsPage() {
         </div>
 
         {/* Right: Glossary Table */}
-        <div style={{ minWidth: '300px', maxWidth: '380px' }}>
+        <div className="glossary-column">
           <GlossaryTable
             entries={glossary}
             seriesId={seriesId!}
@@ -825,6 +766,13 @@ export function SeriesSettingsPage() {
       />
 
       {/* Image Source Modal */}
+      <DocTemplateModal
+        open={showDocTemplate}
+        onClose={() => setShowDocTemplate(false)}
+        series={series}
+        onSeriesUpdated={(s) => setSeries(s)}
+      />
+
       <ImageFolderModal
         open={showImageFolder}
         onClose={() => setShowImageFolder(false)}
@@ -891,5 +839,39 @@ export function SeriesSettingsPage() {
       {/* CJK Detector bubble */}
       <CJKBubble incidents={cjkIncidents} workerId={series?.workerId} />
     </div>
+  )
+}
+
+const TOOLS_OPEN_KEY = 'lwntl.seriesToolsOpen'
+
+/** One row of the series tools list: icon, label, optional count and alert pill. */
+function ToolRow({ icon, color, label, title, count, alert, alertTitle, expanded, wide, onClick, disabled }: {
+  icon: ReactNode
+  color: string
+  label: string
+  title?: string
+  count?: number | string
+  alert?: string
+  alertTitle?: string
+  expanded?: boolean
+  wide?: boolean
+  onClick: () => void
+  disabled?: boolean
+}) {
+  return (
+    <Button variant="ghost" size="sm" onClick={onClick} disabled={disabled} title={title ?? (count !== undefined ? `${label} (${count})` : label)} aria-label={title}
+      aria-expanded={expanded}
+      className={`h-8 w-full min-w-0 justify-start gap-1.5 px-1.5 text-xs font-medium disabled:opacity-40 ${wide ? 'col-span-2' : ''}`}
+      style={{ color: 'var(--color-text)', backgroundColor: expanded ? 'var(--color-surface-2)' : undefined }}
+    >
+      <span className="flex shrink-0" style={{ color }}>{icon}</span>
+      <span className="flex-1 truncate text-left">{label}</span>
+      {alert && (
+        <span title={alertTitle} className="rounded-full px-1.5" style={{ fontSize: '10px', fontWeight: 650, lineHeight: '16px', backgroundColor: 'var(--bg-red,#FFE0E0)', color: 'var(--fg-red,#C62828)' }}>
+          {alert}
+        </span>
+      )}
+      {count !== undefined && <span className="shrink-0 tabular-nums" style={{ fontSize: '10.5px', fontWeight: 500, color: 'var(--color-text-muted)' }}>{count}</span>}
+    </Button>
   )
 }

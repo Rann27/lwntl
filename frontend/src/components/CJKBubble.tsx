@@ -175,7 +175,7 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                     alignItems: 'center',
                     gap: '5px',
                     padding: '4px 10px',
-                    backgroundColor: fixingAll ? '#888' : 'var(--accent)',
+                    backgroundColor: fixingAll ? 'var(--muted)' : 'var(--accent)',
                     color: 'var(--fg-yellow,#FFEF33)',
                     border: '1px solid var(--border)',
                     fontFamily: 'var(--font-body)',
@@ -330,7 +330,7 @@ export default function CJKBubble({ incidents, workerId }: Props) {
                           </span>
                         )}
                         {fix.status === 'error' && (
-                          <span style={{ fontSize: '11px', color: '#e55' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--fg-red)' }}>
                             Error: {fix.message}
                           </span>
                         )}

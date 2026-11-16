@@ -32,7 +32,7 @@ interface Props {
   onClose: (changed: boolean) => void
 }
 
-const SEV_COLOR: Record<QaSeverity, string> = { high: 'var(--fg-red,#FF3C3C)', medium: 'var(--fg-orange,#FFB020)', low: '#8A8A8A' }
+const SEV_COLOR: Record<QaSeverity, string> = { high: 'var(--fg-red,#FF3C3C)', medium: 'var(--fg-orange,#FFB020)', low: 'var(--muted-foreground)' }
 
 export function ChapterReviewModal({ open, seriesId, chapterId, disabled, onClose }: Props) {
   const { language } = useI18n()

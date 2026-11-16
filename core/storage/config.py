@@ -208,6 +208,7 @@ DEFAULT_CONFIG = {
     "maxContextTokens": 128000,
     "glossaryPreFilter": True,
     "theme": "light",
+    "docTemplateDefault": "",  # "" = builtin:classic (see core/doc_templates.py)
     "uiLanguage": "id",
     "sourceLanguages": ["Japanese", "Chinese", "Korean", "English", "Indonesian"],
     "targetLanguages": ["Indonesian", "English"],

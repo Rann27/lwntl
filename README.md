@@ -65,7 +65,7 @@ A desktop application for translating Light Novels and Web Novels with AI langua
 - **Model lists fetched from each provider**, so new models appear without an app update
 
 **App**
-- Series groups (nested folders), multiple profiles, `.docx` export with a Word template, light/dark theme, Bahasa Indonesia and English UI
+- Series groups (nested folders), multiple profiles, `.docx` export with per-series Word templates, light/dark theme, Bahasa Indonesia and English UI
 
 ---
 
@@ -258,7 +258,11 @@ The glossary is per series and **non-negotiable** in the prompt: each entry has 
 
 - **Single chapter** — **Export** in the chapter workspace, or the download icon in the chapter list.
 - **Whole series** — **Export All** merges every done chapter into one `.docx`, each chapter on a new page, illustrations embedded.
-- **Word template** — place `TemplateNew.docx` in `%APPDATA%\lwntl\` (preferred), the app folder, or next to the `.exe`; exports use its styles, fonts, margins and page setup.
+- **Headings** come from the translation itself: `#` becomes Heading 1, `##` Heading 2, and so on (Word's navigation pane follows them). LWNTL adds no chapter title of its own.
+- **Word templates** — **Series tools → Template DOCX** picks the template a series exports with (single chapters and Export All alike). Built-in: *Classic* (the original LWNTL template), *Polos*, *Novel A5* and *Baca di layar*. A series without its own choice follows the app default (star; *Classic* unless changed).
+  - **Add your own:** prepare an empty `.docx` or `.dotx` in Word (page size and margins, the **Normal** style for body text, **Heading 1** for `#` lines, **Heading 2** for `##`, optional header/footer or page numbers) and press **Tambah template**. Body text in the file is ignored. Missing heading styles are filled in with plain bold defaults.
+  - The modal previews paper, margins, fonts, spacing and indents; **Coba ekspor di Word** opens a real sample built from the series' first finished chapters. **Simpan salinan .docx** gives you any template as a starting point; user templates can be edited in Word in place.
+  - User templates live in `%APPDATA%\lwntl\docx_templates\` and are shared by all profiles. A hand-placed `%APPDATA%\lwntl\TemplateNew.docx` from older versions is imported once and kept as the default.
 
 ---
 
@@ -339,7 +343,8 @@ lwntl/
 ├── lwntl.spec               # PyInstaller spec
 ├── requirements.txt
 ├── tools/
-│   └── build_presets.py     # Generates core/presets from a Cowork prompt package
+│   ├── build_presets.py     # Generates core/presets from a Cowork prompt package
+│   └── build_docx_templates.py  # Generates the built-in Word templates in core/docx_templates
 ├── core/
 │   ├── llm_client.py        # Multi-provider client and per-model request rules
 │   ├── model_catalog.py     # Live model lists per provider (cached)
@@ -350,6 +355,8 @@ lwntl/
 │   ├── prompt_builder.py    # System prompt resolution, glossary pre-filter, user prompt
 │   ├── prompt_presets.py    # Built-in and user prompt presets
 │   ├── presets/             # Built-in system prompts per language pair (+ index.json)
+│   ├── docx_templates/      # Built-in Word export templates (+ index.json)
+│   ├── doc_templates.py     # Template listing, import, inspection, per-series choice
 │   ├── task_prompts.py      # Editable helper prompts (revision, AutoFix, pre-pass)
 │   ├── context_window.py    # Rolling summaries and long-term memory
 │   ├── lookup.py            # Look Up: previous chapters' text in context

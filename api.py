@@ -1100,6 +1100,145 @@ class API:
             print(f"[Export] Error: {e}")
             return {"error": True, "message": str(e)}
 
+    # ── Word export templates ─────────────────────────────────────────────
+
+    def list_doc_templates(self):
+        """All export templates with their inspected styles, plus the app default."""
+        try:
+            from core import doc_templates
+            return {"templates": doc_templates.list_templates(), "defaultId": doc_templates.default_template_id()}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def import_doc_template(self, name: str = ""):
+        """Pick a .docx/.dotx with a file dialog and add it as a user template."""
+        try:
+            import webview
+            from core import doc_templates
+            result = self._window.create_file_dialog(
+                webview.FileDialog.OPEN,
+                allow_multiple=False,
+                file_types=("Word document or template (*.docx;*.dotx;*.dotm)",),
+            )
+            if not result:
+                return {"error": False, "cancelled": True}
+            path = result[0] if isinstance(result, (list, tuple)) else result
+            return {"error": False, "template": doc_templates.import_template(path, name)}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def rename_doc_template(self, template_id: str, name: str):
+        try:
+            from core import doc_templates
+            return {"error": False, "template": doc_templates.rename_template(template_id, name)}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def delete_doc_template(self, template_id: str):
+        try:
+            from core import doc_templates
+            return {"error": False, "deleted": doc_templates.delete_template(template_id)}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def set_default_doc_template(self, template_id: str):
+        try:
+            from core import doc_templates
+            return {"error": False, "defaultId": doc_templates.set_default(template_id)}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def set_series_doc_template(self, series_id: str, template_id: str):
+        """Choose the export template for one series ("" follows the app default)."""
+        try:
+            from datetime import datetime
+            from core import doc_templates
+            from core.storage.series import get_series_path
+            if template_id and doc_templates.template_path(template_id) is None:
+                return {"error": True, "message": "Template tidak ditemukan"}
+            series = get_series(series_id)
+            if not series:
+                return {"error": True, "message": "Series tidak ditemukan"}
+            series["docTemplate"] = template_id or ""
+            series["updatedAt"] = datetime.utcnow().isoformat() + "Z"
+            with open(get_series_path(series_id), "w", encoding="utf-8") as f:
+                json.dump(series, f, indent=2, ensure_ascii=False)
+            return series
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def save_doc_template_copy(self, template_id: str):
+        """Save a copy of a template so it can be edited in Word and imported back."""
+        try:
+            import webview
+            from core import doc_templates
+            name = doc_templates.template_name(template_id) or "template"
+            safe = "".join(ch for ch in name if ch.isalnum() or ch in " -_()").strip() or "template"
+            result = self._window.create_file_dialog(
+                webview.FileDialog.SAVE,
+                directory="",
+                save_filename=f"{safe}.docx",
+                file_types=("Word Document (*.docx)",),
+            )
+            if not result:
+                return {"error": False, "cancelled": True}
+            dest = result if isinstance(result, str) else result[0]
+            if not dest.lower().endswith(".docx"):
+                dest += ".docx"
+            doc_templates.copy_template_to(template_id, dest)
+            return {"error": False, "path": dest}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def open_doc_template(self, template_id: str):
+        """Open a user template in Word for editing; exports pick up the saved changes."""
+        try:
+            import os
+            from core import doc_templates
+            if not template_id.startswith(doc_templates.USER):
+                return {"error": True, "message": "Template bawaan hanya bisa disimpan sebagai salinan"}
+            path = doc_templates.template_path(template_id)
+            if path is None:
+                return {"error": True, "message": "Template tidak ditemukan"}
+            os.startfile(str(path))
+            return {"error": False, "path": str(path)}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def preview_doc_template(self, series_id: str, template_id: str):
+        """Export a short sample with a template to a temp file and open it in Word."""
+        try:
+            import os
+            import tempfile
+            from core import doc_templates
+            from core.exporter import export_series_to_docx
+            from core.storage.chapters import chapter_num_float
+            series = get_series(series_id) or {"id": series_id, "title": "Contoh series"}
+            done = [c for c in get_chapters(series_id)
+                    if c.get("status") == "done" and c.get("translatedContent", "").strip()]
+            done.sort(key=lambda c: chapter_num_float(c.get("chapterNumber", 0)))
+            sample = done[:2] or [{
+                "id": "", "chapterNumber": 1, "title": "Contoh bab",
+                "translatedContent": (
+                    "# Bab 1: Contoh bab\n\n"
+                    "Pagi itu hujan turun pelan di atas atap toko obat.\n\n"
+                    "\"Kau sudah bangun?\" tanya seseorang dari balik pintu.\n\n"
+                    "Ia mengangguk, lalu meraih buku catatan yang *selalu* dibawanya.\n\n***\n\n"
+                    "## Bagian kedua\n\nLangkahnya ringan saat menuruni tangga menuju pasar."),
+            }]
+            data, _used = export_series_to_docx(series, sample, template_id=template_id)
+            name = doc_templates.template_name(template_id) or "template"
+            safe = "".join(ch for ch in name if ch.isalnum() or ch in " -_").strip() or "template"
+            path = os.path.join(tempfile.gettempdir(), f"LWNTL contoh - {safe}.docx")
+            with open(path, "wb") as f:
+                f.write(data)
+            os.startfile(path)
+            return {"error": False, "path": path, "chapters": len(done[:2])}
+        except PermissionError:
+            return {"error": True, "message": "File contoh masih terbuka di Word. Tutup dulu lalu coba lagi."}
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
     def export_series_merged(self, series_id: str):
         """Export all done chapters in a series into a single merged .docx (with template if available)."""
         try:
@@ -1135,13 +1274,16 @@ class API:
             if not save_path.lower().endswith('.docx'):
                 save_path += '.docx'
 
+            from core.doc_templates import template_name
             docx_bytes, used_template = export_series_to_docx(series, done)
             with open(save_path, "wb") as f:
                 f.write(docx_bytes)
 
-            tpl_note = " (dengan template)" if used_template else ""
+            tpl_name = template_name(used_template) if used_template else ""
+            tpl_note = f" (template {tpl_name})" if tpl_name else ""
             print(f"[Export] Merged {len(done)} chapters → {save_path}{tpl_note}")
-            return {"error": False, "message": f"{len(done)} bab diekspor{tpl_note}!", "path": save_path, "usedTemplate": used_template}
+            return {"error": False, "message": f"{len(done)} bab diekspor{tpl_note}!", "path": save_path,
+                    "usedTemplate": bool(used_template), "templateName": tpl_name}
 
         except Exception as e:
             print(f"[Export] Merged error: {e}")

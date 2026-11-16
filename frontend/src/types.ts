@@ -62,6 +62,8 @@ export interface AppConfig {
   maxContextTokens: number
   glossaryPreFilter: boolean
   theme: string
+  /** App-wide Word export template for series without their own choice ("" = Classic). */
+  docTemplateDefault?: string
   uiLanguage: 'id' | 'en'
   sourceLanguages: string[]
   targetLanguages: string[]
@@ -114,6 +116,8 @@ export interface Series {
   systemPrompt: string
   /** Prompt preset used when systemPrompt is empty ("builtin:JP-ID", "user:…", or ""). */
   systemPromptPreset?: string
+  /** Word export template ("builtin:classic", "user:…", or "" to follow the app default). */
+  docTemplate?: string
   instructions: string
   glossary: GlossaryEntry[]
   memory: MemoryEntry[]
@@ -666,4 +670,42 @@ export function chapterNumFloat(num: string | number | undefined): number {
 
 export function compareChapterNumbers(a: string | number | undefined, b: string | number | undefined): number {
   return chapterNumFloat(a) - chapterNumFloat(b)
+}
+
+// Word export templates
+export interface DocStyleInfo {
+  font: string
+  sizePt: number
+  bold: boolean
+  italic: boolean
+  color: string
+  align: 'left' | 'center' | 'right' | 'justify'
+  lineSpacing: { kind: 'multiple' | 'exact' | 'atLeast'; value: number }
+  spaceBeforePt: number
+  spaceAfterPt: number
+  firstLineIndentCm: number
+}
+
+export interface DocTemplateInfo {
+  page: { name: string; widthCm: number; heightCm: number; landscape: boolean }
+  margins: { top: number; bottom: number; left: number; right: number }
+  body: DocStyleInfo | null
+  heading: DocStyleInfo | null
+  subheading: DocStyleInfo | null
+  missingStyles: string[]
+  hasHeader: boolean
+  hasFooter: boolean
+  sections: number
+  bodyBlocks: number
+}
+
+export interface DocTemplate {
+  id: string
+  name: string
+  description: string
+  builtin: boolean
+  fileName: string
+  createdAt?: string
+  info?: DocTemplateInfo | null
+  error?: string
 }

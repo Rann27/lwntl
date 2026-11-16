@@ -214,7 +214,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                 onPointerDown={onPointerDown('top')}
                 style={{
                   position: 'absolute', top: `${topPct}%`, left: 0, right: 0,
-                  height: '3px', backgroundColor: 'var(--bg-red,#FF3C3C)',
+                  height: '3px', backgroundColor: 'var(--fg-red)',
                   cursor: 'ns-resize', transform: 'translateY(-1px)',
                 }}
               >
@@ -233,7 +233,7 @@ export function PdfPrePreviewModal({ open, onClose, file, queuedCount, onParseAl
                 onPointerDown={onPointerDown('bottom')}
                 style={{
                   position: 'absolute', bottom: `${bottomPct}%`, left: 0, right: 0,
-                  height: '3px', backgroundColor: 'var(--bg-red,#FF3C3C)',
+                  height: '3px', backgroundColor: 'var(--fg-red)',
                   cursor: 'ns-resize', transform: 'translateY(1px)',
                 }}
               >

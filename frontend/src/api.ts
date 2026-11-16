@@ -19,6 +19,7 @@ import type {
   GlossaryAudit,
   QaChapterDetail,
   PromptPreset,
+  DocTemplate,
   ModelCatalog,
 } from './types'
 
@@ -543,7 +544,7 @@ export async function exportSeries(seriesId: string): Promise<any> {
   return result
 }
 
-export async function exportSeriesMerged(seriesId: string): Promise<{ message: string; path: string; usedTemplate: boolean; cancelled?: boolean }> {
+export async function exportSeriesMerged(seriesId: string): Promise<{ message: string; path: string; usedTemplate: boolean; templateName?: string; cancelled?: boolean }> {
   const api = getApi()
   const result = await api.export_series_merged(seriesId)
   if (isApiError(result)) throw new Error(result.message)
@@ -555,6 +556,32 @@ export async function exportGlossaryFile(seriesId: string, fmt: 'json' | 'csv', 
   const result = await api.export_glossary_file(seriesId, fmt, data)
   return result
 }
+
+// ===== Word export templates =====
+async function callTemplateApi<T>(method: string, ...args: unknown[]): Promise<T> {
+  const result = await getApi()[method](...args)
+  if (isApiError(result)) throw new Error(result.message)
+  return result as T
+}
+
+export const listDocTemplates = () =>
+  callTemplateApi<{ templates: DocTemplate[]; defaultId: string }>('list_doc_templates')
+export const importDocTemplate = (name = '') =>
+  callTemplateApi<{ template?: DocTemplate; cancelled?: boolean }>('import_doc_template', name)
+export const renameDocTemplate = (templateId: string, name: string) =>
+  callTemplateApi<{ template: DocTemplate }>('rename_doc_template', templateId, name)
+export const deleteDocTemplate = (templateId: string) =>
+  callTemplateApi<{ deleted: boolean }>('delete_doc_template', templateId)
+export const setDefaultDocTemplate = (templateId: string) =>
+  callTemplateApi<{ defaultId: string }>('set_default_doc_template', templateId)
+export const setSeriesDocTemplate = (seriesId: string, templateId: string) =>
+  callTemplateApi<Series>('set_series_doc_template', seriesId, templateId)
+export const saveDocTemplateCopy = (templateId: string) =>
+  callTemplateApi<{ path?: string; cancelled?: boolean }>('save_doc_template_copy', templateId)
+export const openDocTemplate = (templateId: string) =>
+  callTemplateApi<{ path: string }>('open_doc_template', templateId)
+export const previewDocTemplate = (seriesId: string, templateId: string) =>
+  callTemplateApi<{ path: string; chapters: number }>('preview_doc_template', seriesId, templateId)
 
 // ===== CJK Fix =====
 export async function fixCjkText(text: string, workerId?: string | null): Promise<{ fixed: string }> {

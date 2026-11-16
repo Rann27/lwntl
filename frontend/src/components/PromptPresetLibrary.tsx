@@ -142,7 +142,7 @@ export function PromptPresetLibrary({ open, onClose, onChanged, initialId }: Pro
                       style={{ fontSize: '14px', fontWeight: 600, padding: '4px 8px', maxWidth: '360px' }} />
                   )}
                   {selected.builtin && (
-                    <span className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 600, padding: '1px 6px', background: 'var(--muted)', color: 'var(--fg-yellow,#FFEF33)', textTransform: 'none' }}>
+                    <span className="flex items-center gap-1" style={{ fontSize: '10px', fontWeight: 600, padding: '1px 6px', background: 'var(--bg-yellow)', color: 'var(--fg-yellow)', borderRadius: 'var(--radius)', textTransform: 'none' }}>
                       <Lock size={10} /> hanya baca
                     </span>
                   )}

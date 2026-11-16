@@ -633,7 +633,7 @@ export function CreateChapterModal({
                   onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files) processTxtFiles(Array.from(e.dataTransfer.files)) }}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload size={28} style={{ color: isDragOver ? '#00a8ad' : 'var(--fg-subtle,#aaa)' }} />
+                  <Upload size={28} style={{ color: isDragOver ? 'var(--primary)' : 'var(--fg-subtle,#aaa)' }} />
                   <p style={{ fontWeight: 600, fontSize: '14px', margin: 0, color: isDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
                     {isDragOver ? '↓' : 'Drag & drop .txt'}
                   </p>
@@ -723,7 +723,7 @@ export function CreateChapterModal({
                   onDrop={e => { e.preventDefault(); setIsDragOver(false); if (e.dataTransfer.files) processMdFiles(Array.from(e.dataTransfer.files)) }}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload size={28} style={{ color: isDragOver ? '#9333ea' : 'var(--fg-subtle,#aaa)' }} />
+                  <Upload size={28} style={{ color: isDragOver ? 'var(--primary)' : 'var(--fg-subtle,#aaa)' }} />
                   <p style={{ fontWeight: 600, fontSize: '14px', margin: 0, color: isDragOver ? 'var(--on-accent,#111)' : 'var(--fg-muted,#666)' }}>
                     {isDragOver ? '↓' : 'Drag & drop .md'}
                   </p>

@@ -1,7 +1,7 @@
 """
 Exporter Module - Export translated chapters to .docx
 Converts markdown translation output to a formatted Word document.
-Supports single-chapter and batch (merged) export with optional .docx template.
+Every export uses the series' Word template (see core/doc_templates.py).
 """
 
 import io
@@ -18,8 +18,8 @@ from docx.shared import Pt, Cm, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
-
-TEMPLATE_FILENAME = 'TemplateNew.docx'
+from docx.enum.style import WD_STYLE_TYPE
+from . import doc_templates
 
 def _placeholder_filename(line: str):
     """Return (is_placeholder, filename|None) for a stripped line."""
@@ -160,38 +160,57 @@ def _add_run(paragraph, text: str, bold: bool = False, italic: bool = False,
             run.font.name = base_font
 
 
-def _find_template() -> Optional[Path]:
-    """Locate TemplateNew.docx from several candidate directories."""
-    from .storage.config import get_app_data_dir
-    candidates = [
-        get_app_data_dir() / TEMPLATE_FILENAME,
-        Path(__file__).parent.parent / TEMPLATE_FILENAME,   # project root (dev)
-        Path.cwd() / TEMPLATE_FILENAME,
-    ]
-    if getattr(sys, 'frozen', False):
-        candidates.insert(1, Path(sys.executable).parent / TEMPLATE_FILENAME)
-    for p in candidates:
-        if p.exists():
-            return p
-    return None
+# Look of headings the exporter creates when a template lacks them (a blank
+# document saved from Word only stores the styles it has used).
+_HEADING_FALLBACK = {1: (16, True), 2: (14, True), 3: (13, True), 4: (12, True)}
 
 
-def _open_template_doc() -> tuple:
+def _ensure_heading_styles(doc: Document):
+    """Create Heading 1-4 from Normal when the template does not define them."""
+    for level, (size, bold) in _HEADING_FALLBACK.items():
+        name = f'Heading {level}'
+        try:
+            doc.styles[name]
+            continue
+        except KeyError:
+            pass
+        st = doc.styles.add_style(name, WD_STYLE_TYPE.PARAGRAPH)
+        st.base_style = doc.styles['Normal']
+        st.next_paragraph_style = doc.styles['Normal']
+        st.font.size = Pt(size)
+        st.font.bold = bold
+        pf = st.paragraph_format
+        pf.keep_with_next = True
+        pf.first_line_indent = Pt(0)
+        pf.space_before = Pt(18 if level == 1 else 12)
+        pf.space_after = Pt(12 if level == 1 else 6)
+        if level == 1:
+            pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+
+def _open_template_doc(series: Optional[Dict[str, Any]] = None, template_id: Optional[str] = None) -> tuple:
     """
-    Returns (doc, used_template).
-    Opens TemplateNew.docx and clears its body content while keeping styles/page setup.
-    Falls back to a fresh Document if template is not found.
+    Returns (doc, template_id_or_None).
+    Opens the series' template (or `template_id`) and clears its body while keeping
+    styles, page setup, header and footer. Falls back to a fresh Document when no
+    template file is usable.
     """
-    tpl_path = _find_template()
+    if template_id:
+        tpl_id, tpl_path = template_id, doc_templates.template_path(template_id)
+    else:
+        tpl_id, tpl_path = doc_templates.resolve_for_series(series)
     if tpl_path:
-        doc = Document(str(tpl_path))
-        # Remove all body children except w:sectPr (section/page properties)
-        body = doc.element.body
-        for child in list(body):
-            if child.tag != qn('w:sectPr'):
-                body.remove(child)
-        return doc, True
-    return Document(), False
+        try:
+            doc = Document(str(tpl_path))
+            body = doc.element.body
+            for child in list(body):
+                if child.tag != qn('w:sectPr'):
+                    body.remove(child)
+            _ensure_heading_styles(doc)
+            return doc, tpl_id
+        except Exception as e:
+            print(f"[Export] Template {tpl_id} unusable, using defaults: {e}")
+    return Document(), None
 
 
 def _set_doc_margins(doc: Document):
@@ -264,48 +283,23 @@ def _add_page_break(doc: Document):
     run._r.append(br)
 
 
+_HEADING_LINE = re.compile(r'^(#{1,6})\s+(.+?)\s*#*\s*$')
+
+
 def _add_chapter_to_doc(
     doc: Document,
     series: Dict[str, Any],
     chapter: Dict[str, Any],
-    show_series_subtitle: bool = True,
     use_template_styles: bool = False,
 ):
     """
     Append a single chapter's content to an existing Document.
-    If use_template_styles=True, only applies font overrides when the template
-    doesn't already define them (avoids clobbering template Heading styles).
+
+    No title is generated: the chapter's own markdown headings carry it
+    (`#` → Heading 1, `##` → Heading 2, ...), so the document outline matches
+    the translation. If use_template_styles=True, fonts come from the template.
     """
-    series_title  = series.get('title', '')
-    chapter_num   = chapter.get('chapterNumber', 1)
-    chapter_title = chapter.get('title', '').strip()
-    content       = strip_glossary_table(chapter.get('translatedContent', ''))
-
-    heading_text = f'Bab {chapter_num}'
-    if chapter_title:
-        heading_text += f' — {chapter_title}'
-
-    # Chapter heading — use Heading 1 style (from template or default)
-    h = doc.add_heading(heading_text, level=1)
-    h.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    if not use_template_styles:
-        for run in h.runs:
-            run.font.name = 'Times New Roman'
-            run.font.size = Pt(16)
-
-    # Series subtitle (italic, grey)
-    if series_title and show_series_subtitle:
-        sub = doc.add_paragraph()
-        sub.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        sub.paragraph_format.space_after = Pt(18)
-        subtitle_font = None if use_template_styles else 'Times New Roman'
-        _add_run(sub, series_title, italic=True, base_font=subtitle_font)
-        if not use_template_styles:
-            for run in sub.runs:
-                run.font.size = Pt(11)
-                run.font.color.rgb = RGBColor(0x66, 0x66, 0x66)
-
-    doc.add_paragraph()  # blank spacer after header
+    content = strip_glossary_table(chapter.get('translatedContent', ''))
 
     # When using template, inherit body font from template's Normal style.
     # When not using template, explicitly set Times New Roman.
@@ -316,16 +310,18 @@ def _add_chapter_to_doc(
 
     # Body content — split on blank lines. Isolate any image-placeholder line into
     # its own block so it renders as a real embedded image, not paragraph text.
+    # Markdown headings are isolated the same way, so "# Title" directly followed
+    # by text (no blank line) still becomes a heading instead of literal "#".
     raw_blocks = re.split(r'\n{2,}', content.strip())
     blocks: List[str] = []
     for block in raw_blocks:
         lines = block.split('\n')
-        if not any(is_placeholder_line(ln.strip()) for ln in lines):
+        if not any(is_placeholder_line(ln.strip()) or _HEADING_LINE.match(ln.strip()) for ln in lines):
             blocks.append(block)
             continue
         buf: List[str] = []
         for ln in lines:
-            if is_placeholder_line(ln.strip()):
+            if is_placeholder_line(ln.strip()) or _HEADING_LINE.match(ln.strip()):
                 if buf:
                     blocks.append('\n'.join(buf))
                     buf = []
@@ -367,15 +363,14 @@ def _add_chapter_to_doc(
             _add_inline_content(p, block, base_font=body_base_font)
             continue
 
-        heading_match = re.match(r'^(#{1,4})\s+(.+)$', block)
+        heading_match = _HEADING_LINE.match(block)
         if heading_match:
-            level = min(len(heading_match.group(1)) + 1, 4)
-            text  = heading_match.group(2).strip()
-            h2 = doc.add_heading(text, level=level)
-            _claim_break(h2)
-            if not use_template_styles:
-                for run in h2.runs:
-                    run.font.name = 'Times New Roman'
+            # Heading 1-4 are guaranteed to exist (see _ensure_heading_styles).
+            level = min(len(heading_match.group(1)), 4)
+            h = doc.add_paragraph(style=f'Heading {level}')
+            _claim_break(h)
+            _add_inline_content(h, heading_match.group(2).strip(),
+                                base_font=None if use_template_styles else 'Times New Roman')
             continue
 
         if _is_scene_break(block):
@@ -399,39 +394,40 @@ def _add_chapter_to_doc(
                 _add_inline_content(p, line, base_font=body_base_font)
 
 
-def export_chapter_to_docx(series: Dict[str, Any], chapter: Dict[str, Any]) -> bytes:
-    """Export a single chapter to .docx bytes (no template)."""
-    doc = Document()
-    _set_doc_margins(doc)
-    _configure_normal_style(doc)
-    _add_chapter_to_doc(doc, series, chapter, use_template_styles=False)
+def _finish(doc: Document) -> bytes:
     buf = io.BytesIO()
     doc.save(buf)
     buf.seek(0)
     return buf.getvalue()
 
 
-def export_series_to_docx(series: Dict[str, Any], chapters: List[Dict[str, Any]]) -> tuple:
+def export_chapter_to_docx(series: Dict[str, Any], chapter: Dict[str, Any],
+                           template_id: Optional[str] = None) -> bytes:
+    """Export a single chapter to .docx bytes with the series' template."""
+    doc, used = _open_template_doc(series, template_id)
+    if not used:
+        _set_doc_margins(doc)
+        _configure_normal_style(doc)
+    _add_chapter_to_doc(doc, series, chapter, use_template_styles=bool(used))
+    return _finish(doc)
+
+
+def export_series_to_docx(series: Dict[str, Any], chapters: List[Dict[str, Any]],
+                          template_id: Optional[str] = None) -> tuple:
     """
-    Export all provided chapters into a single merged .docx.
-    Uses TemplateNew.docx if found; falls back to default styling.
+    Export all provided chapters into a single merged .docx with the series' template.
     Each chapter starts on a new page.
 
     Returns:
-        (bytes, template_used: bool)
+        (bytes, template_id or None when the built-in fallback styling was used)
     """
-    doc, used_template = _open_template_doc()
-
-    if not used_template:
+    doc, used = _open_template_doc(series, template_id)
+    if not used:
         _set_doc_margins(doc)
         _configure_normal_style(doc)
 
     for i, chapter in enumerate(chapters):
         if i > 0:
             _add_page_break(doc)
-        _add_chapter_to_doc(doc, series, chapter, use_template_styles=used_template)
-
-    buf = io.BytesIO()
-    doc.save(buf)
-    buf.seek(0)
-    return buf.getvalue(), used_template
+        _add_chapter_to_doc(doc, series, chapter, use_template_styles=bool(used))
+    return _finish(doc), used

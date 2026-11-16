@@ -228,7 +228,9 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
   const chip = (key: typeof filter, label: string, n: number, color?: string) => (
     <Button variant="ghost" key={key} onClick={() => setFilter(key)} style={{ borderRadius: 'var(--radius)',
       fontSize: '11px', fontWeight: 600, padding: '3px 9px', cursor: 'pointer', border: '1px solid var(--color-border)',
-      backgroundColor: filter === key ? (color ?? 'var(--color-surface-2)') : 'transparent', color: filter === key && color ? 'var(--on-accent,#111)' : 'var(--color-text)',
+      backgroundColor: filter === key ? (color ? `var(--bg-${color})` : 'var(--color-surface-2)') : 'transparent',
+      color: filter === key && color ? `var(--fg-${color})` : 'var(--color-text)',
+      borderColor: filter === key && color ? `var(--fg-${color})` : undefined,
     }}>{label} ({n})</Button>
   )
 
@@ -240,9 +242,9 @@ function GlossaryAuditPanel({ seriesId, disabled, onRename, onChanged }: {
         atau teks memakai bentuk lain. Hitungan raw tahan furigana dan mengenali nama yang disebut sebagian.
       </p>
       <div className="flex items-center gap-2 flex-wrap">
-        {chip('remove', 'Saran hapus', audit.summary.remove, 'var(--fg-red,#FF8A8A)')}
-        {chip('check', 'Periksa', audit.summary.check, 'var(--fg-yellow,#FFD580)')}
-        {chip('keep', 'Simpan', audit.summary.keep, 'var(--fg-green,#9BF0B8)')}
+        {chip('remove', 'Saran hapus', audit.summary.remove, 'red')}
+        {chip('check', 'Periksa', audit.summary.check, 'yellow')}
+        {chip('keep', 'Simpan', audit.summary.keep, 'green')}
         {chip('character', 'Tokoh', audit.entries.filter(e => e.character).length)}
         {chip('all', 'Semua', audit.total)}
         {checkItems.length > 0 && (
@@ -613,7 +615,7 @@ export function QaReportModal({ open, onClose, seriesId, disabled, onApplied }: 
                 {v.diction.map((d, i) => (
                   <div key={i} className="flex items-center gap-2" style={{ fontSize: '11px', padding: '1px 0' }}>
                     <span style={{ width: '52px', fontFamily: 'monospace' }}>Bab {d.chapter}</span>
-                    <div style={{ height: '8px', width: `${Math.min(d.per1000 * 3, 160)}px`, backgroundColor: 'var(--bg-purple,#C9A7FF)' }} />
+                    <div style={{ height: '8px', width: `${Math.min(d.per1000 * 3, 160)}px`, backgroundColor: 'var(--fg-purple)' }} />
                     <span style={{ fontFamily: 'monospace' }}>{d.per1000}</span>
                     <span style={{ color: 'var(--color-text-muted)' }} className="truncate">{d.top.map(([w, c]) => `${w} ${c}`).join(', ')}</span>
                   </div>

@@ -17,7 +17,7 @@ export default function MemoryPanel({ memories, onDeleteMemory }: Props) {
 
   if (memories.length === 0) {
     return (
-      <div className="p-4 text-center text-sm text-[var(--fg-muted,#666)]">
+      <div className="p-4 text-center text-sm text-muted-foreground">
         <Brain size={24} className="mx-auto mb-2 text-[var(--line,#ccc)]" />
         <p>Belum ada memory.</p>
         <p className="text-xs mt-1">Memory akan otomatis terbentuk setelah 5+ bab diterjemahkan.</p>
@@ -26,23 +26,23 @@ export default function MemoryPanel({ memories, onDeleteMemory }: Props) {
   }
 
   return (
-    <div className="divide-y divide-[#eee]">
+    <div className="divide-y divide-border">
       {memories.map((mem, i) => (
         <div key={i} className="border-b border-[var(--line,#eee)]">
           <Button variant="ghost"
             onClick={() => setExpanded(expanded === i ? null : i)}
-            className="w-full flex items-center justify-between px-3 py-2 hover:bg-[var(--bg-surface-2,#f0ebe1)] transition-colors"
+            className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted transition-colors"
           >
             <div className="flex items-center gap-2">
-              <Brain size={14} className="text-[var(--fg-yellow,#FFEF33)]" />
+              <Brain size={14} className="text-[var(--fg-yellow)]" />
               <span className="text-xs font-semibold font-space">{mem.range}</span>
-              <span className="text-[10px] text-[var(--fg-subtle,#999)]">({mem.chapterCount} bab)</span>
+              <span className="text-[10px] text-muted-foreground">({mem.chapterCount} bab)</span>
             </div>
             <div className="flex items-center gap-2">
               {onDeleteMemory && (
                 <Button aria-label="Delete" variant="ghost"
                   onClick={(e) => { e.stopPropagation(); onDeleteMemory(i) }}
-                  className="p-1 text-[var(--line,#ccc)] hover:text-[var(--fg-red,#FF3C3C)] transition-colors"
+                  className="p-1 text-muted-foreground hover:text-[var(--fg-red)] transition-colors"
                 >
                   <Trash2 size={12} />
                 </Button>
@@ -51,7 +51,7 @@ export default function MemoryPanel({ memories, onDeleteMemory }: Props) {
             </div>
           </Button>
           {expanded === i && (
-            <div className="px-3 pb-3 text-xs text-[#444] leading-relaxed whitespace-pre-wrap">
+            <div className="px-3 pb-3 text-xs text-foreground leading-relaxed whitespace-pre-wrap">
               {mem.content}
             </div>
           )}

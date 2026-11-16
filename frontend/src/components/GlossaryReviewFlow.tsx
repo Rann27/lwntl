@@ -177,7 +177,7 @@ export function GlossaryReviewFlow({ seriesId, items, disabled, onExit }: Props)
         </Button>
         <span style={{ fontSize: '12px', fontWeight: 600, fontFamily: 'monospace' }}>{index + 1} / {items.length}</span>
         <div style={{ flex: 1, height: 6, background: 'var(--color-surface-2)' }}>
-          <div style={{ width: `${(index / items.length) * 100}%`, height: '100%', background: 'var(--bg-orange,#FFB020)' }} />
+          <div style={{ width: `${(index / items.length) * 100}%`, height: '100%', background: 'var(--fg-orange)' }} />
         </div>
         {confident.length > 0 && (
           <Button aria-label="Terapkan otomatis pilihan bawaan yang aman: pembersihan huruf kembar, bagian nama yang mengikuti nama lengkapnya, dan duplikat yang terjemahannya sudah sama" variant="ghost" onClick={applyConfident} disabled={!!bulk || busy || disabled} className="flex items-center gap-1"
