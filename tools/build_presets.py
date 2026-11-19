@@ -13,7 +13,7 @@ table LWNTL parses. Everything about files, docx scripts, splitting and the QA
 pass belongs to LWNTL itself and is dropped.
 
 Usage:
-    python tools/build_presets.py "C:/Users/Ran/Downloads/Cowork Prompt"
+    python tools/build_presets.py "C:/Users/Ran/Downloads/Cowork Prompts2"
 
 Writes core/presets/<PAIR>.md and core/presets/index.json. Re-run it whenever
 the package changes; user presets (duplicates) are never touched.
@@ -43,6 +43,29 @@ EXAMPLE_RENDERING = {
 }
 
 BAR = "═══════════════════════════════════════════════"
+
+# Example of a number written with digits in the source, per source language. The
+# package uses the Japanese one in every pair; each preset gets its own.
+NUMBER_EXAMPLE = {"JP": "金貨五〇〇枚", "CN": "500枚金币", "KR": "금화 500닢", "EN": "500 gold coins", "ID": "500 koin emas"}
+
+# Sections of the package left out of the built-ins. They were written to steer weaker
+# models; strong ones already keep one tense and read furigana well, and the extra
+# rules risk over-application. A user preset (Duplicate) can still carry them.
+EXCLUDED_SECTIONS = ("NARRATIVE TENSE", "FURIGANA & GIKUN")
+
+
+def drop_sections(ins: str) -> str:
+    """Remove EXCLUDED_SECTIONS (BAR / # TITLE / BAR / body) and bullets that point to them."""
+    lines = ins.split(chr(10))
+    heads = [i for i, ln in enumerate(lines) if ln.startswith("# ") and i > 0 and lines[i - 1].startswith("═")]
+    drop = set()
+    for k, i in enumerate(heads):
+        if lines[i][2:].startswith(EXCLUDED_SECTIONS):
+            end = heads[k + 1] - 1 if k + 1 < len(heads) else len(lines)
+            drop.update(range(i - 1, end))
+    kept = [ln for j, ln in enumerate(lines) if j not in drop
+            and not any(f"(see {s}" in ln or f"(lihat {s}" in ln for s in EXCLUDED_SECTIONS)]
+    return chr(10).join(kept)
 
 TEXT = {
     "EN": {
@@ -159,7 +182,14 @@ def convert_rules(ins: str, t: dict) -> str:
     ins = re.sub(r"^\((The exact formatting mechanics|Mekanisme format persis)[^)]*\)\s*$", t["formatting"], ins, flags=re.M)
     ins = re.sub(r"\((HOW|CARA) [^)]*(workflow|alur input/output)[^)]*\)", t["illustration"], ins)
     ins = re.sub(r"\((What counts as a glossary entry|Apa yang termasuk entri glosarium)[^)]*\)", t["glossary_ref"], ins)
-    leftover = re.findall(r".*(input/output workflow|alur input/output|instruction\.md|glossary\.md).*", ins)
+    # Cowork keeps series-wide decisions as glossary.md notes ("[narrative tense] === past");
+    # LWNTL's glossary only takes source-script terms, so the earlier chapters carry it instead.
+    ins = re.sub(
+        r"and record it in the glossary as a series note: `[^`]*`\. Every later chapter and part follows that note\.",
+        "and keep it. In later chapters the \"Look Up\" text (the previous chapter's finished translation) "
+        "and the chapter summaries show the series' tense: follow it.",
+        ins)
+    leftover = re.findall(r".*(input/output workflow|alur input/output|instruction\.md|glossary\.md|series note|catatan series|=== ).*", ins)
     if leftover:
         raise SystemExit(f"unconverted workflow reference left: {leftover[:3]}")
     return ins.rstrip()
@@ -196,7 +226,9 @@ def convert_tiers(body: str, t: dict) -> str:
 def build_pair(pair_dir: Path) -> dict:
     src, tgt = pair_dir.name.split("-")
     t = TEXT[tgt]
-    ins = (pair_dir / "instruction.md").read_text(encoding="utf-8")
+    ins = drop_sections((pair_dir / "instruction.md").read_text(encoding="utf-8").replace(chr(13) + chr(10), chr(10)))
+    if "金貨五〇〇枚" in ins:
+        ins = ins.replace("金貨五〇〇枚", NUMBER_EXAMPLE[src])
     start = (pair_dir / "start.md").read_text(encoding="utf-8")
     secs = sections(start)
 

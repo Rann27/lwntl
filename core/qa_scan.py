@@ -34,6 +34,7 @@ from .storage.chapters import (
     get_chapters, get_chapter, update_chapter_translation, archive_current_translation,
 )
 from .storage.series import get_series
+from .storage.atomic import write_json
 
 _DICTION_WATCH = {
     "id": ["seperti", "layaknya", "bagaikan", "seolah", "seakan", "seketika", "tiba-tiba", "langsung",
@@ -443,8 +444,7 @@ def apply_rename(series_id: str, old: str, new: str, protect: Optional[List[str]
         if k:
             fresh = get_chapter(series_id, ch["id"])
             fresh["glossaryUpdates"]["entries"] = entries
-            with open(get_chapter_path(series_id, ch["id"]), "w", encoding="utf-8") as f:
-                _json.dump(fresh, f, indent=2, ensure_ascii=False)
+            write_json(get_chapter_path(series_id, ch["id"]), fresh)
         changed += 1
         replaced += n + m
 
@@ -459,7 +459,6 @@ def apply_rename(series_id: str, old: str, new: str, protect: Optional[List[str]
         mem += c
     if g or mem:
         series["updatedAt"] = datetime.utcnow().isoformat() + "Z"
-        with open(get_series_path(series_id), "w", encoding="utf-8") as f:
-            _json.dump(series, f, indent=2, ensure_ascii=False)
+        write_json(get_series_path(series_id), series)
     invalidate_context_cache(series_id)
     return {"chapters": changed, "replaced": replaced + mem, "glossary": g}

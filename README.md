@@ -121,7 +121,7 @@ cd frontend && npm install && npm run build && cd ..
 | ZhipuAI (Z.AI) | API key | Thinking toggle, reasoning effort |
 | Alibaba Cloud (Qwen) | API key | DashScope international; thinking toggle |
 | OpenAI | API key | Reasoning effort (temperature is not sent to reasoning models) |
-| Google Gemini | API key | Thinking level; safety filter can be switched off |
+| Google Gemini | API key | Thinking level; safety filter can be switched off; Google AI Pro/Ultra include monthly API credits (see below) |
 | Anthropic (Claude) | API key | Effort (temperature is not sent to Claude 5.x) |
 | xAI (Grok) | API key | Reasoning effort |
 | Moonshot (Kimi) | API key | International or China platform; effort and thinking |
@@ -136,6 +136,8 @@ cd frontend && npm install && npm run build && cd ..
 Each worker card shows exactly which parameters will be sent for the chosen model (*Dikirim*), and why some are left out.
 
 ### Live model lists
+
+**Google AI Pro / Ultra.** Google offers no sanctioned way for another app to spend a Gemini plan's own quota, and using the Gemini CLI or Antigravity sign-in from third-party tools breaks Google's terms (accounts have been suspended for it). What the plans do include is Gemini API credit: $10 a month with Pro, $100 with Ultra, each grant valid for 12 months. Claim it in Google AI Studio, set up Cloud billing for that project (Google requires a $5 minimum prepayment before credits apply), create an API key in the same project and paste it into the Gemini field. Settings → Provider & API shows these steps when Gemini is selected.
 
 Model lists come from the providers themselves: the `/models` endpoint of OpenAI-style APIs, the Gemini and Anthropic model APIs, the OpenRouter catalog, and the ChatGPT plan catalog. Lists are cached for a day; the ⟳ button next to a worker's model fetches them again. The picker shows each model's name, ID and limits where the provider gives them, and labels where the list came from:
 
@@ -187,6 +189,7 @@ Open a series and click **+ Add Chapter**. Paste raw text, or import a file:
 ### Translating
 
 - **Single chapter** — open it and press **Translate**; output streams live and is saved when done.
+- **No translation needed** — for chapters that only hold image placeholders (covers, illustration pages), use **⋮ → Tandai selesai (salin raw)** or **Pilih → Salin raw** for several at once. The raw text becomes the translation as-is and the chapter is marked done, with no AI call; an existing translation is archived to version history first.
 - **Batch** — **Translate All** processes every pending chapter in order, or **Select** a set of chapters. New glossary terms are applied after each chapter, so the next one already uses them. **Retry failed** re-runs chapters that errored.
 - **Workers** — each worker is a slot with its own provider and model; raise **Max Concurrent** to run several jobs on one worker. A series prefers its chosen worker and falls back to any free one.
 
@@ -212,7 +215,8 @@ The glossary is per series and **non-negotiable** in the prompt: each entry has 
 - **Pre-Pass Terms** scans the raw text of all chapters and proposes terms before you translate, so chapter 1 already uses the final renderings. Review and apply the proposals.
 - **Auto-apply** adds new terms from each chapter's table. A term already in the glossary under any spelling (furigana, width, variant kanji, separators, honorific form) is never added twice; a new spelling of a name or proper term with the same rendering becomes an alias; a part of a name with a different reading is refused.
 - **Pre-filter matching** recognises a term through furigana, half-width katakana, variant kanji, `・`/`＝` separators, brackets, honorifics, inflected verbs, and a character called only by surname or given name — so a term that is in the chapter is not dropped from the prompt.
-- **All Terms** lists what every chapter's table proposed. Only renderings that actually appear in a chapter's text count as inconsistencies; table-only differences are marked **HANYA TABEL**.
+- **All Terms** lists what every chapter's table proposed. Only renderings that actually appear in a chapter's text (as whole words) count as inconsistencies; table-only differences are marked **Hanya tabel**. A rendering that is another glossary entry's translation does not count either: a nickname row saying "Runa" finds Runa because she is a character. Typography (curly vs straight apostrophes, dashes, full-width), English plurals and possessives, and a shorter rendering that only occurs inside a longer one of the same term are not differences; the chapters listed under each rendering come from scanning the text itself, not the chapter tables.
+  - The **Inconsistent** tab groups each term with its glossary rendering (pre-pass included) on top. **Samakan** rewrites the other renderings to the chosen one across the series (changed chapters are archived to version history; the glossary and the chapters' tables follow). **Abaikan** marks the variation as intended, which suits descriptive phrases; the term is flagged again only if a new rendering appears, and can be un-ignored from the same tab.
 - **Glossary audit** (QA Scan → Glosarium) shows how often each entry occurs in the source and the translation, and flags entries that are unused, single-chapter, conflicting with a related name, duplicated, or sharing a rendering. **Review** walks through them: pick the canonical rendering (rewritten everywhere), merge a duplicate into an alias, mark as correct, or delete.
 - Import and export as `.json` (aliases included) or `.csv`.
 

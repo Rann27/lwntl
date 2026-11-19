@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 /**
  * LWNTL Chapter List Component
  * Left panel in Series Settings: chapter list with search + status dots
@@ -7,7 +8,7 @@ import { Input } from '@/components/ui/input'
 
 import { useState, useRef, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, MoreVertical, Edit, Trash2, Search, X, Download } from 'lucide-react'
+import { Plus, MoreVertical, Edit, Trash2, Search, X, Download, CopyCheck } from 'lucide-react'
 import { useI18n } from '../i18n'
 import type { Chapter, ChapterStatus } from '../types'
 
@@ -18,6 +19,7 @@ interface ChapterListProps {
   onEditChapter: (chapter: Chapter) => void
   onDeleteChapter: (chapter: Chapter) => void
   onExportChapter?: (chapter: Chapter) => void
+  onMarkRawDone?: (chapter: Chapter) => void
   // Select mode
   selectMode?: boolean
   selectedIds?: Set<string>
@@ -31,7 +33,7 @@ const statusColors: Record<ChapterStatus, string> = {
   error:      'var(--fg-red,#FF3C3C)',
 }
 
-export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, onDeleteChapter, onExportChapter, selectMode = false, selectedIds, onToggleSelect }: ChapterListProps) {
+export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, onDeleteChapter, onExportChapter, onMarkRawDone, selectMode = false, selectedIds, onToggleSelect }: ChapterListProps) {
   const navigate = useNavigate()
   const { t } = useI18n()
   const [search, setSearch] = useState('')
@@ -206,6 +208,7 @@ export function ChapterList({ seriesId, chapters, onAddChapter, onEditChapter, o
             onEdit={onEditChapter}
             onDelete={onDeleteChapter}
             onExport={onExportChapter}
+            onMarkRawDone={onMarkRawDone}
             onClick={selectMode
               ? () => onToggleSelect?.(chapter.id)
               : () => navigate(`/series/${seriesId}/chapter/${chapter.id}`)
@@ -245,6 +248,7 @@ function ChapterItem({
   onEdit,
   onDelete,
   onExport,
+  onMarkRawDone,
   onClick,
   selectMode = false,
   selected = false,
@@ -253,25 +257,12 @@ function ChapterItem({
   onEdit: (c: Chapter) => void
   onDelete: (c: Chapter) => void
   onExport?: (c: Chapter) => void
+  onMarkRawDone?: (c: Chapter) => void
   onClick: () => void
   selectMode?: boolean
   selected?: boolean
 }) {
   const { t } = useI18n()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
-
   return (
     <div
       className="flex items-center gap-2.5 pl-3 pr-1.5 py-1.5 cursor-pointer group"
@@ -324,57 +315,30 @@ function ChapterItem({
           title={t.chapter.status[chapter.status]}
         />
       ) : (
-        <div ref={menuRef} className="relative" onClick={(e) => e.stopPropagation()}>
-          <Button aria-label="More options" variant="ghost" size="icon-xs"
-            onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen) }}
-            className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-            style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer' }}
-          >
-            <MoreVertical size={14} style={{ color: 'var(--color-text-muted)' }} />
-          </Button>
-
-          {menuOpen && (
-            <div
-              className="absolute right-0 top-full z-50"
-              style={{ borderRadius: 'var(--radius)',
-                backgroundColor: 'var(--color-surface)',
-                border: '1px solid var(--color-border)',
-                boxShadow: 'var(--shadow-sm)',
-                minWidth: '140px',
-              }}
-            >
-              <Button variant="ghost"
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(chapter) }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
-                style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
-                <Edit size={12} /> {t.common.edit}
+        // Portaled menu: never clipped by the scrolling list. React still bubbles
+        // portal clicks to this row, so they are stopped here.
+        <div onClick={(e) => e.stopPropagation()}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button aria-label="More options" variant="ghost" size="icon-xs"
+                className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity">
+                <MoreVertical size={14} style={{ color: 'var(--color-text-muted)' }} />
               </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-52" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => onEdit(chapter)}><Edit />{t.common.edit}</DropdownMenuItem>
               {onExport && chapter.status === 'done' && (
-                <Button variant="ghost"
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onExport(chapter) }}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
-                  style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--color-text)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-surface-2)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  <Download size={12} /> Export .docx
-                </Button>
+                <DropdownMenuItem onClick={() => onExport(chapter)}><Download />Export .docx</DropdownMenuItem>
               )}
-              <div style={{ height: '2px', backgroundColor: 'var(--color-border)' }} />
-              <Button variant="ghost"
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(chapter) }}
-                className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold"
-                style={{ borderRadius: 'var(--radius)',  border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', color: 'var(--fg-red,#FF3C3C)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,60,60,0.08)')}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-              >
-                <Trash2 size={12} /> {t.common.delete}
-              </Button>
-            </div>
-          )}
+              {onMarkRawDone && chapter.status !== 'processing' && chapter.rawContent?.trim() && (
+                <DropdownMenuItem onClick={() => onMarkRawDone(chapter)} title={t.batch.markRawDoneHint}>
+                  <CopyCheck />{t.batch.markRawDone}
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem variant="destructive" onClick={() => onDelete(chapter)}><Trash2 />{t.common.delete}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       )}
     </div>

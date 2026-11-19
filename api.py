@@ -28,6 +28,7 @@ from core.storage.chapters import (
     update_glossary_updates, update_translation_log,
     restore_translation_version as restore_version_db,
     get_chapter_assets as get_chapter_assets_db,
+    mark_done_with_raw,
 )
 from core.llm_client import LLMClient, test_client as test_llm_client
 from core.worker_manager import WorkerManager
@@ -380,7 +381,15 @@ class API:
     def get_chapters(self, series_id: str):
         """Get all chapters for a series"""
         try:
-            return get_chapters(series_id)
+            chapters = get_chapters(series_id)
+            # "processing" with no job running means an older cancel or a crash left
+            # it behind; such a chapter is unfinished, not in progress.
+            if not self._worker_manager.is_series_running(series_id):
+                for ch in chapters:
+                    if ch.get("status") == "processing":
+                        update_chapter_status(series_id, ch["id"], "pending")
+                        ch["status"] = "pending"
+            return chapters
         except Exception as e:
             return {"error": True, "message": str(e)}
 
@@ -436,6 +445,22 @@ class API:
         """Update chapter rolling memory summary"""
         try:
             return update_chapter_summary(series_id, chapter_id, summary)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def mark_chapters_raw_done(self, series_id: str, chapter_ids: list):
+        """Finish chapters without AI by copying their raw text as the translation."""
+        try:
+            done, failed = [], []
+            for chapter_id in chapter_ids or []:
+                try:
+                    mark_done_with_raw(series_id, chapter_id)
+                    done.append(chapter_id)
+                except Exception as e:
+                    failed.append({"id": chapter_id, "message": str(e)})
+            if done:
+                invalidate_context_cache(series_id)
+            return {"error": False, "done": done, "failed": failed}
         except Exception as e:
             return {"error": True, "message": str(e)}
 
@@ -676,6 +701,26 @@ class API:
             from core.glossary_audit import resolve_entry
             act = json.loads(action) if isinstance(action, str) else dict(action or {})
             return resolve_entry(series_id, act)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def unify_term_variants(self, series_id: str, source_term: str, canonical: str, replace):
+        """All terms: rewrite the other renderings of a term to `canonical` (archived first)."""
+        try:
+            if self._worker_manager.is_series_running(series_id):
+                return {"error": True, "message": "Series ini sedang diproses — tunggu sampai selesai."}
+            from core.term_variants import unify
+            forms = json.loads(replace) if isinstance(replace, str) else list(replace or [])
+            return unify(series_id, source_term, canonical, forms)
+        except Exception as e:
+            return {"error": True, "message": str(e)}
+
+    def accept_term_variants(self, series_id: str, source_term: str, renderings):
+        """All terms: mark a term's renderings as intended so they are no longer flagged."""
+        try:
+            from core.term_variants import accept
+            forms = json.loads(renderings) if isinstance(renderings, str) else list(renderings or [])
+            return accept(series_id, source_term, forms)
         except Exception as e:
             return {"error": True, "message": str(e)}
 

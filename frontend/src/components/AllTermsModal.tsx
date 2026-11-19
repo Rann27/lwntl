@@ -2,8 +2,10 @@ import { ModalSurface } from '@/components/ui/modal-surface'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useMemo, useState, useRef, useEffect, useCallback } from 'react'
-import { X, Search, AlertTriangle, Copy, Check } from 'lucide-react'
+import { X, Search, AlertTriangle, Copy, Check, Loader2, Undo2 } from 'lucide-react'
 import type { Chapter, GlossaryEntry } from '../types'
+import { unifyTermVariants, acceptTermVariants } from '../api'
+import { useToast } from '../hooks/useToast'
 
 interface TermRow {
   sourceTerm: string
@@ -25,46 +27,256 @@ interface Props {
   onClose: () => void
   chapters: Chapter[]
   seriesGlossary: GlossaryEntry[]
+  seriesId: string
+  /** Renderings the user marked as intended, per source term (lowercase). */
+  accepted?: Record<string, string[]>
+  /** Called after a unify/accept so the page reloads chapters, glossary and series. */
+  onChanged: () => Promise<void> | void
 }
 
 // An honorific does not make a different rendering: Hosono-san is Hosono.
 const HONORIFIC_TAIL = /[-\s](san|kun|chan|sama|senpai|sensei|dono|nee|nii|tan|nim|ssi)\b/gi
 
-function renderingKey(t: string): string {
-  return (t ?? '').toLowerCase().replace(HONORIFIC_TAIL, '').replace(/\s+/g, ' ').trim()
+/**
+ * Typography never makes a different rendering: full-width forms, curly vs
+ * straight apostrophes and quotes, and dash styles are folded together, so
+ * "Hero’s Party" and "Hero's Party" are the same.
+ */
+function normText(t: string): string {
+  return (t ?? '').normalize('NFKC').toLowerCase()
+    .replace(/[\u2018\u2019\u201A\u201B\u2032\u02BC`]/g, "'")
+    .replace(/[\u201C\u201D\u201E\u2033]/g, '"')
+    .replace(/[\u2010-\u2015]/g, '-')
+    .replace(/\s+/g, ' ')
 }
 
-/** The chapter's translated text without its trailing glossary table. */
+function renderingKey(t: string): string {
+  return normText(t).replace(HONORIFIC_TAIL, '').trim()
+}
+
+/** The chapter's translated text without its trailing glossary table, normalised like renderingKey. */
 function chapterText(ch: Chapter): string {
-  return (ch.translatedContent ?? '').split('\n').filter(l => !l.trim().startsWith('|')).join('\n').toLowerCase()
+  return normText((ch.translatedContent ?? '').split('\n').filter(l => !l.trim().startsWith('|')).join('\n'))
+}
+
+/** English plural and possessive forms are the same rendering: heroes → hero, elves → elf. */
+function stemWord(w: string): string {
+  if (w.endsWith("'s")) w = w.slice(0, -2)
+  else if (w.endsWith("s'")) w = w.slice(0, -1)
+  if (w.length <= 3) return w
+  if (w.endsWith('ies')) return w.slice(0, -3) + 'y'
+  if (w.endsWith('ves')) return w.slice(0, -3) + 'f'
+  if (w.endsWith('fe')) return w.slice(0, -2) + 'f'
+  if (/(oes|ses|xes|zes|ches|shes)$/.test(w)) return w.slice(0, -2)
+  if (/[^s]s$/.test(w)) return w.slice(0, -1)
+  return w
+}
+
+const stemKey = (key: string) => key.split(' ').map(stemWord).join(' ')
+
+const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Whole-word match on normalised text, so "runa" is not found inside "runaway". */
+function occursIn(key: string, text: string): boolean {
+  return !!key && new RegExp(`(?<![\\p{L}\\p{N}])${escapeRe(key)}(?![\\p{L}\\p{N}])`, 'u').test(text)
+}
+
+export interface TermVariant {
+  form: string
+  /** Every spelling folded into this rendering (plural, possessive...). */
+  forms: string[]
+  key: string
+  /** Chapters whose TEXT uses this rendering (not just their glossary table). */
+  chapters: string[]
+  fromGlossary: boolean
+}
+
+export interface TermVariantGroup {
+  key: string
+  sourceTerm: string
+  glossaryRendering?: string
+  variants: TermVariant[]
+  flagged: boolean
 }
 
 /**
- * Source terms rendered more than one way IN THE TEXT. A table row whose rendering
- * never appears in its chapter is the table's (or the fallback extraction's)
- * mistake, not the translation's, so it does not count; neither does an honorific.
+ * Source terms rendered more than one way IN THE TEXT.
+ *
+ * The chapters' glossary tables only nominate candidate renderings; where each
+ * one is really used comes from scanning every chapter's text, so a glossary
+ * rendering the tables never mention still shows the chapters that use it.
+ * Not evidence of a different rendering:
+ *   - a rendering that is another glossary entry's translation: a nickname row
+ *     saying "Runa" finds "Runa" because Runa is a character;
+ *   - a shorter rendering that only occurs inside a longer one of the same term
+ *     ("resurrection" inside "resurrection of the dead");
+ *   - honorifics and typography (see normText).
+ * Renderings the user accepted stop the flag until a new one appears.
  */
-export function inconsistentTermKeys(chapters: Chapter[], glossary: GlossaryEntry[] = []): Set<string> {
-  const termMap = new Map<string, Set<string>>()
-  const glossaryMap = new Map(glossary.map(e => [e.sourceTerm.trim().toLowerCase(), renderingKey(e.translatedTerm)]))
+export function termVariantGroups(chapters: Chapter[], glossary: GlossaryEntry[] = [], accepted: Record<string, string[]> = {}): TermVariantGroup[] {
+  const entryBySource = new Map<string, GlossaryEntry>()
+  const owners = new Map<string, Set<string>>()
+  for (const e of glossary) {
+    for (const s of [e.sourceTerm, ...(e.aliases ?? [])]) entryBySource.set(s.trim().toLowerCase(), e)
+    const rk = renderingKey(e.translatedTerm)
+    if (!owners.has(rk)) owners.set(rk, new Set())
+    owners.get(rk)!.add(e.id)
+  }
+
+  // Candidates per source term, nominated by the chapters' tables.
+  const cands = new Map<string, { sourceTerm: string; forms: Map<string, string> }>()
   for (const ch of chapters) {
-    const text = chapterText(ch)
     for (const e of ch.glossaryUpdates?.entries ?? []) {
       const key = (e.sourceTerm ?? '').trim().toLowerCase()
-      const t = (e.translatedTerm ?? '').trim()
-      if (!key || !t || !text.includes(t.toLowerCase())) continue
-      if (!termMap.has(key)) termMap.set(key, new Set(glossaryMap.has(key) ? [glossaryMap.get(key)!] : []))
-      termMap.get(key)!.add(renderingKey(t))
+      const form = (e.translatedTerm ?? '').trim()
+      const rk = renderingKey(form)
+      if (!key || !rk) continue
+      const own = entryBySource.get(key)?.id
+      const ownedBy = owners.get(rk)
+      if (ownedBy && !(own && ownedBy.has(own))) continue
+      if (!cands.has(key)) cands.set(key, { sourceTerm: e.sourceTerm.trim(), forms: new Map() })
+      const g = cands.get(key)!
+      if (!g.forms.has(rk)) g.forms.set(rk, form)
     }
   }
-  const keys = new Set<string>()
-  for (const [k, renderings] of termMap) if (renderings.size > 1) keys.add(k)
-  return keys
+
+  const texts = chapters.map(ch => ({
+    label: ch.title ? `Ch ${ch.chapterNumber}: ${ch.title}` : `Ch ${ch.chapterNumber}`,
+    text: chapterText(ch),
+  }))
+
+  const out: TermVariantGroup[] = []
+  for (const [key, g] of cands) {
+    const entry = entryBySource.get(key)
+    const glossaryKey = entry ? renderingKey(entry.translatedTerm) : ''
+    if (entry && glossaryKey) g.forms.set(glossaryKey, entry.translatedTerm)
+    if (g.forms.size < 2) continue
+
+    const forms = [...g.forms.entries()]
+    const perForm = forms.map(([rk, form]) => {
+      const longer = forms.map(([k]) => k).filter(k => k !== rk && k.includes(rk))
+      const used = texts.filter(({ text }) => {
+        let t = text
+        for (const l of longer) t = t.split(l).join(' ')
+        return occursIn(rk, t)
+      }).map(x => x.label)
+      return { form, rk, used }
+    })
+
+    // Fold plural/possessive spellings into one rendering.
+    const merged = new Map<string, TermVariant>()
+    for (const { form, rk, used } of perForm) {
+      const sk = stemKey(rk)
+      const isGlossary = rk === glossaryKey
+      const v = merged.get(sk)
+      if (!v) {
+        merged.set(sk, { form, forms: [form], key: sk, chapters: [...used], fromGlossary: isGlossary })
+        continue
+      }
+      v.forms.push(form)
+      for (const c of used) if (!v.chapters.includes(c)) v.chapters.push(c)
+      if (isGlossary) { v.fromGlossary = true; v.form = form }
+    }
+    const order = texts.map(x => x.label)
+    for (const v of merged.values()) v.chapters.sort((a, b) => order.indexOf(a) - order.indexOf(b))
+    const variants = [...merged.values()]
+
+    const shown = variants
+      .filter(v => v.chapters.length > 0 || v.fromGlossary)
+      .sort((a, b) => Number(b.fromGlossary) - Number(a.fromGlossary) || b.chapters.length - a.chapters.length)
+    const distinct = new Set(shown.map(v => v.key))
+    const acc = new Set(accepted[key] ?? [])
+    const flagged = distinct.size > 1 && (acc.size === 0 || [...distinct].some(k => !acc.has(k)))
+    out.push({ key, sourceTerm: g.sourceTerm, glossaryRendering: entry?.translatedTerm, variants: shown, flagged })
+  }
+  return out
 }
 
-/** Returns count of source terms rendered 2+ ways in the translated text */
-export function countInconsistencies(chapters: Chapter[], glossary: GlossaryEntry[] = []): number {
-  return inconsistentTermKeys(chapters, glossary).size
+export function inconsistentTermKeys(chapters: Chapter[], glossary: GlossaryEntry[] = [], accepted: Record<string, string[]> = {}): Set<string> {
+  return new Set(termVariantGroups(chapters, glossary, accepted).filter(g => g.flagged).map(g => g.key))
+}
+
+/** Number of source terms rendered 2+ ways in the translated text (and not accepted). */
+export function countInconsistencies(chapters: Chapter[], glossary: GlossaryEntry[] = [], accepted: Record<string, string[]> = {}): number {
+  return inconsistentTermKeys(chapters, glossary, accepted).size
+}
+
+/** One inconsistent term: pick the right rendering and unify, or accept the variation. */
+function TermGroupCard({ group, seriesId, onChanged }: { group: TermVariantGroup; seriesId: string; onChanged: () => Promise<void> | void }) {
+  const toast = useToast()
+  const [choice, setChoice] = useState(group.glossaryRendering ?? group.variants[0]?.form ?? '')
+  const [busy, setBusy] = useState<'' | 'unify' | 'accept'>('')
+  const others = group.variants.filter(v => v.key !== stemKey(renderingKey(choice)))
+
+  const unify = async () => {
+    if (!others.length) return
+    const list = others.map(o => `"${o.form}"`).join(', ')
+    if (!window.confirm(`Ganti ${list} menjadi "${choice}" di semua bab?\n\nVersi lama tiap bab yang berubah diarsipkan ke riwayat versi.`)) return
+    setBusy('unify')
+    try {
+      const r = await unifyTermVariants(seriesId, group.sourceTerm, choice, others.flatMap(o => o.forms))
+      toast.success(`${group.sourceTerm}: ${r.replaced} kemunculan diganti menjadi "${choice}"`)
+      await onChanged()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  const accept = async () => {
+    setBusy('accept')
+    try {
+      await acceptTermVariants(seriesId, group.sourceTerm, group.variants.map(v => v.key))
+      toast.info(`${group.sourceTerm}: variasi ditandai disengaja`)
+      await onChanged()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy('')
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card" style={{ borderLeft: '3px solid var(--fg-red)' }}>
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2" style={{ borderBottom: '1px solid var(--color-separator)' }}>
+        <AlertTriangle size={13} style={{ color: 'var(--fg-red)', flexShrink: 0 }} />
+        <span className="font-mono text-sm font-bold">{group.sourceTerm}</span>
+        <span className="text-xs text-muted-foreground">{group.variants.length} bentuk</span>
+        <div className="ml-auto flex items-center gap-1.5">
+          <Button size="sm" onClick={unify} disabled={!!busy || !others.length} className="h-7 gap-1.5 text-xs">
+            {busy === 'unify' && <Loader2 size={12} className="animate-spin" />}
+            Samakan ke "{choice}"
+          </Button>
+          <Button size="sm" variant="ghost" onClick={accept} disabled={!!busy} className="h-7 text-xs"
+            title="Variasi ini disengaja (mis. frasa deskriptif). Istilah ini tidak ditandai lagi sampai muncul bentuk baru.">
+            {busy === 'accept' && <Loader2 size={12} className="animate-spin" />}
+            Abaikan
+          </Button>
+        </div>
+      </div>
+      <fieldset className="flex flex-col py-1">
+        <legend className="sr-only">Bentuk yang benar untuk {group.sourceTerm}</legend>
+        {group.variants.map(v => (
+          <label key={v.key} className="flex cursor-pointer items-start gap-2.5 px-3 py-1.5 hover:bg-muted">
+            <input type="radio" name={`variant-${group.key}`} checked={stemKey(renderingKey(choice)) === v.key}
+              onChange={() => setChoice(v.form)} className="mt-1 accent-[var(--primary)]" />
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-1.5">
+                <span className="text-sm font-medium">{v.form}</span>
+                {v.fromGlossary && (
+                  <span className="rounded px-1.5 text-[10px] font-semibold" style={{ background: 'var(--bg-blue)', color: 'var(--fg-blue)' }}>Glossary</span>
+                )}
+              </span>
+              <span className="block text-[11px] text-muted-foreground">
+                {v.chapters.length ? `Dipakai di ${v.chapters.join(' · ')}` : 'Tidak ditemukan di teks bab mana pun'}
+              </span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+    </div>
+  )
 }
 
 function CopyCell({ text, style, bold }: { text: string; style?: React.CSSProperties; bold?: boolean }) {
@@ -100,7 +312,7 @@ function CopyCell({ text, style, bold }: { text: string; style?: React.CSSProper
   )
 }
 
-export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props) {
+export function AllTermsModal({ open, onClose, chapters, seriesGlossary, seriesId, accepted = {}, onChanged }: Props) {
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<'all' | 'inconsistent' | 'main'>('all')
   const [collapseMain, setCollapseMain] = useState(false)
@@ -130,7 +342,14 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
     return m
   }, [seriesGlossary])
 
-  const inconsistentKeys = useMemo(() => inconsistentTermKeys(chapters, seriesGlossary), [chapters, seriesGlossary])
+  const groups = useMemo(() => termVariantGroups(chapters, seriesGlossary, accepted), [chapters, seriesGlossary, accepted])
+  const inconsistentKeys = useMemo(() => new Set(groups.filter(g => g.flagged).map(g => g.key)), [groups])
+  const acceptedTerms = useMemo(() => groups.filter(g => !g.flagged && (accepted[g.key]?.length ?? 0) > 0), [groups, accepted])
+  const toast = useToast()
+  const undoAccept = async (g: TermVariantGroup) => {
+    try { await acceptTermVariants(seriesId, g.sourceTerm, []); await onChanged() }
+    catch (e) { toast.error(e instanceof Error ? e.message : String(e)) }
+  }
 
   const allRows = useMemo<TermRow[]>(() => {
     const rows: TermRow[] = []
@@ -147,7 +366,7 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
         const glossaryTranslation = glossaryMap.get(srcKey)
         const inGlossary = glossaryMap.has(srcKey)
         const isMain = inGlossary && glossaryTranslation === tKey
-        const tableOnly = inGlossary && !isMain && !text.includes((e.translatedTerm ?? '').trim().toLowerCase())
+        const tableOnly = inGlossary && !isMain && !text.includes(normText(e.translatedTerm ?? '').trim())
         rows.push({
           sourceTerm: e.sourceTerm,
           translatedTerm: e.translatedTerm,
@@ -287,7 +506,8 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
           </div>
         </div>
 
-        {/* Options row: sort + collapse */}
+        {/* Options row and legend: only for the flat table views */}
+        {filter !== 'inconsistent' && (<>
         <div className="flex items-center gap-4 px-4 py-2" style={{ borderBottom: '1px solid var(--line,var(--border))', flexShrink: 0, backgroundColor: 'var(--bg-surface,#fafaf8)' }}>
           {/* Sort */}
           <div className="flex items-center gap-2">
@@ -343,19 +563,40 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
           <span style={{ ...legendBadge, borderColor: 'var(--line,var(--border))', backgroundColor: 'transparent', color: 'var(--fg-subtle,#aaa)' }}>Extracted</span>
           <span style={{ fontSize: '10px', color: 'var(--fg-muted,#666)' }}>= belum masuk glossary</span>
         </div>
+        </>)}
 
         {/* Table */}
         <div className="flex-1 overflow-y-auto" style={{ minHeight: 0 }}>
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-2">
-              {filter === 'inconsistent' && inconsistentCount === 0 ? (
-                <>
-                  <span style={{ fontSize: '28px' }}>✓</span>
-                  <p style={{ color: 'var(--fg-green,#28E272)', fontSize: '13px', fontWeight: 600 }}>No inconsistencies found!</p>
-                </>
+          {filter === 'inconsistent' ? (
+            // Grouped per term: the glossary rendering (pre-pass included) sits on top.
+            <div className="flex flex-col gap-2.5 p-3">
+              {inconsistentCount > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Pilih bentuk yang benar lalu <strong>Samakan</strong>: bentuk lain diganti di semua bab dan versi lama diarsipkan.
+                  Frasa deskriptif sering wajar diterjemahkan beragam; untuk itu pilih <strong>Abaikan</strong>.
+                </p>
               ) : (
-                <p style={{ color: 'var(--muted-foreground)', fontSize: '13px' }}>No terms found.</p>
+                <div className="flex flex-col items-center gap-2 py-10">
+                  <span style={{ fontSize: '28px' }}>✓</span>
+                  <p style={{ color: 'var(--fg-green)', fontSize: '13px', fontWeight: 600 }}>No inconsistencies found!</p>
+                </div>
               )}
+              {groups.filter(g => g.flagged && (!query.trim() || g.sourceTerm.toLowerCase().includes(query.toLowerCase()) || g.variants.some(v => v.form.toLowerCase().includes(query.toLowerCase()))))
+                .map(g => <TermGroupCard key={g.key} group={g} seriesId={seriesId} onChanged={onChanged} />)}
+              {acceptedTerms.length > 0 && (
+                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                  <span>Diabaikan:</span>
+                  {acceptedTerms.map(g => (
+                    <Button key={g.key} variant="outline" size="xs" onClick={() => undoAccept(g)} title="Tandai lagi istilah ini" className="gap-1 font-mono">
+                      {g.sourceTerm} <Undo2 size={11} />
+                    </Button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-2">
+              <p style={{ color: 'var(--muted-foreground)', fontSize: '13px' }}>No terms found.</p>
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
@@ -402,11 +643,11 @@ export function AllTermsModal({ open, onClose, chapters, seriesGlossary }: Props
         </div>
 
         {/* Footer */}
-        {inconsistentCount > 0 && (
+        {inconsistentCount > 0 && filter !== 'inconsistent' && (
           <div className="flex items-center gap-2 px-5 py-2" style={{ borderTop: '1px solid var(--line,var(--border))', flexShrink: 0, backgroundColor: 'var(--tint-red,#fff8f8)' }}>
             <AlertTriangle size={12} style={{ color: 'var(--fg-red,#FF3C3C)' }} />
             <span style={{ fontSize: '11px', color: 'var(--fg-muted,#888)' }}>
-              Filter <strong>Main</strong> untuk lihat mana yang jadi patokan, lalu fix inkonsistensi dengan update glossary series.
+              Buka tab <strong>Inconsistent</strong>: tiap istilah bisa disamakan ke satu bentuk (bab yang berubah diarsipkan) atau diabaikan bila variasinya disengaja.
             </span>
           </div>
         )}

@@ -30,6 +30,7 @@ from .storage.chapters import (
     get_chapters, get_chapter, get_chapter_assets_dir, get_chapter_path,
 )
 from .storage.series import get_series, get_series_dir
+from .storage.atomic import write_json
 
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.tif', '.tiff'}
 
@@ -138,8 +139,7 @@ def _write_chapter_manifest(series_id: str, chapter_id: str, manifest: List[Dict
     chapter['images'] = manifest
     from datetime import datetime
     chapter['updatedAt'] = datetime.utcnow().isoformat() + 'Z'
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(path, chapter)
 
 
 def save_uploaded_images(series_id: str, images: List[Dict[str, Any]]) -> int:

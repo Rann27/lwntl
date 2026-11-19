@@ -38,9 +38,15 @@ function getApi(): any {
   return (window as any).pywebview?.api
 }
 
-// Check if pywebview is ready
+// Methods the app needs before it can load anything.
+const REQUIRED_METHODS = ['get_config', 'get_all_series', 'get_groups', 'get_profiles']
+
+// Check if pywebview is ready. pywebview first creates `window.pywebview.api`
+// as an empty object and binds the Python methods a moment later (right after a
+// page reload too), so the methods themselves are what counts.
 export function isApiReady(): boolean {
-  return !!(window as any).pywebview?.api
+  const api = (window as any).pywebview?.api
+  return !!api && REQUIRED_METHODS.every(m => typeof api[m] === 'function')
 }
 
 // Wait for pywebview API to be ready
@@ -50,12 +56,18 @@ export function waitForApi(): Promise<void> {
       resolve()
       return
     }
+    let done = false
+    const finish = () => {
+      if (done || !isApiReady()) return
+      done = true
+      window.removeEventListener('pywebviewready', finish)
+      resolve()
+    }
+    window.addEventListener('pywebviewready', finish)
     const check = () => {
-      if (isApiReady()) {
-        resolve()
-      } else {
-        setTimeout(check, 100)
-      }
+      if (done) return
+      if (isApiReady()) finish()
+      else setTimeout(check, 50)
     }
     check()
   })
@@ -527,6 +539,12 @@ export async function estimateTokens(text: string): Promise<{ tokens: number }> 
 }
 
 // ===== Export =====
+export async function markChaptersRawDone(seriesId: string, chapterIds: string[]): Promise<{ done: string[]; failed: { id: string; message: string }[] }> {
+  const result = await getApi().mark_chapters_raw_done(seriesId, chapterIds)
+  if (isApiError(result)) throw new Error(result.message)
+  return result
+}
+
 export async function exportChapter(
   seriesId: string,
   chapterId: string
@@ -944,6 +962,18 @@ export async function qaSuggestFix(seriesId: string, chapterId: string, index: n
   const result = await api.qa_suggest_fix(seriesId, chapterId, index)
   if (isApiError(result)) throw new Error(result.message)
   return result as { suggestion: string; delete: boolean }
+}
+
+export async function unifyTermVariants(seriesId: string, sourceTerm: string, canonical: string, replace: string[]): Promise<{ canonical: string; replaced: number; chapters: number }> {
+  const result = await getApi().unify_term_variants(seriesId, sourceTerm, canonical, replace)
+  if (isApiError(result)) throw new Error(result.message)
+  return result
+}
+
+export async function acceptTermVariants(seriesId: string, sourceTerm: string, renderings: string[]): Promise<{ accepted: Record<string, string[]> }> {
+  const result = await getApi().accept_term_variants(seriesId, sourceTerm, renderings)
+  if (isApiError(result)) throw new Error(result.message)
+  return result
 }
 
 export async function glossaryResolve(seriesId: string, action: Record<string, unknown>): Promise<Record<string, unknown>> {

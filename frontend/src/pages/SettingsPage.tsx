@@ -655,6 +655,35 @@ function ApiKeysForm({ config, onSave }: { config: AppConfig; onSave: (c: AppCon
               </div>
             )}
             {provider === 'gemini' && (
+              // Google offers no way to spend the plan's own quota from another app
+              // (the Gemini CLI/Antigravity login is off-limits to third-party tools),
+              // but AI Pro/Ultra include monthly Gemini API credits a normal key can use.
+              <div className="mt-2 px-3 py-2.5" style={{ borderRadius: 'var(--radius)', border: '1px solid var(--color-border)', backgroundColor: 'var(--bg-blue)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--fg-blue)' }}>Punya Google AI Pro atau Ultra?</p>
+                <p style={{ fontSize: '12px', color: 'var(--color-text)', marginTop: '4px', lineHeight: 1.55 }}>
+                  Paketmu sudah termasuk kredit Gemini API: $10 per bulan (Pro) atau $100 per bulan (Ultra). Tiap kredit berlaku 12 bulan dan menumpuk. Cara memakainya di LWNTL:
+                </p>
+                <ol style={{ fontSize: '12px', color: 'var(--color-text)', margin: '4px 0 0', paddingLeft: '18px', lineHeight: 1.55, listStyle: 'decimal' }}>
+                  <li>Buka Google AI Studio dengan akun yang berlangganan, lalu klaim kredit paket Google AI.</li>
+                  <li>Siapkan billing Cloud untuk project-nya. Google mensyaratkan prabayar minimal $5 sebelum kredit bisa terpakai.</li>
+                  <li>Buat API key di project yang sama, lalu tempel di kolom di atas.</li>
+                </ol>
+                <div className="flex flex-wrap gap-3" style={{ marginTop: '6px' }}>
+                  <a href="https://aistudio.google.com/learn/claim-google-ai-plan-credits-in-ai-studio" target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--fg-blue)' }}>
+                    <ExternalLink size={11} /> Klaim kredit
+                  </a>
+                  <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--fg-blue)' }}>
+                    <ExternalLink size={11} /> Buat API key
+                  </a>
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginTop: '6px', lineHeight: 1.5 }}>
+                  Kuota chat Gemini di paketmu sendiri tidak bisa dipakai aplikasi lain: Google tidak menyediakan jalur resminya, dan login Gemini CLI/Antigravity di aplikasi pihak ketiga melanggar ketentuannya (akun bisa diblokir).
+                </p>
+              </div>
+            )}
+            {provider === 'gemini' && (
               <div className="mt-2 flex items-center justify-between px-3 py-2" style={{ borderRadius: 'var(--radius)',  border: '1px solid var(--color-border)', backgroundColor: 'var(--color-surface-2)' }}>
                 <div>
                   <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--color-text)', textTransform: 'none', letterSpacing: '0.4px' }}>

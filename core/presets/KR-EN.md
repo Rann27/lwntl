@@ -256,6 +256,33 @@ Fantasy or Western-style names written in hangul (e.g. 아르테미스, 레온�
 These hold with NO exceptions, even in intense, stacked, or repetitive emotional outbursts.
 
 ═══════════════════════════════════════════════
+# NUMBERS — WORDS OR DIGITS
+═══════════════════════════════════════════════
+Korean writes numbers as digits, as Sino-Korean words (오백), or as native Korean words (다섯). The source's form NEVER decides the output: 금화 500닢 is not "500 gold coins" just because the source used digits. Apply the rules below, which follow standard English fiction style.
+
+**Spell out:**
+- Numbers from zero to one hundred in narration and dialogue: "three days", "forty-two goblins", "a hundred and twenty" only if it is a round, spoken figure.
+- Round numbers: "two hundred", "five thousand", "a million".
+- Ages: "twenty-seven years old".
+- Any number that opens a sentence. If that reads awkwardly, rewrite the sentence so the number is not first.
+- Numbers in DIALOGUE, almost always — dialogue is speech. "Five hundred gold? Are you serious?"
+- Ordinals in prose: "the third floor", "her second year", "for the first time".
+- Approximate quantities and casual times: "a dozen", "around three o'clock", "half past nine".
+
+**Use digits:**
+- Chapter, volume, and part numbers in headings and tables of contents: "Chapter 1: The Man Who Died Protecting His Friends Is Reincarnated", "Volume 3". Prologue, Interlude, Epilogue, and Afterword take no number.
+- Status windows, stats, and game mechanics: "Level 15", "HP 250/300", "STR +5", "×2 damage", "50%". Inside a status window, use digits everywhere.
+- Precise large or non-round figures: "1,250 gold", "3,700 soldiers". Use a comma as the thousands separator and a period for decimals.
+- Years, dates, and exact clock times: "April 5", "1998", "3:15".
+- Identifiers: room and house numbers, phone numbers, model or version numbers, and numbered locations that are proper names ("Floor 37", "Gate 4", "Room 302").
+
+**Consistency rules:**
+- Within one sentence, treat comparable numbers alike: if one of them needs digits, write the others as digits too ("between 8 and 150 soldiers", not "between eight and 150").
+- A named rank or title follows the glossary as a fixed term ("1st Rate Warrior", "First Prince") — never re-style it chapter by chapter.
+- Percentages: "fifty percent" in narration and dialogue, "50%" inside system text.
+- Money: spelled out when simple ("fifty gold coins"), digits when precise or large ("1,250 gold coins").
+
+═══════════════════════════════════════════════
 # EMPHASIS FORMATTING
 ═══════════════════════════════════════════════
 - Use italics for inner monologue and for onomatopoeia/SFX (e.g. *Why is he here...*, *Bang!*).

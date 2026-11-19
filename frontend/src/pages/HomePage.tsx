@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input'
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useLiveSeriesEvents } from '../hooks/useLiveSeriesEvents'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Plus, ChevronRight, Search, BookOpen, FolderPlus } from 'lucide-react'
+import { Plus, ChevronRight, Search, BookOpen, FolderPlus, RefreshCw } from 'lucide-react'
 import { Topbar } from '../components/Topbar'
 import { SeriesCard } from '../components/SeriesCard'
 import { SkeletonCard } from '../components/SkeletonCard'
@@ -81,8 +82,19 @@ export function HomePage() {
     setLoading(true)
     setLoadError('')
     try {
-      const [series, grps] = await Promise.all([getAllSeries(), getGroups()])
-      if (!Array.isArray(series)) throw new Error('Invalid series response')
+      // Right after a profile switch the bridge can still be settling: retry a
+      // failed read a few times before calling it an error.
+      let series: Series[] = [], grps: SeriesGroup[] = []
+      for (let attempt = 0; ; attempt++) {
+        try {
+          ;[series, grps] = await Promise.all([getAllSeries(), getGroups()])
+          if (!Array.isArray(series)) throw new Error('Invalid series response')
+          break
+        } catch (err) {
+          if (attempt >= 3) throw err
+          await new Promise(r => setTimeout(r, 300 * (attempt + 1)))
+        }
+      }
       setSeriesList(series)
       setGroups(grps)
 
@@ -105,6 +117,11 @@ export function HomePage() {
   useEffect(() => {
     if (apiReady) loadData()
   }, [apiReady, loadData])
+
+  // Card progress follows translations running in the background.
+  useLiveSeriesEvents((sid) => {
+    getChapters(sid).then(chs => setChaptersMap(prev => ({ ...prev, [sid]: chs }))).catch(() => {})
+  }, apiReady)
 
   // Sync group state from router location (handles browser back/forward)
   useEffect(() => {
@@ -326,6 +343,11 @@ export function HomePage() {
         <div className="page-heading">
           <div><h1 className="ui-h1 mb-2">{language === 'id' ? 'Koleksi series' : 'Your library'}</h1><p className="text-sm text-muted-foreground">{language === 'id' ? 'Kelola series, atur bab, dan lanjutkan terjemahanmu.' : 'Organize your series, manage chapters, and continue translating.'}</p></div>
           <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={loadData} disabled={loading}
+              aria-label={language === 'id' ? 'Muat ulang daftar' : 'Reload list'}
+              title={language === 'id' ? 'Muat ulang daftar series dan grup' : 'Reload series and groups'}>
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </Button>
             <Button variant="outline"
               onClick={openGroupCreate}
             >

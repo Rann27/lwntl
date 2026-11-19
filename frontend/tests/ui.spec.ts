@@ -198,3 +198,129 @@ test('docx template modal: pick a template for the series', async ({ page }) => 
   await dialog.getByRole('button', { name: /ikuti default/i }).click()
   await expect(dialog.getByText(/mengikuti default/)).toBeVisible()
 })
+
+test('mark chapters done by copying the raw text', async ({ page }) => {
+  await installMockApi(page)
+  await page.goto('/#/series/series-1/settings')
+  // single chapter from its menu (pending, so no confirmation)
+  const row = page.locator('div.group').filter({ hasText: 'Between the lines' })
+  await row.hover()
+  await row.getByRole('button', { name: 'More options' }).click()
+  await page.getByRole('menuitem', { name: 'Tandai selesai (salin raw)' }).click()
+  await expect(page.getByText(/1 bab ditandai selesai/)).toBeVisible()
+  const calls = await page.evaluate(() => (window as any).__uiFixture.calls.filter((c: any) => c.method === 'mark_chapters_raw_done'))
+  expect(calls[0].args[1]).toEqual(['chapter-5'])
+
+  // several chapters in select mode; one is already translated, so a confirm appears
+  page.once('dialog', dialog => dialog.accept())
+  await page.getByRole('button', { name: /^pilih$/i }).click()
+  await page.getByText('A quiet morning').click()
+  await page.getByText('The next journey').click()
+  await page.getByRole('button', { name: /salin raw/i }).click()
+  await expect(page.getByText(/2 bab ditandai selesai/)).toBeVisible()
+})
+
+test('glossary delete confirms without a countdown, chapter delete keeps it', async ({ page }) => {
+  await installMockApi(page)
+  await page.goto('/#/series/series-1/settings')
+  await page.getByRole('button', { name: 'Hapus 薬屋' }).click()
+  const dialog = page.getByRole('dialog', { name: 'Confirm deletion' })
+  await expect(dialog.getByRole('button', { name: 'Hapus', exact: true })).toBeEnabled({ timeout: 300 })
+  await dialog.getByRole('button', { name: 'Batal' }).click()
+
+  const row = page.locator('div.group').filter({ hasText: 'The next journey' })
+  await row.hover()
+  await row.getByRole('button', { name: 'More options' }).click()
+  await page.getByRole('menuitem', { name: 'Hapus' }).click()
+  await expect(page.getByRole('dialog', { name: 'Confirm deletion' }).getByRole('button', { name: 'Hapus', exact: true })).toBeDisabled()
+})
+
+test('all terms: grouped inconsistencies ignore other terms\' names and can be unified or accepted', async ({ page }) => {
+  await installMockApi(page)
+  await page.addInitScript(() => {
+    const w = window as any, fx = w.__uiFixture
+    const glossary = [
+      { id: 'g1', sourceTerm: '薬屋', translatedTerm: 'Apoteker', notes: '', aliases: [] },
+      { id: 'g2', sourceTerm: 'ルナ', translatedTerm: 'Runa', notes: '', aliases: [] },
+    ]
+    fx.chapters[0].translatedContent = 'Apoteker itu menyapa Runa.'
+    fx.chapters[0].glossaryUpdates = { entries: [{ sourceTerm: '薬屋', translatedTerm: 'Apoteker', notes: '' }, { sourceTerm: 'るなっち', translatedTerm: 'Runa', notes: 'nama panggilan' }] }
+    fx.chapters[1].translatedContent = 'Toko obat itu sepi. Runa-chi tersenyum.'
+    fx.chapters[1].glossaryUpdates = { entries: [{ sourceTerm: '薬屋', translatedTerm: 'Toko obat', notes: '' }, { sourceTerm: 'るなっち', translatedTerm: 'Runa-chi', notes: '' }] }
+    const base = w.pywebview.api
+    w.pywebview.api = new Proxy({}, { get: (_t, name: string) => name === 'get_glossary' ? async () => glossary : base[name] })
+  })
+  await page.goto('/#/series/series-1/settings')
+  await page.locator('button').filter({ hasText: /all terms/i }).first().click()
+  const dialog = page.getByRole('dialog')
+  // only 薬屋 counts: "Runa" for the nickname is the heroine's own name, not a rendering
+  await expect(dialog.getByText('1 inconsistency')).toBeVisible()
+  await dialog.locator('button').filter({ hasText: /inconsistent/i }).first().click()
+  await expect(dialog.getByRole('radio')).toHaveCount(2)
+  await expect(dialog.getByText('Glossary', { exact: true })).toBeVisible()
+
+  page.once('dialog', d => d.accept())
+  await dialog.getByRole('button', { name: 'Samakan ke "Apoteker"' }).click()
+  const call = await page.evaluate(() => (window as any).__uiFixture.calls.find((c: any) => c.method === 'unify_term_variants'))
+  expect(call.args.slice(1)).toEqual(['薬屋', 'Apoteker', ['Toko obat']])
+
+  await dialog.getByRole('button', { name: 'Abaikan' }).click()
+  await expect(dialog.getByText(/No inconsistencies found/i)).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /薬屋/ })).toBeVisible()
+})
+
+test('library loads even when the pywebview bridge binds its methods late', async ({ page }) => {
+  const errors: string[] = []
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()) })
+  await installMockApi(page)
+  // pywebview creates `api: {}` first and fills in the methods afterwards.
+  await page.addInitScript(() => {
+    const w = window as any
+    const real = w.pywebview.api
+    w.pywebview.api = {}
+    setTimeout(() => {
+      w.pywebview.api = real
+      window.dispatchEvent(new CustomEvent('pywebviewready'))
+    }, 800)
+  })
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'The Apothecary Diaries', exact: true })).toBeVisible()
+  await expect(page.getByText('Gagal memuat series')).toHaveCount(0)
+  // the app's own start-up (config, profiles) must not have failed either
+  expect(errors.filter(e => e.includes('Failed to initialize'))).toEqual([])
+  await page.getByRole('button', { name: 'Muat ulang daftar' }).click()
+  await expect(page.getByRole('button', { name: 'The Apothecary Diaries', exact: true })).toBeVisible()
+})
+
+test('chapter list and library cards follow translation events live', async ({ page }) => {
+  await installMockApi(page)
+  await page.goto('/#/series/series-1/settings')
+  const row = page.locator('div.group').filter({ hasText: 'Between the lines' })
+  await expect(row.locator('[title="Menunggu"]')).toHaveCount(1)
+
+  // the backend marks the chapter processing, then tells the UI
+  await page.evaluate(() => {
+    const w = window as any
+    w.__uiFixture.chapters.find((c: any) => c.id === 'chapter-5').status = 'processing'
+    w.onTranslationStatus({ status: 'processing', seriesId: 'series-1', chapterId: 'chapter-5' })
+  })
+  await expect(row.locator('[title="Memproses"]')).toHaveCount(1)
+
+  await page.evaluate(() => {
+    const w = window as any
+    w.__uiFixture.chapters.find((c: any) => c.id === 'chapter-5').status = 'done'
+    w.onTranslationDone({ status: 'done', seriesId: 'series-1', chapterId: 'chapter-5', translation: 'x', iterations: 1 })
+  })
+  await expect(row.locator('[title="Selesai"]')).toHaveCount(1)
+
+  // the library card's progress follows without reloading
+  await page.goto('/')
+  const card = page.locator('[data-slot="card"]').filter({ hasText: 'The Apothecary Diaries' })
+  await expect(card.getByText('4 / 6 bab')).toBeVisible()
+  await page.evaluate(() => {
+    const w = window as any
+    w.__uiFixture.chapters.find((c: any) => c.id === 'chapter-5').status = 'done'
+    w.onBatchStatus({ status: 'translating', seriesId: 'series-1', completed: 1, total: 2 })
+  })
+  await expect(card.getByText('5 / 6 bab')).toBeVisible()
+})

@@ -30,6 +30,7 @@ from .glossary_guard import find_conflict, looks_like_full_name
 from .qa_fix import _fix_homoglyph
 from .storage.chapters import get_chapters
 from .storage.series import get_series, get_series_path
+from .storage.atomic import write_json
 
 _CHARACTER_NOTE = re.compile(
     r"\b(tokoh|laki-laki|perempuan|protagonis|antagonis|heroine|heroin|male|female|protagonist|antagonist)\b",
@@ -357,8 +358,7 @@ def resolve_entry(series_id: str, action: Dict[str, Any]) -> Dict[str, Any]:
             items.append({"entryId": partner["id"], "translatedTerm": partner.get("translatedTerm"),
                           "flags": ["conflict"], "at": datetime.utcnow().isoformat() + "Z"})
         series["glossaryAuditIgnore"] = items
-        with open(get_series_path(series_id), "w", encoding="utf-8") as f:
-            json.dump(series, f, indent=2, ensure_ascii=False)
+        write_json(get_series_path(series_id), series)
         return {"type": "ignore", "flags": flags}
 
     if kind == "canonical":
@@ -411,12 +411,10 @@ def delete_entries(series_id: str, entry_ids: List[str]) -> Dict[str, Any]:
 
     stamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
     backup = get_series_path(series_id).parent / f"glossary-removed-{stamp}.json"
-    with open(backup, "w", encoding="utf-8") as f:
-        json.dump(removed, f, indent=2, ensure_ascii=False)
+    write_json(backup, removed)
 
     series["glossary"] = [e for e in series["glossary"] if e.get("id") not in ids]
     series["updatedAt"] = datetime.utcnow().isoformat() + "Z"
-    with open(get_series_path(series_id), "w", encoding="utf-8") as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(get_series_path(series_id), series)
     invalidate_context_cache(series_id)
     return {"deleted": len(removed), "backup": str(backup)}

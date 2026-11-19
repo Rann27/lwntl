@@ -19,6 +19,7 @@ from .storage.chapters import (
     archive_current_translation, get_chapter, get_chapters, update_chapter_fields, update_chapter_translation,
 )
 from .storage.series import get_series, get_series_path
+from .storage.atomic import write_json
 
 MAX_BACKUPS = 10
 
@@ -95,8 +96,7 @@ def restore_backup(series_id: str, backup_id: str, restore_glossary: bool = Fals
         series = get_series(series_id)
         series["glossary"] = data.get("glossary") or []
         series["updatedAt"] = datetime.utcnow().isoformat() + "Z"
-        with open(get_series_path(series_id), "w", encoding="utf-8") as f:
-            json.dump(series, f, indent=2, ensure_ascii=False)
+        write_json(get_series_path(series_id), series)
 
     invalidate_context_cache(series_id)
     return {"chapters": restored, "glossary": bool(restore_glossary)}

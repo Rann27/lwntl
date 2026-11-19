@@ -118,6 +118,8 @@ export interface Series {
   systemPromptPreset?: string
   /** Word export template ("builtin:classic", "user:…", or "" to follow the app default). */
   docTemplate?: string
+  /** All terms: renderings accepted as intended, per lowercase source term. */
+  termVariantsAccepted?: Record<string, string[]>
   instructions: string
   glossary: GlossaryEntry[]
   memory: MemoryEntry[]

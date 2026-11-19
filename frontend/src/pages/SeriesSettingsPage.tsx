@@ -20,7 +20,8 @@ import { AllTermsModal, countInconsistencies } from '../components/AllTermsModal
 import { RollingMemoryModal } from '../components/RollingMemoryModal'
 import { useToast } from '../hooks/useToast'
 import { useBatchTranslation } from '../hooks/useBatchTranslation'
-import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch, Bot, ShieldCheck, Image as ImageIcon, ChevronDown, FileType2 } from 'lucide-react'
+import { useLiveSeriesEvents } from '../hooks/useLiveSeriesEvents'
+import { Play, Brain, CheckSquare, Trash2, X, RefreshCw, ScrollText, FileDown, BookOpen, BookText, ScanSearch, Bot, ShieldCheck, Image as ImageIcon, ChevronDown, FileType2, CopyCheck } from 'lucide-react'
 import { TerminologyPrepassModal } from '../components/TerminologyPrepassModal'
 import { AgentRunModal } from '../components/AgentRunModal'
 import { QaReportModal } from '../components/QaReportModal'
@@ -30,6 +31,7 @@ import type { ProposedTerm } from '../api'
 import {
   getAllSeries,
   getChapters,
+  markChaptersRawDone,
   getGlossary,
   createChapter,
   updateChapter,
@@ -86,7 +88,7 @@ export function SeriesSettingsPage() {
   const [series, setSeries] = useState<Series | null>(null)
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [glossary, setGlossary] = useState<GlossaryEntry[]>([])
-  const inconsistencyCount = useMemo(() => countInconsistencies(chapters, glossary), [chapters, glossary])
+  const inconsistencyCount = useMemo(() => countInconsistencies(chapters, glossary, series?.termVariantsAccepted), [chapters, glossary, series?.termVariantsAccepted])
   const [instructions, setInstructions] = useState('')
   const [systemPrompt, setSystemPrompt] = useState('')
   const [workerStatuses, setWorkerStatuses] = useState<WorkerStatus[]>([])
@@ -134,39 +136,21 @@ export function SeriesSettingsPage() {
     if (apiReady) loadData()
   }, [apiReady, loadData])
 
-  // Event-driven chapter list sync: no polling needed.
-  // lwntl:translation-done / error fire per-chapter (single and batch).
-  // lwntl:batch-status fires when the whole batch finishes or is cancelled.
-  useEffect(() => {
-    if (!seriesId || !apiReady) return
-    const refresh = (e: Event) => {
-      const detail = (e as CustomEvent).detail
-      if (detail?.seriesId === seriesId) {
-        getChapters(seriesId).then(setChapters).catch(() => {})
-      }
-    }
-    const onBatchSettled = (e: Event) => {
-      const detail = (e as CustomEvent).detail
-      if (detail?.seriesId !== seriesId) return
-      const settled = detail.status === 'done' || detail.status === 'cancelled'
-      // Agent runs edit chapters and the glossary between phase events, so
-      // refresh on every phase change, not only when the run settles.
-      if (settled || detail.agent) {
-        getChapters(seriesId).then(setChapters).catch(() => {})
-      }
-      if (detail.agent && settled) {
-        getGlossary(seriesId).then(setGlossary).catch(() => {})
-      }
-    }
-    window.addEventListener('lwntl:translation-done', refresh)
-    window.addEventListener('lwntl:translation-error', refresh)
-    window.addEventListener('lwntl:batch-status', onBatchSettled)
-    return () => {
-      window.removeEventListener('lwntl:translation-done', refresh)
-      window.removeEventListener('lwntl:translation-error', refresh)
-      window.removeEventListener('lwntl:batch-status', onBatchSettled)
-    }
-  }, [seriesId, apiReady])
+  // Live sync: every chapter status change (start, phase, done, error, cancel)
+  // refreshes the chapter list. When a chapter or run settles, the glossary
+  // (auto-applied terms) and the series' long-term memory may have changed too.
+  // Only those fields are taken from the series, so unsaved prompt edits stay.
+  useLiveSeriesEvents((sid, settled) => {
+    if (sid !== seriesId) return
+    getChapters(sid).then(setChapters).catch(() => {})
+    getWorkerStatuses().then(setWorkerStatuses).catch(() => {})
+    if (!settled) return
+    getGlossary(sid).then(setGlossary).catch(() => {})
+    getAllSeries().then(all => {
+      const fresh = all.find(s => s.id === sid)
+      if (fresh) setSeries(prev => prev ? { ...prev, memory: fresh.memory, termVariantsAccepted: fresh.termVariantsAccepted } : prev)
+    }).catch(() => {})
+  }, !!seriesId && apiReady)
 
   // Poll series logs when panel is open
   useEffect(() => {
@@ -462,6 +446,25 @@ export function SeriesSettingsPage() {
     handleExitSelectMode()
   }
 
+  /** Finish chapters without AI: the raw text becomes the translation. */
+  const handleMarkRawDone = async (targets: Chapter[]) => {
+    if (!seriesId || targets.length === 0) return
+    const translated = targets.filter(c => c.translatedContent?.trim() && c.translatedContent !== c.rawContent).length
+    if (translated && !window.confirm(t.batch.markRawDoneConfirm.replace('{count}', String(translated)))) return
+    try {
+      const result = await markChaptersRawDone(seriesId, targets.map(c => c.id))
+      setChapters(await getChapters(seriesId))
+      if (result.done.length) toast.success(t.batch.markRawDoneDone.replace('{count}', String(result.done.length)))
+      for (const f of result.failed) {
+        const ch = targets.find(c => c.id === f.id)
+        toast.error(`${ch?.title || ch?.chapterNumber || ''}: ${f.message}`)
+      }
+      if (selectMode) handleExitSelectMode()
+    } catch (e: any) {
+      toast.error(e.message || t.settings.saveFailed)
+    }
+  }
+
   const handleDeleteSelectedConfirm = async () => {
     if (!seriesId || selectedIds.size === 0) return
     setDeletingSelected(true)
@@ -591,6 +594,16 @@ export function SeriesSettingsPage() {
                   {selectedIds.size > 0 && <span className="font-normal">({selectedIds.size})</span>}
                 </Button>
               </div>
+              <Button variant="outline" size="sm"
+                onClick={() => handleMarkRawDone(chapters.filter(c => selectedIds.has(c.id)))}
+                disabled={isBatchActive || selectedIds.size === 0}
+                title={t.batch.markRawDoneHint}
+                className="gap-1.5 text-xs font-semibold"
+              >
+                <CopyCheck size={12} />
+                {t.batch.markRawDoneShort}
+                {selectedIds.size > 0 && <span className="font-normal">({selectedIds.size})</span>}
+              </Button>
               <div className="flex items-center gap-2">
                 <p className="flex-1" style={{ fontSize: '11px', color: 'var(--color-text-muted)', margin: 0 }}>
                   {selectedIds.size > 0
@@ -611,6 +624,7 @@ export function SeriesSettingsPage() {
             onEditChapter={setEditChapter}
             onDeleteChapter={handleDeleteChapterClick}
             onExportChapter={handleExportChapter}
+            onMarkRawDone={(c) => handleMarkRawDone([c])}
             selectMode={selectMode}
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
@@ -831,6 +845,9 @@ export function SeriesSettingsPage() {
         onClose={() => setShowAllTerms(false)}
         chapters={chapters}
         seriesGlossary={glossary}
+        seriesId={seriesId!}
+        accepted={series?.termVariantsAccepted}
+        onChanged={loadData}
       />
 
       {/* Batch Translation Overlay */}

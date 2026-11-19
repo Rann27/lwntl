@@ -3,6 +3,8 @@ Chapter Management
 Handles chapter.json CRUD operations and cascade delete
 """
 
+import functools
+import threading
 import base64
 import json
 import shutil
@@ -11,6 +13,24 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .config import get_profile_data_dir
+from .atomic import write_json, read_json
+
+
+
+# One lock per chapter file: the translator checkpoints a chapter while the UI
+# may change the same chapter, and each mutator is read-modify-write.
+_chapter_locks: Dict[str, threading.RLock] = {}
+_chapter_locks_guard = threading.Lock()
+
+
+def _chapter_locked(fn):
+    @functools.wraps(fn)
+    def wrapper(series_id, chapter_id, *args, **kwargs):
+        with _chapter_locks_guard:
+            lock = _chapter_locks.setdefault(f"{series_id}/{chapter_id}", threading.RLock())
+        with lock:
+            return fn(series_id, chapter_id, *args, **kwargs)
+    return wrapper
 
 
 def get_series_dir() -> Path:
@@ -157,9 +177,7 @@ def get_chapters(series_id: str) -> List[Dict[str, Any]]:
 
         if chapter_json.exists():
             try:
-                with open(chapter_json, 'r', encoding='utf-8') as f:
-                    chapter = json.load(f)
-                    chapter_list.append(chapter)
+                chapter_list.append(read_json(chapter_json))
             except (json.JSONDecodeError, OSError) as e:
                 print(f"Error reading chapter {chapter_path.name}: {e}")
                 continue
@@ -236,8 +254,7 @@ def create_chapter(series_id: str, number: str, title: str, raw_content: str,
 
     # Write chapter.json
     chapter_json = chapter_dir / 'chapter.json'
-    with open(chapter_json, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_json, chapter)
 
     return chapter
 
@@ -261,10 +278,10 @@ def get_chapter(series_id: str, chapter_id: str) -> Optional[Dict[str, Any]]:
     if not chapter_path.exists():
         return None
     
-    with open(chapter_path, 'r', encoding='utf-8') as f:
-        return _normalize_chapter(json.load(f))
+    return _normalize_chapter(read_json(chapter_path))
 
 
+@_chapter_locked
 def archive_current_translation(series_id: str, chapter_id: str) -> bool:
     """
     Move the current translatedContent + glossaryUpdates into translationHistory
@@ -295,13 +312,13 @@ def archive_current_translation(series_id: str, chapter_id: str) -> bool:
     chapter["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
 
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
 
     print(f"[Version] Archived v{version_number} for chapter {chapter_id} ({len(content)} chars)")
     return True
 
 
+@_chapter_locked
 def restore_translation_version(series_id: str, chapter_id: str, version_index: int) -> Dict[str, Any]:
     """
     Restore a version from translationHistory at the given index (0 = most recent previous).
@@ -342,13 +359,13 @@ def restore_translation_version(series_id: str, chapter_id: str, version_index: 
     chapter["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
 
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
 
     print(f"[Version] Restored v{target['version']} for chapter {chapter_id}")
     return chapter
 
 
+@_chapter_locked
 def update_chapter(series_id: str, chapter_id: str, number: str, title: str, raw_content: str) -> Dict[str, Any]:
     """
     Update a chapter
@@ -379,8 +396,7 @@ def update_chapter(series_id: str, chapter_id: str, number: str, title: str, raw
     
     # Write updated chapter.json
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
     
     return chapter
 
@@ -434,6 +450,7 @@ def delete_chapter(series_id: str, chapter_id: str) -> bool:
     return True
 
 
+@_chapter_locked
 def update_chapter_status(series_id: str, chapter_id: str, status: str) -> Dict[str, Any]:
     """
     Update chapter status (pending/processing/done/error)
@@ -463,12 +480,12 @@ def update_chapter_status(series_id: str, chapter_id: str, status: str) -> Dict[
     
     # Write updated chapter.json
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
     
     return chapter
 
 
+@_chapter_locked
 def update_chapter_translation(series_id: str, chapter_id: str, translated_content: str) -> Dict[str, Any]:
     """
     Update chapter translation result
@@ -494,12 +511,12 @@ def update_chapter_translation(series_id: str, chapter_id: str, translated_conte
     
     # Write updated chapter.json
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
     
     return chapter
 
 
+@_chapter_locked
 def update_chapter_summary(series_id: str, chapter_id: str, summary: str) -> Dict[str, Any]:
     """
     Update chapter summary
@@ -525,12 +542,12 @@ def update_chapter_summary(series_id: str, chapter_id: str, summary: str) -> Dic
     
     # Write updated chapter.json
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
     
     return chapter
 
 
+@_chapter_locked
 def update_glossary_updates(series_id: str, chapter_id: str, glossary_updates: Dict[str, Any]) -> Dict[str, Any]:
     """
     Update glossary updates for a chapter
@@ -556,12 +573,12 @@ def update_glossary_updates(series_id: str, chapter_id: str, glossary_updates: D
     
     # Write updated chapter.json
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
     
     return chapter
 
 
+@_chapter_locked
 def update_translation_log(series_id: str, chapter_id: str, iterations: int, total_tokens: int) -> Dict[str, Any]:
     """
     Update translation log for a chapter
@@ -589,11 +606,46 @@ def update_translation_log(series_id: str, chapter_id: str, iterations: int, tot
     
     # Write updated chapter.json
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
     
     return chapter
 
+@_chapter_locked
+def mark_done_with_raw(series_id: str, chapter_id: str) -> Dict[str, Any]:
+    """
+    Finish a chapter without AI: its raw text becomes the translation as-is.
+
+    Meant for chapters that need no translating (covers, illustration-only
+    pages, placeholders). An existing different translation is archived to
+    translationHistory first, so it can be restored.
+    """
+    chapter = get_chapter(series_id, chapter_id)
+    if chapter is None:
+        raise FileNotFoundError(f"Chapter {chapter_id} not found in series {series_id}")
+    if chapter.get("status") == "processing":
+        raise ValueError("Bab ini sedang diterjemahkan. Tunggu sampai selesai atau batalkan dulu.")
+    raw = chapter.get("rawContent", "")
+    if not raw.strip():
+        raise ValueError("Raw bab ini kosong.")
+
+    if chapter.get("translatedContent", "").strip() and chapter.get("translatedContent") != raw:
+        archive_current_translation(series_id, chapter_id)
+        chapter = get_chapter(series_id, chapter_id)
+
+    now = datetime.utcnow().isoformat() + 'Z'
+    chapter["translatedContent"] = raw
+    chapter["status"] = "done"
+    chapter["summary"] = ""
+    chapter["glossaryUpdates"] = {"extractedAt": None, "entries": []}
+    chapter["translationLog"] = {"iterations": 0, "totalTokens": 0, "translatedAt": now, "method": "raw"}
+    chapter.pop("agentReview", None)
+    chapter["updatedAt"] = now
+
+    write_json(get_chapter_path(series_id, chapter_id), chapter)
+    return chapter
+
+
+@_chapter_locked
 def update_chapter_fields(series_id: str, chapter_id: str, **fields: Any) -> Dict[str, Any]:
     """Set arbitrary top-level fields on a chapter (e.g. agentReview)."""
     chapter = get_chapter(series_id, chapter_id)
@@ -605,7 +657,6 @@ def update_chapter_fields(series_id: str, chapter_id: str, **fields: Any) -> Dic
     chapter["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
 
     chapter_path = get_chapter_path(series_id, chapter_id)
-    with open(chapter_path, 'w', encoding='utf-8') as f:
-        json.dump(chapter, f, indent=2, ensure_ascii=False)
+    write_json(chapter_path, chapter)
 
     return chapter

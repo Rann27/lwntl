@@ -542,6 +542,7 @@ class Translator:
                         self._log(f"[Recovery] Saved {len(partial.strip())} chars from cancelled run")
                 except Exception as e:
                     self._log(f"[Recovery] Could not save partial on cancel: {e}")
+                self._mark_cancelled(series_id, chapter_id)
                 self._send_status("cancelled")
                 return
 
@@ -753,13 +754,15 @@ class Translator:
             # If cancel was requested at the same time as the exception, report cancelled
             # so the chapter status doesn't get stuck as "error" after a user-initiated cancel.
             if self._cancelled:
+                self._mark_cancelled(series_id, chapter_id)
                 self._send_status("cancelled")
                 return
-            self._send_error(error_msg)
+            # Status first: the UI reloads the chapter list when the event arrives.
             try:
                 update_chapter_status(series_id, chapter_id, "error")
-            except:
+            except Exception:
                 pass
+            self._send_error(error_msg)
     
     def _stream_completion(
         self,
@@ -1091,6 +1094,13 @@ class Translator:
         """Send chunk to frontend via evaluate_js"""
         self._emit_js("onTranslationChunk", self._with_meta(data))
     
+    def _mark_cancelled(self, series_id: str, chapter_id: str):
+        """A cancelled chapter is unfinished again, not stuck as "processing"."""
+        try:
+            update_chapter_status(series_id, chapter_id, "pending")
+        except Exception as e:
+            self._log(f"[Translator] Could not reset status after cancel: {e}")
+
     def _send_status(self, status: str):
         """Send status update to frontend"""
         self._emit_js("onTranslationStatus", self._with_meta({"status": status}))

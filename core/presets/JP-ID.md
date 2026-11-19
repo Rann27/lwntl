@@ -235,6 +235,33 @@ PENGECUALIAN — bentuk pendek baku menang: nama tempat dunia nyata dengan ejaan
 Berlaku TANPA pengecualian, bahkan dalam adegan luapan emosi yang sangat intens, bertumpuk, atau berulang. Jangan kembali menyalin tanda baca sumber sekacau apa pun kalimatnya.
 
 ═══════════════════════════════════════════════
+# ANGKA — HURUF ATAU DIGIT
+═══════════════════════════════════════════════
+Bahasa Jepang menulis angka dengan beberapa cara — angka lebar penuh (５００), angka kanji (五〇〇), atau bilangan kanji (五百). Bentuk di sumber TIDAK PERNAH menentukan output: 金貨五〇〇枚 tidak otomatis jadi "500 koin emas" hanya karena sumbernya memakai digit. Terapkan aturan di bawah, yang mengikuti EYD dan kebiasaan fiksi Indonesia.
+
+**Tulis dengan huruf:**
+- Bilangan yang cukup ditulis dengan satu atau dua kata, di narasi maupun dialog: "tiga hari", "dua puluh lima", "lima ratus koin emas", "tiga ribu prajurit".
+- Usia: "dua puluh tujuh tahun".
+- Bilangan di awal kalimat. Jika janggal, susun ulang kalimatnya supaya angka tidak di depan.
+- Bilangan dalam DIALOG, hampir selalu — dialog adalah ucapan. "Lima ratus koin emas? Serius?"
+- Bilangan tingkat di prosa: "lantai ketiga", "tahun keduanya", "untuk pertama kalinya".
+- Jumlah perkiraan dan waktu santai: "selusin", "sekitar jam tiga", "setengah sepuluh".
+
+**Tulis dengan digit:**
+- Nomor bab, volume, dan bagian di judul dan daftar isi: "Bab 1: Pria yang Mati Melindungi Teman-temannya Bereinkarnasi", "Volume 3". Prolog, Selingan, Epilog, dan Kata Penutup tanpa nomor.
+- Jendela status, stat, dan mekanik game: "Level 15", "HP 250/300", "STR +5", "×2 damage", "50%". Di dalam jendela status, semua bilangan memakai digit.
+- Bilangan besar yang tidak bulat: "1.250 koin emas", "3.700 prajurit". Pemisah ribuan memakai TITIK, desimal memakai KOMA ("2,5 meter").
+- Tahun, tanggal, dan jam yang presisi: "5 April", "1998", "pukul 15.30" (jam memakai titik).
+- Penanda identitas: nomor kamar dan rumah, nomor telepon, nomor model atau versi, dan lokasi bernomor yang jadi nama diri ("Lantai 37", "Gerbang 4", "Kamar 302").
+- Bentuk tingkat dengan digit memakai tanda hubung: "ke-3", "abad ke-21". Jangan menulis "ke 3" atau "ke3".
+
+**Aturan konsistensi:**
+- Dalam satu kalimat, bilangan yang setara diperlakukan sama: jika satu harus digit, yang lain ikut digit ("antara 8 sampai 150 prajurit", bukan "antara delapan sampai 150").
+- Pangkat atau gelar bernama mengikuti glosarium sebagai istilah tetap ("1st Rate Warrior", "Pangeran Pertama") — jangan diubah gayanya dari bab ke bab.
+- Persen: "lima puluh persen" di narasi dan dialog, "50%" di teks sistem.
+- Uang: dengan huruf bila sederhana ("lima puluh koin emas"), digit bila presisi atau besar ("1.250 koin emas").
+
+═══════════════════════════════════════════════
 # FORMAT PENEKANAN (EMPHASIS)
 ═══════════════════════════════════════════════
 - Gunakan miring (italic) untuk monolog batin dan onomatope/SFX (mis. *Kenapa dia ada di sini...*, *Bang!*).

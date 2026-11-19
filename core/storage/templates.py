@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from .config import get_profile_data_dir
+from .atomic import write_json
 
 _FIELDS = (
     "systemPromptTemplate",
@@ -61,6 +62,5 @@ def save_profile_templates(
         "prepassPromptTemplate": current["prepassPromptTemplate"] if prepass_prompt_template is None else prepass_prompt_template,
         "systemPromptPreset": current["systemPromptPreset"] if system_prompt_preset is None else system_prompt_preset,
     }
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    write_json(path, data)
     return True

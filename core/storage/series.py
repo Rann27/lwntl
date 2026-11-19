@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .config import get_profile_data_dir
 from ..term_match import SAME, find_duplicate, normalize
+from .atomic import write_json, read_json
 
 # Source languages whose glossary source terms must be written in the original
 # CJK script — a Latin-only source term is almost always an extraction mistake
@@ -54,6 +55,7 @@ def _normalize_series(series: Dict[str, Any]) -> Dict[str, Any]:
     series.setdefault("lookupChapters", 1)
     series.setdefault("systemPromptPreset", "")
     series.setdefault("docTemplate", "")
+    series.setdefault("termVariantsAccepted", {})
     return series
 
 
@@ -92,9 +94,7 @@ def get_all_series() -> List[Dict[str, Any]]:
         
         if series_json.exists():
             try:
-                with open(series_json, 'r', encoding='utf-8') as f:
-                    series = json.load(f)
-                    series_list.append(_normalize_series(series))
+                series_list.append(_normalize_series(read_json(series_json)))
             except (json.JSONDecodeError, OSError) as e:
                 print(f"Error reading series {series_path.name}: {e}")
                 continue
@@ -150,8 +150,7 @@ def create_series(title: str, language: str, target_language: str = "Indonesian"
     
     # Write series.json
     series_json = series_path / 'series.json'
-    with open(series_json, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_json, series)
     
     return series
 
@@ -174,8 +173,7 @@ def get_series(series_id: str) -> Optional[Dict[str, Any]]:
     if not series_path.exists():
         return None
     
-    with open(series_path, 'r', encoding='utf-8') as f:
-        series = json.load(f)
+    series = read_json(series_path)
     return _normalize_series(series)
 
 
@@ -229,8 +227,7 @@ def update_series(series_id: str, title: str, language: str,
     
     # Write updated series.json
     series_path = get_series_path(series_id)
-    with open(series_path, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_path, series)
     
     return series
 
@@ -305,8 +302,7 @@ def save_instructions(series_id: str, instructions: str) -> bool:
     
     # Write updated series.json
     series_path = get_series_path(series_id)
-    with open(series_path, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_path, series)
     
     return True
 
@@ -386,8 +382,7 @@ def add_glossary_entry(series_id: str, source_term: str, translated_term: str, n
     
     # Write updated series.json
     series_path = get_series_path(series_id)
-    with open(series_path, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_path, series)
     
     return entry
 
@@ -440,8 +435,7 @@ def update_glossary_entry(series_id: str, entry_id: str, source_term: str, trans
     
     # Write updated series.json
     series_path = get_series_path(series_id)
-    with open(series_path, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_path, series)
     
     return entry
 
@@ -475,8 +469,7 @@ def add_glossary_alias(series_id: str, entry_id: str, alias: str) -> Dict[str, A
     entry["updatedAt"] = now
     series["updatedAt"] = now
     series_path = get_series_path(series_id)
-    with open(series_path, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_path, series)
     return entry
 
 
@@ -498,8 +491,7 @@ def remove_glossary_alias(series_id: str, entry_id: str, alias: str) -> Dict[str
     entry["updatedAt"] = now
     series["updatedAt"] = now
     series_path = get_series_path(series_id)
-    with open(series_path, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_path, series)
     return entry
 
 
@@ -528,8 +520,7 @@ def delete_glossary_entry(series_id: str, entry_id: str) -> bool:
 
     # Write updated series.json
     series_path = get_series_path(series_id)
-    with open(series_path, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_path, series)
 
     return True
 
@@ -542,6 +533,5 @@ def move_series_to_group(series_id: str, group_id: Optional[str]) -> Dict[str, A
     series["groupId"] = group_id
     series["updatedAt"] = datetime.utcnow().isoformat() + 'Z'
     series_path = get_series_path(series_id)
-    with open(series_path, 'w', encoding='utf-8') as f:
-        json.dump(series, f, indent=2, ensure_ascii=False)
+    write_json(series_path, series)
     return series

@@ -10,6 +10,7 @@ import shutil
 import uuid
 from pathlib import Path
 from typing import Dict, Any, List
+from .atomic import write_json
 
 DEFAULT_PROFILE = "Default"
 _VALID_PROFILE_RE = re.compile(r'^[\w\- ]{1,64}$')
@@ -65,8 +66,7 @@ def _migrate_legacy_data():
     if legacy_groups.exists():
         shutil.move(str(legacy_groups), str(default_dir / 'groups.json'))
 
-    with open(meta_path, 'w', encoding='utf-8') as f:
-        json.dump({"active": DEFAULT_PROFILE}, f)
+    write_json(meta_path, {"active": DEFAULT_PROFILE})
 
 
 def get_active_profile_name() -> str:
@@ -146,8 +146,7 @@ def switch_profile(name: str) -> bool:
 def _set_active(name: str):
     meta_path = _profiles_meta_path()
     meta_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(meta_path, 'w', encoding='utf-8') as f:
-        json.dump({"active": name}, f)
+    write_json(meta_path, {"active": name})
 
 
 DEFAULT_CONFIG = {
@@ -339,8 +338,7 @@ def save_config(config: Dict[str, Any]) -> bool:
     # Create directory if it doesn't exist
     config_path.parent.mkdir(parents=True, exist_ok=True)
     
-    with open(config_path, 'w', encoding='utf-8') as f:
-        json.dump(_normalize_workers(config), f, indent=2, ensure_ascii=False)
+    write_json(config_path, _normalize_workers(config))
     
     return True
 
@@ -359,8 +357,7 @@ def init_config() -> Dict[str, Any]:
         config_path.parent.mkdir(parents=True, exist_ok=True)
         
         # Write default config
-        with open(config_path, 'w', encoding='utf-8') as f:
-            json.dump(DEFAULT_CONFIG, f, indent=2, ensure_ascii=False)
+        write_json(config_path, DEFAULT_CONFIG)
         
         return _normalize_workers(DEFAULT_CONFIG.copy())
     

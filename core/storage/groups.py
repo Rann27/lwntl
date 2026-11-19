@@ -9,6 +9,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from .config import get_profile_data_dir
+from .atomic import write_json
 
 MAX_DEPTH = 2  # 0-indexed depth: level 0, 1, 2 → 3 visible levels total
 
@@ -31,8 +32,7 @@ def _load() -> List[Dict[str, Any]]:
 def _save(groups: List[Dict[str, Any]]) -> None:
     path = get_groups_path()
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(groups, f, indent=2, ensure_ascii=False)
+    write_json(path, groups)
 
 
 def _depth(group_id: str, groups: List[Dict[str, Any]]) -> int:

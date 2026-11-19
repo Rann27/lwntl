@@ -33,6 +33,8 @@ export function ProfileSwitcherPanel({ open, onClose }: Props) {
     setError('')
     try {
       await switchProfile(name)
+      // Start the new profile on the library: a series page of the old profile would not exist.
+      window.location.hash = '#/'
       window.location.reload()
     } catch (e: any) {
       setError(e.message)

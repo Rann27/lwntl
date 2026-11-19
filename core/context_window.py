@@ -11,6 +11,7 @@ from .storage.series import get_series, get_series_path
 from .storage.chapters import get_chapters, get_chapter, update_chapter_summary, chapter_num_float
 from .llm_client import LLMClient
 from .prompt_builder import build_system_prompt
+from .storage.atomic import write_json
 
 
 # Context window configuration — defaults only. The effective values come from
@@ -612,8 +613,7 @@ def _trigger_memory_compaction(
         # Save to disk
         series_path = get_series_path(series_id)
         if series_path and series_path.exists():
-            with open(series_path, 'w', encoding='utf-8') as f:
-                json.dump(series, f, indent=2, ensure_ascii=False)
+            write_json(series_path, series)
             
             print(f"[ContextWindow] Memory compacted: Bab {first_ch}-{last_ch} "
                   f"({len(to_compact)} chapters -> {estimate_tokens(memory_text)} tokens)")

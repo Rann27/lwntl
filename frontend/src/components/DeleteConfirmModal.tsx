@@ -32,15 +32,21 @@ export function DeleteConfirmModal({
   const { t } = useI18n()
   const [canConfirm, setCanConfirm] = useState(false)
 
-  // Enable confirm button after 1.5 seconds
+  // Series, chapters and groups take work with them, so their confirm button
+  // unlocks after a short pause. A glossary entry is cheap to re-add: no pause.
+  const confirmDelay = entityType === 'glossary' ? 0 : 1500
   useEffect(() => {
     if (!open) {
       setCanConfirm(false)
       return
     }
-    const timer = setTimeout(() => setCanConfirm(true), 1500)
+    if (!confirmDelay) {
+      setCanConfirm(true)
+      return
+    }
+    const timer = setTimeout(() => setCanConfirm(true), confirmDelay)
     return () => clearTimeout(timer)
-  }, [open])
+  }, [open, confirmDelay])
 
   // Close on Escape
   useEffect(() => {
@@ -118,7 +124,7 @@ export function DeleteConfirmModal({
           {details.length > 0 && (
             <div className="mb-4">
               <p className="mb-2" style={{ fontSize: '14px', color: 'var(--fg-muted,#666)' }}>
-                {t.modal.deleteWarning}
+                {t.modal.deleteIncludes}
               </p>
               <ul style={{ paddingLeft: '1.2rem', listStyle: 'disc' }}>
                 {details.map((d, i) => (
